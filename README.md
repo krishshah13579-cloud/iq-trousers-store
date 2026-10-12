@@ -1,110 +1,74 @@
-# Modern E-Commerce Platform
+# IQ Trousers — Krish Clothing Co.
 
-A production-ready e-commerce web application built with **Next.js (App Router)**, **TypeScript**, **Tailwind CSS**, **Prisma ORM**, and **NextAuth.js**.
+A menswear e-commerce platform dedicated to precision-engineered trousers across sizes **28 to 44**, built with **Next.js (App Router)**, **TypeScript**, **Tailwind CSS**, **Prisma ORM**, and **NextAuth.js**.
 
 ---
 
-## 🌟 Key Features
+## 🌟 Store Configuration
 
-### 🛍️ Storefront & Catalog
-- **Minimalist, Modern Design**: Clean whitespace, subtle shadows, responsive layout.
-- **Product Catalog**: Live search, category filtering, price range filter, and sorting (price high/low, newest, name).
-- **Product Detail**: Multi-image gallery, real-time stock availability, quantity selector, and customer reviews.
-- **Reviews & Ratings**: View existing verified ratings and submit new reviews directly on the product page.
+### 🏷️ Brand & Collections
+- **Store Name**: **IQ Trousers**
+- **Parent Company**: **Krish Clothing Co.**
+- **Headquarters**: `Q-8, Samet Business Park, Near Parishkar - 2, Khokhra Circle, Maninagar, Ahmedabad - 380008`
+- **Collections**:
+  - **Casual Everyday** (`/products?category=casual-everyday`): Chinos, stretch selvedge denim, linen trousers, relaxed overshirts.
+  - **Formal Wear** (`/products?category=formal-wear`): Italian wool blazers, crisp Oxford shirts, pleated dress trousers, double-breasted suits.
+- **Sizes Available**: `28, 30, 32, 34, 36, 38, 40, 42, 44` (selectable per product with live validation).
 
-### 🛒 Shopping Cart & Checkout
-- **Client-side Cart State**: Persistent shopping cart with localStorage synchronization.
-- **Coupon / Discount System**: Real-time discount code validation (Percentage or Fixed amount discounts).
-- **Free Shipping Threshold**: Dynamic indicator for free shipping over $100.
-- **Seamless Checkout**: Address collection and instant order placement with automatic stock decrements.
+### 🧭 Navigation Menu
+1. **IQ Trousers** (Brand Logo / Home)
+2. **Shop All** (`/products`)
+3. **Size Guide** (`/size-guide`) — Comprehensive measurement conversion chart (Inches & CM).
+4. **About Us** (`/about`) — Story, tailoring heritage, and philosophy.
+5. **Contact Us** (`/contact`) — Client care desk and inquiry form.
+6. **Login/Sign Up** (`/login`)
+7. **Wishlist** (`/wishlist`) — Save favorite trousers with 1-click cart transfer.
+8. **Cart** (`/cart`) — Bag management with size variant support and live coupon input.
 
-### 🔐 Authentication & Customer Dashboard
-- **NextAuth.js Authentication**: Secure credentials-based authentication with bcrypt-hashed passwords.
-- **Customer Order Tracking**: Real-time visual progress timeline (`PENDING` → `CONFIRMED` → `SHIPPED` → `DELIVERED`), tracking numbers, and itemized billing breakdown.
-
-### ⚙️ Admin Management Dashboard
-- **Analytics Overview**: Real-time revenue, total orders, product inventory count, and registered customer metrics.
-- **Product Management**: Full CRUD operations — add new products, edit pricing and inventory, delete products.
-- **Order Management**: View customer orders, update delivery status inline, and assign tracking numbers.
-- **Discount Code Management**: Create coupons, configure expiration dates, usage limits, and toggle active status.
+### 📬 Footer & Newsletter System
+- **Mandatory Subscription Form**:
+  - First Name (`*`)
+  - Last Name (`*`)
+  - Email Address (`*`)
+  - Subscribe to newsletter consent (`*`)
+  - Submit Button
+- **Instant Welcome Gift**: Submitting the form emails and reveals an instant **10% Discount Code** (`IQTROUSERS10`).
+- **Footer Links**:
+  - `Shop All`, `Size Guide`, `About Us`, `Contact Us`
+  - `Instagram`, `Facebook`
+  - `FAQ`, `Terms And Conditions`
+  - Address: `Q-8, Samet Business Park, Near Parishkar - 2, Khokhra Circle, Maninagar, Ahmedabad - 380008`
+  - Copyright: `Copyright 2026 by Krish Clothing Co.`
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Install Dependencies
-```bash
-npm install
-```
-
-### 2. Database Setup & Seed
-The application uses SQLite with Prisma for zero-configuration local setup.
-```bash
-# Push database schema
-npx prisma db push
-
-# Seed sample data (products, categories, reviews, coupons, demo accounts)
-npm run seed
-```
-
-### 3. Run Development Server
+### Run Development Server
 ```bash
 npm run dev
 ```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 ---
 
 ## 🔑 Demo Accounts & Test Credentials
 
-### 🛡️ Admin Account
+### 🛡️ Admin Portal
 - **URL**: [http://localhost:3000/admin](http://localhost:3000/admin)
 - **Email**: `admin@store.com`
 - **Password**: `admin123`
+- *Features*: Live sales metrics, product catalog CRUD with size selector (28-44), order fulfillment status & tracking code updater, and discount manager.
 
 ### 👤 Customer Account
 - **URL**: [http://localhost:3000/login](http://localhost:3000/login)
 - **Email**: `john@example.com`
 - **Password**: `user123`
 
-### 🎟️ Sample Discount Codes
-| Code | Type | Value | Minimum Order |
+### 🎟️ Sample Coupons
+| Code | Type | Value | Min Order |
 |---|---|---|---|
-| `WELCOME10` | Percentage | 10% Off | $50 |
-| `SAVE20` | Fixed Amount | $20 Off | $100 |
-| `SUMMER25` | Percentage | 25% Off | $75 |
-
----
-
-## 📁 Project Architecture
-
-```
-ecommerce-store/
-├── prisma/
-│   ├── schema.prisma             # Database schema (User, Product, Order, Discount, etc.)
-│   └── seed.ts                   # Initial seed data script
-├── src/
-│   ├── app/
-│   │   ├── (auth)/               # Login and Registration routes
-│   │   ├── admin/                # Admin portal (Dashboard, Products, Orders, Discounts)
-│   │   ├── api/                  # REST API endpoints (Auth, Products, Orders, Reviews, Discounts)
-│   │   ├── cart/                 # Shopping Cart page
-│   │   ├── checkout/             # Order checkout page
-│   │   ├── orders/               # Customer order history & tracking
-│   │   ├── products/             # Product catalog & product detail
-│   │   ├── layout.tsx            # Global layout with responsive navbar & footer
-│   │   └── page.tsx              # Storefront homepage
-│   ├── components/
-│   │   ├── layout/               # Navbar, Footer, Session/Cart Providers
-│   │   └── products/             # ProductCard, Filters, Gallery, Review forms
-│   ├── context/
-│   │   └── CartContext.tsx       # Shopping cart context with localStorage
-│   ├── lib/
-│   │   ├── auth.ts               # NextAuth configuration
-│   │   ├── prisma.ts             # Prisma client singleton
-│   │   └── utils.ts              # Currency, slug, status styling utilities
-│   └── types/
-│       └── index.ts              # TypeScript type definitions
-└── next.config.ts                # Next.js configuration
-```
+| **`IQTROUSERS10`** | Percentage | 10% Off | $0 |
+| **`WELCOME10`** | Percentage | 10% Off | $50 |
+| **`FORMAL20`** | Percentage | 20% Off | $150 |
+| **`SAVE20`** | Fixed Amount | $20 Off | $100 |
