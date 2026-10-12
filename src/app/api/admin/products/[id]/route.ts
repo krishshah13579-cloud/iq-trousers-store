@@ -102,7 +102,9 @@ export async function PUT(req: NextRequest, { params }: Params) {
               ? parseFloat(comparePrice)
               : null
             : existingProduct.comparePrice,
-        ...(categoryId !== undefined && { categoryId }),
+        ...(categoryId !== undefined && {
+          category: { connect: { id: categoryId } },
+        }),
         ...(stock !== undefined && { stock: parseInt(stock, 10) }),
         images: imagesJson,
         ...(sizes !== undefined && {

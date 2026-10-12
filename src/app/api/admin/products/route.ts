@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
         description,
         price: parseFloat(price),
         comparePrice: comparePrice ? parseFloat(comparePrice) : null,
-        categoryId,
+        category: { connect: { id: categoryId } },
         stock: parseInt(stock ?? 0, 10),
         images: imagesJson,
         sizes: sizesJson,
