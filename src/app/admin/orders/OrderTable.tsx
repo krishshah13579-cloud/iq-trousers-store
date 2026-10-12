@@ -18,6 +18,7 @@ interface OrderItem {
   id: string;
   quantity: number;
   price: number;
+  size?: string | null;
   product?: {
     name: string;
     images: string;
@@ -274,8 +275,13 @@ export default function OrderTable({ initialOrders }: { initialOrders: OrderData
                                           <div className="font-medium text-gray-900">
                                             {item.product?.name || "Deleted Product"}
                                           </div>
-                                          <div className="text-gray-500">
-                                            Qty: {item.quantity} × {formatPrice(item.price)}
+                                          <div className="flex items-center gap-2 text-gray-500 mt-0.5">
+                                            <span>Qty: {item.quantity} × {formatPrice(item.price)}</span>
+                                            {item.size && (
+                                              <span className="font-semibold text-gray-800 bg-gray-100 px-1.5 py-0.5 rounded text-[10px] border border-gray-200">
+                                                Size: {item.size}
+                                              </span>
+                                            )}
                                           </div>
                                         </div>
                                       </div>

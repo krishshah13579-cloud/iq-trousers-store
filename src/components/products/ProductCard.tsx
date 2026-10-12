@@ -16,7 +16,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const [added, setAdded] = useState(false);
 
   // Parse product images
-  let imageUrl = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600";
+  let imageUrl = "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600";
   try {
     const parsed = JSON.parse(product.images);
     if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]) {
@@ -30,6 +30,24 @@ export default function ProductCard({ product }: ProductCardProps) {
     }
   }
 
+  // Parse available clothing sizes
+  const availableSizes: string[] = (() => {
+    if (!product.sizes) return [];
+    try {
+      const parsed = JSON.parse(product.sizes);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      // fallback
+    }
+    if (typeof product.sizes === "string") {
+      return product.sizes
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    return [];
+  })();
+
   // Calculate average rating
   const reviews = product.reviews || [];
   const reviewCount = product._count?.reviews ?? reviews.length;
@@ -41,14 +59,18 @@ export default function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addItem(product, 1);
+    // Default to first available size or undefined
+    const defaultSize = availableSizes.length > 0 ? availableSizes[0] : undefined;
+    addItem(product, 1, defaultSize);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   };
 
   const discountPercent =
     product.comparePrice && product.comparePrice > product.price
-      ? Math.round(((product.comparePrice - product.price) / product.comparePrice) * 100)
+      ? Math.round(
+          ((product.comparePrice - product.price) / product.comparePrice) * 100
+        )
       : null;
 
   return (
@@ -56,7 +78,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       {/* Product Image */}
       <Link
         href={`/products/${product.id}`}
-        className="relative block aspect-square w-full overflow-hidden bg-gray-50"
+        className="relative block aspect-[4/5] w-full overflow-hidden bg-gray-50"
       >
         <img
           src={imageUrl}
@@ -125,6 +147,19 @@ export default function ProductCard({ product }: ProductCardProps) {
           </span>
         </div>
 
+        {/* Available Sizes List */}
+        {availableSizes.length > 0 && (
+          <div className="flex items-center gap-1.5 mt-2.5 text-xs text-gray-500">
+            <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">
+              Sizes:
+            </span>
+            <span className="text-xs text-gray-700 font-medium">
+              {availableSizes.slice(0, 4).join(", ")}
+              {availableSizes.length > 4 ? ` +${availableSizes.length - 4}` : ""}
+            </span>
+          </div>
+        )}
+
         {/* Price & Add to Cart */}
         <div className="mt-4 pt-3 border-t border-gray-50 flex items-center justify-between">
           <div className="flex items-baseline gap-2">
@@ -138,24 +173,13 @@ export default function ProductCard({ product }: ProductCardProps) {
             )}
           </div>
 
-          <button
-            onClick={handleAddToCart}
-            disabled={product.stock <= 0}
-            aria-label="Add to cart"
-            className={`flex items-center justify-center h-9 w-9 rounded-full transition-all duration-200 ${
-              product.stock <= 0
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : added
-                ? "bg-emerald-600 text-white"
-                : "bg-gray-900 text-white hover:bg-gray-800 active:scale-95 shadow-sm"
-            }`}
+          <Link
+            href={`/products/${product.id}`}
+            aria-label="View product and select size"
+            className="flex items-center justify-center h-9 w-9 rounded-full bg-gray-900 text-white hover:bg-gray-800 active:scale-95 shadow-sm transition-all duration-200"
           >
-            {added ? (
-              <Check className="w-4 h-4" />
-            ) : (
-              <ShoppingCart className="w-4 h-4" />
-            )}
-          </button>
+            <ShoppingCart className="w-4 h-4" />
+          </Link>
         </div>
       </div>
     </div>

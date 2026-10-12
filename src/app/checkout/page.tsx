@@ -228,6 +228,7 @@ function CheckoutContent() {
           items: items.map((i) => ({
             productId: i.productId,
             quantity: i.quantity,
+            size: i.size,
           })),
           shippingAddress: submissionAddress,
           discountCode: appliedDiscount?.code,
@@ -507,9 +508,14 @@ function CheckoutContent() {
                           <p className="text-sm font-medium text-neutral-900 truncate">
                             {item.product.name}
                           </p>
-                          <p className="text-xs text-neutral-500">
-                            Qty: {item.quantity} × {formatPrice(item.product.price)}
-                          </p>
+                          <div className="flex items-center gap-2 text-xs text-neutral-500">
+                            <span>Qty: {item.quantity} × {formatPrice(item.product.price)}</span>
+                            {item.size && (
+                              <span className="font-semibold text-neutral-700 bg-neutral-200/80 px-1.5 py-0.2 rounded text-[11px]">
+                                Size {item.size}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <span className="text-sm font-semibold text-neutral-900 shrink-0">

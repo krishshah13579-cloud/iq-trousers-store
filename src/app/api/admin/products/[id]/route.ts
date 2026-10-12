@@ -49,6 +49,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
       categoryId,
       stock,
       images,
+      sizes,
       featured,
       active,
     } = body;
@@ -104,6 +105,9 @@ export async function PUT(req: NextRequest, { params }: Params) {
         ...(categoryId !== undefined && { categoryId }),
         ...(stock !== undefined && { stock: parseInt(stock, 10) }),
         images: imagesJson,
+        ...(sizes !== undefined && {
+          sizes: Array.isArray(sizes) ? JSON.stringify(sizes) : String(sizes),
+        }),
         ...(featured !== undefined && { featured: Boolean(featured) }),
         ...(active !== undefined && { active: Boolean(active) }),
       },

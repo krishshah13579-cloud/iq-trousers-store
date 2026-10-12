@@ -38,6 +38,7 @@ model Product {
   price       Float
   comparePrice Float?
   images      String     // JSON array of image URLs
+  sizes       String?    @default("[\"28\",\"30\",\"32\",\"34\",\"36\",\"38\",\"40\",\"42\",\"44\"]") // JSON array of available sizes
   category    Category   @relation(fields: [categoryId], references: [id])
   categoryId  String
   stock       Int        @default(0)
@@ -72,6 +73,7 @@ model OrderItem {
   orderId   String
   product   Product @relation(fields: [productId], references: [id])
   productId String
+  size      String? // e.g. 28, 30, 32, 34, 36, 38, 40, 42, 44
   quantity  Int
   price     Float
 }
@@ -95,9 +97,10 @@ model CartItem {
   userId    String
   product   Product @relation(fields: [productId], references: [id])
   productId String
+  size      String? // selected size
   quantity  Int     @default(1)
 
-  @@unique([userId, productId])
+  @@unique([userId, productId, size])
 }
 
 model Discount {

@@ -12,7 +12,28 @@ interface AddToCartSectionProps {
 export default function AddToCartSection({ product }: AddToCartSectionProps) {
   const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [sizeError, setSizeError] = useState(false);
   const [added, setAdded] = useState(false);
+
+  const availableSizes: string[] = (() => {
+    if (!product.sizes) {
+      return ["28", "30", "32", "34", "36", "38", "40", "42", "44"];
+    }
+    try {
+      const parsed = JSON.parse(product.sizes);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {
+      // fallback to comma separated
+    }
+    if (typeof product.sizes === "string") {
+      return product.sizes
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    return ["28", "30", "32", "34", "36", "38", "40", "42", "44"];
+  })();
 
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock > 0 && product.stock <= 5;
@@ -31,7 +52,11 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
 
   const handleAddToCart = () => {
     if (isOutOfStock) return;
-    addItem(product, quantity);
+    if (availableSizes.length > 0 && !selectedSize) {
+      setSizeError(true);
+      return;
+    }
+    addItem(product, quantity, selectedSize || undefined);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
@@ -59,56 +84,105 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
       </div>
 
       {!isOutOfStock && (
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-          {/* Quantity Selector */}
-          <div className="flex items-center justify-between border border-gray-200 rounded-full px-3 py-1.5 w-full sm:w-36 bg-gray-50/50">
+        <>
+          {/* Size Selector */}
+          {availableSizes.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-gray-900 uppercase tracking-wider">
+                  Select Size{" "}
+                  {selectedSize && (
+                    <span className="font-normal text-gray-500 normal-case">
+                      (Size {selectedSize})
+                    </span>
+                  )}
+                </label>
+                <span className="text-xs text-gray-400">Regular Fit</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {availableSizes.map((size) => {
+                  const isSelected = selectedSize === size;
+                  return (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => {
+                        setSelectedSize(size);
+                        setSizeError(false);
+                      }}
+                      className={`min-w-[46px] h-10 px-3 text-xs font-medium rounded-lg border transition-all duration-150 flex items-center justify-center ${
+                        isSelected
+                          ? "bg-gray-900 text-white border-gray-900 shadow-xs"
+                          : "bg-white text-gray-800 border-gray-200 hover:border-gray-900 hover:bg-gray-50"
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  );
+                })}
+              </div>
+              {sizeError && (
+                <p className="text-xs text-rose-600 font-medium flex items-center gap-1.5 mt-1.5 animate-fadeIn">
+                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>Please choose your size before adding to cart</span>
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
+            {/* Quantity Selector */}
+            <div className="flex items-center justify-between border border-gray-200 rounded-full px-3 py-1.5 w-full sm:w-36 bg-gray-50/50">
+              <button
+                type="button"
+                onClick={handleDecrement}
+                disabled={quantity <= 1}
+                aria-label="Decrease quantity"
+                className="p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+              <span className="text-sm font-semibold text-gray-900 px-2 select-none">
+                {quantity}
+              </span>
+              <button
+                type="button"
+                onClick={handleIncrement}
+                disabled={quantity >= product.stock}
+                aria-label="Increase quantity"
+                className="p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Add to Cart Button */}
             <button
               type="button"
-              onClick={handleDecrement}
-              disabled={quantity <= 1}
-              aria-label="Decrease quantity"
-              className="p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              onClick={handleAddToCart}
+              disabled={added}
+              className={`flex-1 inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full font-medium text-sm transition-all duration-200 shadow-sm ${
+                added
+                  ? "bg-emerald-600 text-white"
+                  : "bg-gray-900 text-white hover:bg-gray-800 active:scale-[0.99]"
+              }`}
             >
-              <Minus className="w-3.5 h-3.5" />
-            </button>
-            <span className="text-sm font-semibold text-gray-900 px-2 select-none">
-              {quantity}
-            </span>
-            <button
-              type="button"
-              onClick={handleIncrement}
-              disabled={quantity >= product.stock}
-              aria-label="Increase quantity"
-              className="p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
+              {added ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  <span>Added to cart!</span>
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>
+                    Add to Cart {selectedSize ? `(Size ${selectedSize})` : ""}
+                  </span>
+                </>
+              )}
             </button>
           </div>
-
-          {/* Add to Cart Button */}
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            disabled={added}
-            className={`flex-1 inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full font-medium text-sm transition-all duration-200 shadow-sm ${
-              added
-                ? "bg-emerald-600 text-white"
-                : "bg-gray-900 text-white hover:bg-gray-800 active:scale-[0.99]"
-            }`}
-          >
-            {added ? (
-              <>
-                <Check className="w-4 h-4" />
-                <span>Added to cart!</span>
-              </>
-            ) : (
-              <>
-                <ShoppingCart className="w-4 h-4" />
-                <span>Add to Cart</span>
-              </>
-            )}
-          </button>
-        </div>
+        </>
       )}
 
       {isOutOfStock && (

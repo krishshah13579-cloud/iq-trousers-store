@@ -43,13 +43,13 @@ export default async function HomePage() {
             </div>
 
             <h1 className="text-4xl sm:text-6xl font-light tracking-tight text-gray-900 leading-[1.15]">
-              Thoughtfully created, <br className="hidden sm:inline" />
-              <span className="font-medium text-gray-950">minimal essentials</span> for life.
+              Thoughtfully tailored, <br className="hidden sm:inline" />
+              <span className="font-medium text-gray-950">modern clothing</span> for every occasion.
             </h1>
 
             <p className="text-lg sm:text-xl text-gray-500 font-light max-w-2xl mx-auto leading-relaxed">
-              Discover a refined collection of modern apparel, cutting-edge electronics,
-              and elegant living pieces designed for longevity.
+              Discover curated Casual Everyday essentials and impeccably tailored Formal Wear
+              crafted with premium fabrics and precise sizing from 28 to 44.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">

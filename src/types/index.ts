@@ -1,3 +1,17 @@
+export const CLOTHING_SIZES = [
+  "28",
+  "30",
+  "32",
+  "34",
+  "36",
+  "38",
+  "40",
+  "42",
+  "44",
+] as const;
+
+export type ClothingSize = (typeof CLOTHING_SIZES)[number];
+
 export interface Product {
   id: string;
   name: string;
@@ -6,6 +20,7 @@ export interface Product {
   price: number;
   comparePrice: number | null;
   images: string;
+  sizes?: string | null; // JSON array string e.g. '["28","30","32"]'
   categoryId: string;
   category?: Category;
   stock: number;
@@ -31,6 +46,7 @@ export interface CartItemType {
   id: string;
   productId: string;
   quantity: number;
+  size?: string; // e.g. "32"
   product: Product;
 }
 
@@ -56,6 +72,7 @@ export interface OrderItem {
   productId: string;
   quantity: number;
   price: number;
+  size?: string | null; // e.g. "32"
   product?: Product;
 }
 

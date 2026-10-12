@@ -179,11 +179,12 @@ export async function POST(req: NextRequest) {
           discountCode: appliedDiscountCode,
           discountAmount,
           items: {
-            create: items.map((item) => {
+            create: items.map((item: { productId: string; quantity: number; size?: string }) => {
               const product = products.find((p) => p.id === item.productId)!;
               return {
                 productId: item.productId,
                 quantity: item.quantity,
+                size: item.size || null,
                 price: product.price,
               };
             }),

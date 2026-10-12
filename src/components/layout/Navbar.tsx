@@ -50,25 +50,19 @@ export default function Navbar() {
               href="/products"
               className="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
             >
-              Products
+              All Clothing
             </Link>
             <Link
-              href="/products?category=electronics"
+              href="/products?category=casual-everyday"
               className="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
             >
-              Electronics
+              Casual Everyday
             </Link>
             <Link
-              href="/products?category=clothing"
+              href="/products?category=formal-wear"
               className="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
             >
-              Clothing
-            </Link>
-            <Link
-              href="/products?category=home-garden"
-              className="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
-            >
-              Home & Garden
+              Formal Wear
             </Link>
           </div>
 
@@ -198,28 +192,21 @@ export default function Navbar() {
               className="block px-3 py-2 text-gray-600 hover:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-50"
               onClick={() => setMobileOpen(false)}
             >
-              All Products
+              All Clothing
             </Link>
             <Link
-              href="/products?category=electronics"
+              href="/products?category=casual-everyday"
               className="block px-3 py-2 text-gray-600 hover:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-50"
               onClick={() => setMobileOpen(false)}
             >
-              Electronics
+              Casual Everyday
             </Link>
             <Link
-              href="/products?category=clothing"
+              href="/products?category=formal-wear"
               className="block px-3 py-2 text-gray-600 hover:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-50"
               onClick={() => setMobileOpen(false)}
             >
-              Clothing
-            </Link>
-            <Link
-              href="/products?category=home-garden"
-              className="block px-3 py-2 text-gray-600 hover:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-50"
-              onClick={() => setMobileOpen(false)}
-            >
-              Home & Garden
+              Formal Wear
             </Link>
             {session ? (
               <>

@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
       categoryId,
       stock,
       images,
+      sizes,
       featured,
       active,
     } = body;
@@ -78,6 +79,15 @@ export async function POST(req: NextRequest) {
       imagesJson = JSON.stringify([]);
     }
 
+    let sizesJson = JSON.stringify(["28", "30", "32", "34", "36", "38", "40", "42", "44"]);
+    if (sizes) {
+      if (Array.isArray(sizes)) {
+        sizesJson = JSON.stringify(sizes);
+      } else if (typeof sizes === "string") {
+        sizesJson = sizes;
+      }
+    }
+
     const product = await prisma.product.create({
       data: {
         name,
@@ -88,6 +98,7 @@ export async function POST(req: NextRequest) {
         categoryId,
         stock: parseInt(stock ?? 0, 10),
         images: imagesJson,
+        sizes: sizesJson,
         featured: Boolean(featured),
         active: active !== undefined ? Boolean(active) : true,
       },

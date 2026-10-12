@@ -154,9 +154,14 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                       <p className="text-sm font-medium text-neutral-900 truncate">
                         {item.product.name}
                       </p>
-                      <p className="text-xs text-neutral-500">
-                        Qty: {item.quantity} × {formatPrice(item.price)}
-                      </p>
+                      <div className="flex items-center gap-2 text-xs text-neutral-500 mt-0.5">
+                        <span>Qty: {item.quantity} × {formatPrice(item.price)}</span>
+                        {item.size && (
+                          <span className="font-semibold text-neutral-800 bg-neutral-100 px-1.5 py-0.5 rounded text-[11px] border border-neutral-200">
+                            Size: {item.size}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <span className="text-sm font-semibold text-neutral-900 shrink-0">

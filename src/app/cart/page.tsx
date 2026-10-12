@@ -204,14 +204,21 @@ export default function CartPage() {
 
                   <div className="flex-1 min-w-0">
                     <Link
-                      href={`/products/${item.product.slug}`}
+                      href={`/products/${item.product.slug || item.product.id}`}
                       className="text-base font-semibold text-neutral-900 hover:text-neutral-600 transition-colors line-clamp-1"
                     >
                       {item.product.name}
                     </Link>
-                    <p className="text-sm text-neutral-500 mt-0.5">
-                      {formatPrice(item.product.price)} each
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-sm text-neutral-500">
+                        {formatPrice(item.product.price)} each
+                      </p>
+                      {item.size && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200">
+                          Size: {item.size}
+                        </span>
+                      )}
+                    </div>
                     {isOutOfStock ? (
                       <p className="text-xs text-red-600 font-medium mt-1">Out of stock</p>
                     ) : isLowStock ? (
@@ -228,7 +235,7 @@ export default function CartPage() {
                     <button
                       type="button"
                       aria-label="Decrease quantity"
-                      onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
                       className="p-2 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors disabled:opacity-40"
                     >
                       <Minus className="w-3.5 h-3.5" />
@@ -240,7 +247,7 @@ export default function CartPage() {
                       type="button"
                       aria-label="Increase quantity"
                       disabled={item.quantity >= item.product.stock}
-                      onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
                       className="p-2 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <Plus className="w-3.5 h-3.5" />
@@ -258,7 +265,7 @@ export default function CartPage() {
                   <button
                     type="button"
                     aria-label="Remove item"
-                    onClick={() => removeItem(item.productId)}
+                    onClick={() => removeItem(item.id)}
                     className="p-2 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />

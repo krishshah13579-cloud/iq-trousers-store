@@ -13,36 +13,30 @@ export default function Footer() {
               <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">S</span>
               </div>
-              <span className="text-xl font-semibold text-gray-900">Store</span>
+              <span className="text-xl font-semibold text-gray-900 tracking-tight">Atelier Store</span>
             </div>
             <p className="text-sm text-gray-500 leading-relaxed">
-              Your one-stop shop for premium products. Quality guaranteed with
-              fast shipping and excellent customer service.
+              Curated menswear and refined apparel. Timeless casual essentials and modern formalwear tailored for everyday life.
             </p>
           </div>
 
           {/* Shop */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">Shop</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">Collections</h3>
             <ul className="space-y-3">
               <li>
                 <Link href="/products" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
-                  All Products
+                  All Clothing
                 </Link>
               </li>
               <li>
-                <Link href="/products?category=electronics" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
-                  Electronics
+                <Link href="/products?category=casual-everyday" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
+                  Casual Everyday
                 </Link>
               </li>
               <li>
-                <Link href="/products?category=clothing" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
-                  Clothing
-                </Link>
-              </li>
-              <li>
-                <Link href="/products?category=home-garden" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
-                  Home & Garden
+                <Link href="/products?category=formal-wear" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
+                  Formal Wear
                 </Link>
               </li>
             </ul>
