@@ -39,17 +39,16 @@ export default async function HomePage() {
           <div className="max-w-3xl mx-auto text-center space-y-8">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-gray-200 bg-white shadow-xs text-xs font-medium text-gray-700">
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Curated design & premium essentials</span>
+              <span>IQ Trousers by Krish Clothing Co.</span>
             </div>
 
-            <h1 className="text-4xl sm:text-6xl font-light tracking-tight text-gray-900 leading-[1.15]">
-              Thoughtfully tailored, <br className="hidden sm:inline" />
-              <span className="font-medium text-gray-950">modern clothing</span> for every occasion.
+            <h1 className="text-4xl sm:text-6xl font-serif font-bold tracking-tight text-gray-900 leading-[1.15]">
+              Engineered Trousers. <br className="hidden sm:inline" />
+              <span className="font-light italic text-gray-700">Unrivaled Proportion.</span>
             </h1>
 
             <p className="text-lg sm:text-xl text-gray-500 font-light max-w-2xl mx-auto leading-relaxed">
-              Discover curated Casual Everyday essentials and impeccably tailored Formal Wear
-              crafted with premium fabrics and precise sizing from 28 to 44.
+              Crafted in Ahmedabad with precision tailoring across sizes 28 through 44. Discover our Casual Everyday and Formal Wear collections.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
@@ -57,14 +56,14 @@ export default async function HomePage() {
                 href="/products"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-gray-900 text-white font-medium hover:bg-gray-800 transition-all shadow-sm active:scale-95"
               >
-                <span>Explore Catalog</span>
+                <span>Shop All Trousers</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
-                href="/products?featured=true"
+                href="/size-guide"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-all"
               >
-                <span>View Featured</span>
+                <span>View Size Guide (28-44)</span>
               </Link>
             </div>
           </div>

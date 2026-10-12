@@ -115,3 +115,12 @@ model Discount {
   expiresAt   DateTime?
   createdAt   DateTime @default(now())
 }
+
+model NewsletterSubscriber {
+  id           String   @id @default(cuid())
+  firstName    String
+  lastName     String
+  email        String   @unique
+  discountCode String?
+  createdAt    DateTime @default(now())
+}

@@ -5,8 +5,9 @@ import Footer from "@/components/layout/Footer";
 import Providers from "@/components/layout/Providers";
 
 export const metadata: Metadata = {
-  title: "Store — Premium Products",
-  description: "Your one-stop shop for premium products. Quality guaranteed.",
+  title: "IQ Trousers | Krish Clothing Co. — Precision Menswear & Trousers",
+  description:
+    "Engineered trousers across sizes 28 to 44. Explore Casual Everyday and Formal Wear tailored by Krish Clothing Co., Ahmedabad.",
 };
 
 export default function RootLayout({

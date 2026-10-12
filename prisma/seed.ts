@@ -298,6 +298,17 @@ async function main() {
   await Promise.all([
     prisma.discount.create({
       data: {
+        code: "IQTROUSERS10",
+        type: "PERCENTAGE",
+        value: 10,
+        minOrder: 0,
+        maxUses: 1000,
+        active: true,
+        expiresAt: new Date("2028-12-31"),
+      },
+    }),
+    prisma.discount.create({
+      data: {
         code: "WELCOME10",
         type: "PERCENTAGE",
         value: 10,
