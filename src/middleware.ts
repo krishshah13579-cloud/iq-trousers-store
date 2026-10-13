@@ -27,22 +27,34 @@ export async function middleware(req: NextRequest) {
 
   const role = token?.role as string | undefined;
   const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
+  const isLoggedIn = !!token;
 
-  // Strict Confinement: If logged in as an administrator,
-  // under no circumstances allow them to view or access the customer storefront.
-  // Immediately redirect to /admin at the server/edge level.
-  if (isAdmin) {
-    if (!pathname.startsWith("/admin") && !pathname.startsWith("/api/admin")) {
-      return NextResponse.redirect(new URL("/admin", req.url));
+  // Protect Admin Portal: Only authorized administrators may access /admin
+  if (pathname.startsWith("/admin")) {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(
+        new URL(`/login?callbackUrl=${encodeURIComponent(pathname)}`, req.url)
+      );
+    }
+    if (!isAdmin) {
+      return NextResponse.redirect(new URL("/", req.url));
     }
   }
 
-  // Strict API Protection: Non-admins cannot access /api/admin
+  // Protect Admin APIs: Non-admins cannot access /api/admin
   if (pathname.startsWith("/api/admin") && !isAdmin) {
     return NextResponse.json(
       { error: "Access Denied: Administrative privileges required." },
       { status: 403 }
     );
+  }
+
+  // If already logged in, visiting auth pages redirects automatically as per role
+  if ((pathname === "/login" || pathname === "/register") && isLoggedIn) {
+    if (isAdmin) {
+      return NextResponse.redirect(new URL("/admin", req.url));
+    }
+    return NextResponse.redirect(new URL("/", req.url));
   }
 
   return NextResponse.next();

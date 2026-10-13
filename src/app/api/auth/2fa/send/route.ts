@@ -89,31 +89,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const requestedPortal = portal ? String(portal).trim().toUpperCase() : "STORE";
-    const isUserAdmin = isAdminRole(user.role);
-
-    // Strict Separation: Do not allow admin login through the customer interface
-    if (requestedPortal === "STORE" && isUserAdmin) {
-      return NextResponse.json(
-        {
-          error:
-            "Administrator accounts are not permitted to sign in through the customer storefront. Please access the Admin Portal directly.",
-        },
-        { status: 403 }
-      );
-    }
-
-    // Strict Separation: Do not allow customer login through the admin portal
-    if (requestedPortal === "ADMIN" && !isUserAdmin) {
-      return NextResponse.json(
-        {
-          error:
-            "Access Denied: Only authorized administrators may sign in to the Admin Portal.",
-        },
-        { status: 403 }
-      );
-    }
-
     // Generate secure 6-digit OTP code and expiry
     const code = generateTwoFactorCode();
     const expiresAt = new Date(Date.now() + CODE_EXPIRATION_MINUTES * 60 * 1000);
@@ -157,6 +132,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       email: user.email,
+      role: user.role,
       maskedEmail,
       message: emailDelivered
         ? `A 6-digit verification code has been dispatched to ${maskedEmail}`

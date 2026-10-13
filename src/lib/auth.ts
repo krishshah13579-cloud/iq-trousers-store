@@ -40,23 +40,6 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid email or password");
         }
 
-        const portal = credentials.portal?.trim()?.toUpperCase();
-        const isUserAdmin = isAdminRole(user.role);
-
-        // Strict Separation: Do not allow admin login through the customer interface
-        if (portal === "STORE" && isUserAdmin) {
-          throw new Error(
-            "Administrator accounts are not permitted to sign in through the customer interface. Please access the Admin Portal directly."
-          );
-        }
-
-        // Strict Separation: Do not allow customer login through the admin portal
-        if (portal === "ADMIN" && !isUserAdmin) {
-          throw new Error(
-            "Access Denied: Only authorized administrators may sign in to the Admin Portal."
-          );
-        }
-
         // Two-factor authentication verification
         const code = credentials.code?.trim();
         if (!code) {

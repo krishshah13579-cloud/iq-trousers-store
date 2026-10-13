@@ -220,8 +220,25 @@ export default function AdminLoginForm() {
           // Non-blocking sync
         }
 
-        // Direct reload / push to Admin Panel
-        router.push("/admin");
+        let role = "ADMIN";
+        try {
+          const sessionRes = await fetch("/api/auth/session");
+          if (sessionRes.ok) {
+            const sessionData = await sessionRes.json();
+            if (sessionData?.user?.role) {
+              role = sessionData.user.role;
+            }
+          }
+        } catch {
+          // fallback
+        }
+
+        const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
+        if (isAdmin) {
+          router.push("/admin");
+        } else {
+          router.push("/");
+        }
         router.refresh();
       } else {
         setError("Sign in could not be completed. Access Denied.");

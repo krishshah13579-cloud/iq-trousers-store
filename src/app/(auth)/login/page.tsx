@@ -48,6 +48,7 @@ function CustomerLoginForm() {
     registered ? "Account registered successfully! Please sign in below." : null
   );
   const [devCode, setDevCode] = useState<string | null>(null);
+  const [detectedRole, setDetectedRole] = useState<string | null>(null);
 
   // Countdown timer effect
   useEffect(() => {
@@ -94,6 +95,9 @@ function CustomerLoginForm() {
       }
 
       setMaskedEmail(data.maskedEmail || email.trim());
+      if (data.role) {
+        setDetectedRole(data.role);
+      }
       if (data.devCode) {
         setDevCode(data.devCode);
       }
@@ -223,8 +227,29 @@ function CustomerLoginForm() {
         setError(res.error);
         setLoading(false);
       } else if (res?.ok) {
-        const destination = callbackUrl.startsWith("/admin") ? "/" : callbackUrl;
-        router.push(destination);
+        let role = detectedRole;
+        try {
+          const sessionRes = await fetch("/api/auth/session");
+          if (sessionRes.ok) {
+            const sessionData = await sessionRes.json();
+            if (sessionData?.user?.role) {
+              role = sessionData.user.role;
+            }
+          }
+        } catch {
+          // fallback to detectedRole
+        }
+
+        const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
+        if (isAdmin) {
+          router.push("/admin");
+        } else {
+          const destination =
+            callbackUrl && !callbackUrl.startsWith("/admin") && callbackUrl !== "/login"
+              ? callbackUrl
+              : "/";
+          router.push(destination);
+        }
         router.refresh();
       } else {
         setError("Sign in could not be completed. Please try again.");
