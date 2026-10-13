@@ -1,5 +1,7 @@
 "use client";
-
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
@@ -7,8 +9,16 @@ import { formatPrice } from "@/lib/utils";
 import { Heart, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 
 export default function WishlistPage() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const { items, toggleWishlist, clearWishlist } = useWishlist();
   const { addItem } = useCart();
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login?callbackUrl=/wishlist");
+    }
+  }, [status, router]);
 
   const getProductImage = (imagesStr: string) => {
     try {

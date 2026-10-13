@@ -1,6 +1,8 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Product } from "@/types";
 
 interface WishlistContextType {
@@ -14,6 +16,8 @@ interface WishlistContextType {
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const [items, setItems] = useState<Product[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -48,6 +52,17 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   }, [items, isLoaded]);
 
   const toggleWishlist = (product: Product) => {
+    // When the user is trying to add the product to wishlist and is not logged in:
+    // redirect to login/signup page immediately
+    if (status === "unauthenticated" || !session) {
+      const currentUrl =
+        typeof window !== "undefined"
+          ? window.location.pathname + window.location.search
+          : "/";
+      router.push(`/login?callbackUrl=${encodeURIComponent(currentUrl)}`);
+      return;
+    }
+
     setItems((prev) => {
       const exists = prev.some((p) => p.id === product.id);
       if (exists) {

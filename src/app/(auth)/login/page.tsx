@@ -530,7 +530,11 @@ function CustomerLoginForm() {
             <div className="mt-8 text-center text-sm text-gray-500">
               Don&apos;t have an account?{" "}
               <Link
-                href="/register"
+                href={
+                  callbackUrl && callbackUrl !== "/"
+                    ? `/register?callbackUrl=${encodeURIComponent(callbackUrl)}`
+                    : "/register"
+                }
                 className="font-medium text-gray-900 hover:underline"
               >
                 Create an account

@@ -107,12 +107,12 @@ export default function Navbar() {
 
             {/* Wishlist */}
             <Link
-              href="/wishlist"
+              href={session ? "/wishlist" : "/login?callbackUrl=/wishlist"}
               className="relative p-2 text-gray-700 hover:text-black transition-colors flex items-center gap-1 text-sm font-medium"
               title="Wishlist"
             >
               <Heart className="w-5 h-5 text-gray-700" />
-              {totalWishlist > 0 && (
+              {session && totalWishlist > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                   {totalWishlist}
                 </span>
@@ -214,9 +214,12 @@ export default function Navbar() {
 
           {/* Mobile Menu Actions */}
           <div className="flex items-center space-x-3 lg:hidden">
-            <Link href="/wishlist" className="relative p-2 text-gray-700">
+            <Link
+              href={session ? "/wishlist" : "/login?callbackUrl=/wishlist"}
+              className="relative p-2 text-gray-700"
+            >
               <Heart className="w-5 h-5" />
-              {totalWishlist > 0 && (
+              {session && totalWishlist > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                   {totalWishlist}
                 </span>

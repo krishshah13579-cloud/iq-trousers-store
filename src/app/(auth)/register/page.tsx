@@ -23,6 +23,14 @@ export default function RegisterPage() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [callbackUrl, setCallbackUrl] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const param = new URLSearchParams(window.location.search).get("callbackUrl");
+      if (param) setCallbackUrl(param);
+    }
+  }, []);
 
   // Phone OTP verification state
   const [otpCode, setOtpCode] = useState("");
@@ -175,7 +183,7 @@ export default function RegisterPage() {
       router.push(
         `/login?registered=1&email=${encodeURIComponent(email.trim())}&welcomeCode=${encodeURIComponent(
           data.couponCode || ""
-        )}`
+        )}${callbackUrl ? `&callbackUrl=${encodeURIComponent(callbackUrl)}` : ""}`
       );
     } catch {
       setError("An unexpected error occurred. Please try again.");
@@ -424,7 +432,14 @@ export default function RegisterPage() {
 
           <div className="mt-6 text-center text-xs text-gray-500">
             Already have an account?{" "}
-            <Link href="/login" className="font-semibold text-gray-900 hover:underline">
+            <Link
+              href={
+                callbackUrl
+                  ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
+                  : "/login"
+              }
+              className="font-semibold text-gray-900 hover:underline"
+            >
               Sign in
             </Link>
           </div>
