@@ -52,7 +52,23 @@ export default function AdminDiscountsPage() {
   };
 
   useEffect(() => {
-    loadDiscounts();
+    let active = true;
+    async function init() {
+      try {
+        const res = await fetch("/api/admin/discounts");
+        if (!res.ok) throw new Error("Failed to load discounts");
+        const data = await res.json();
+        if (active) setDiscounts(data);
+      } catch (err: unknown) {
+        if (active) setError(err instanceof Error ? err.message : "Error fetching discounts");
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    init();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const openCreateModal = () => {

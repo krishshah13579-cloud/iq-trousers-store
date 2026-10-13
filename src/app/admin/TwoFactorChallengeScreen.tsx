@@ -36,28 +36,10 @@ export default function TwoFactorChallengeScreen({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [rememberDevice, setRememberDevice] = useState(true);
-
   const [countdown, setCountdown] = useState(30);
-  const [canResend, setCanResend] = useState(false);
+  const canResend = countdown <= 0;
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  // Request code on mount
-  useEffect(() => {
-    sendNewCode();
-  }, []);
-
-  // Timer countdown
-  useEffect(() => {
-    if (countdown <= 0) {
-      setCanResend(true);
-      return;
-    }
-    const timer = setInterval(() => {
-      setCountdown((prev) => prev - 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [countdown]);
 
   const sendNewCode = async () => {
     setSendingCode(true);
@@ -79,13 +61,32 @@ export default function TwoFactorChallengeScreen({
         setDevCode(null);
       }
       setCountdown(30);
-      setCanResend(false);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to generate code");
     } finally {
       setSendingCode(false);
     }
   };
+
+  // Request code on mount
+  useEffect(() => {
+    let active = true;
+    queueMicrotask(() => {
+      if (active) sendNewCode();
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Timer countdown
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setInterval(() => {
+      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [countdown]);
 
   const handleDigitChange = (index: number, value: string) => {
     const cleanValue = value.replace(/[^0-9]/g, "");

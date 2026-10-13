@@ -105,11 +105,13 @@ function CheckoutContent() {
   // Fetch smart sales-boosting coupons available to this user
   useEffect(() => {
     let isMounted = true;
-    setFetchingCoupons(true);
+    queueMicrotask(() => {
+      if (isMounted) setFetchingCoupons(true);
+    });
     fetch(`/api/discounts/available?cartTotal=${totalPrice}`)
-      .then((res) => res.json())
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (isMounted && data.success && Array.isArray(data.coupons)) {
+        if (isMounted && data?.success && Array.isArray(data.coupons)) {
           setAvailableCoupons(data.coupons);
         }
       })

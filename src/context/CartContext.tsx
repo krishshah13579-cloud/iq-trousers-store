@@ -21,16 +21,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Load cart from localStorage on mount
   useEffect(() => {
-    try {
-      const savedCart = localStorage.getItem("cart");
-      if (savedCart) {
-        setItems(JSON.parse(savedCart));
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      try {
+        const savedCart = localStorage.getItem("cart");
+        if (savedCart) {
+          const parsed = JSON.parse(savedCart);
+          if (Array.isArray(parsed)) {
+            setItems(parsed.filter((item) => item && item.product && typeof item.product === "object"));
+          }
+        }
+      } catch {
+        localStorage.removeItem("cart");
+      } finally {
+        if (active) setIsLoaded(true);
       }
-    } catch {
-      localStorage.removeItem("cart");
-    } finally {
-      setIsLoaded(true);
-    }
+    });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Save cart to localStorage on change
@@ -90,9 +101,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems([]);
   };
 
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  const totalItems = items.reduce((sum, item) => sum + (Number(item?.quantity) || 0), 0);
   const totalPrice = items.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
+    (sum, item) => sum + (Number(item?.product?.price) || 0) * (Number(item?.quantity) || 1),
     0
   );
 

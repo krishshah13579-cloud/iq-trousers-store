@@ -204,7 +204,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                   No products found
                 </h3>
                 <p className="text-sm text-gray-500 max-w-sm mb-6">
-                  We couldn't find any products matching your filters. Try clearing some filters or searching for something else.
+                  We couldn&apos;t find any products matching your filters. Try clearing some filters or searching for something else.
                 </p>
                 <Link
                   href="/products"

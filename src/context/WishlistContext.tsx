@@ -18,16 +18,27 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("iq_wishlist");
-      if (saved) {
-        setItems(JSON.parse(saved));
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      try {
+        const saved = localStorage.getItem("iq_wishlist");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            setItems(parsed.filter((p) => p && p.id));
+          }
+        }
+      } catch {
+        localStorage.removeItem("iq_wishlist");
+      } finally {
+        if (active) setIsLoaded(true);
       }
-    } catch {
-      localStorage.removeItem("iq_wishlist");
-    } finally {
-      setIsLoaded(true);
-    }
+    });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {

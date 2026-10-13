@@ -259,18 +259,40 @@ export default function ProductForm({
 
   // Inventory State (by Color & Size)
   const parseInitialInventory = (): Record<string, Record<string, number>> => {
-    if (!initialData?.inventory) return {};
-    try {
-      const parsed =
-        typeof initialData.inventory === "string"
-          ? JSON.parse(initialData.inventory)
-          : initialData.inventory;
-      if (parsed && typeof parsed === "object") {
-        return parsed as Record<string, Record<string, number>>;
+    if (initialData?.inventory) {
+      try {
+        const parsed =
+          typeof initialData.inventory === "string"
+            ? JSON.parse(initialData.inventory)
+            : initialData.inventory;
+        if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
+          return parsed as Record<string, Record<string, number>>;
+        }
+      } catch {
+        // fallback
       }
-    } catch {
-      // fallback
     }
+
+    const colors = parseInitialColors();
+    const sizes = parseInitialSizes();
+    if (colors.length > 0 && sizes.length > 0) {
+      const initialStockNum = Number(initialData?.stock) || 0;
+      const totalVariants = colors.length * sizes.length;
+      const defaultQty =
+        initialStockNum > 0
+          ? Math.max(1, Math.round(initialStockNum / totalVariants))
+          : 10;
+
+      const generated: Record<string, Record<string, number>> = {};
+      colors.forEach((color) => {
+        generated[color] = {};
+        sizes.forEach((size) => {
+          generated[color][size] = defaultQty;
+        });
+      });
+      return generated;
+    }
+
     return {};
   };
 
@@ -278,33 +300,6 @@ export default function ProductForm({
     parseInitialInventory
   );
   const [bulkQtyInput, setBulkQtyInput] = useState<string>("10");
-
-  // Auto-distribute if existing product had stock count but empty inventory breakdown
-  useEffect(() => {
-    if (
-      Object.keys(inventory).length === 0 &&
-      selectedColors.length > 0 &&
-      selectedSizes.length > 0
-    ) {
-      const initialStockNum = Number(formData.stock) || 0;
-      const totalVariants = selectedColors.length * selectedSizes.length;
-      const defaultQty =
-        initialStockNum > 0
-          ? Math.max(1, Math.round(initialStockNum / totalVariants))
-          : 10;
-
-      const generated: Record<string, Record<string, number>> = {};
-      selectedColors.forEach((color) => {
-        generated[color] = {};
-        selectedSizes.forEach((size) => {
-          generated[color][size] = defaultQty;
-        });
-      });
-      setInventory(generated);
-      const sum = totalVariants * defaultQty;
-      setFormData((prev) => ({ ...prev, stock: sum }));
-    }
-  }, []);
 
   const getColorHex = (name: string): string => {
     const found = PRESET_COLORS.find(

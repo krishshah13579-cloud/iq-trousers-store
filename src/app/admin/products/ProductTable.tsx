@@ -241,7 +241,7 @@ export default function ProductTable({ products }: { products: ProductItem[] }) 
             </div>
             <p className="text-sm text-gray-600 mb-6">
               Are you sure you want to delete{" "}
-              <strong className="text-gray-900">"{productToDelete.name}"</strong>? This
+              <strong className="text-gray-900">&ldquo;{productToDelete.name}&rdquo;</strong>? This
               action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
