@@ -32,7 +32,7 @@ A menswear e-commerce platform dedicated to precision-engineered trousers across
   - Email Address (`*`)
   - Subscribe to newsletter consent (`*`)
   - Submit Button
-- **Instant Welcome Gift**: Submitting the form emails and reveals an instant **10% Discount Code** (`IQTROUSERS10`).
+- **Instant Welcome Gift**: Submitting the form delivers an exclusive **10% Discount Code** (`WELCOME10`) directly to the subscriber's email inbox.
 - **Footer Links**:
   - `Shop All`, `Size Guide`, `About Us`, `Contact Us`
   - `Instagram`, `Facebook`
@@ -68,7 +68,6 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 ### 🎟️ Sample Coupons
 | Code | Type | Value | Min Order |
 |---|---|---|---|
-| **`IQTROUSERS10`** | Percentage | 10% Off | $0 |
-| **`WELCOME10`** | Percentage | 10% Off | $50 |
+| **`WELCOME10`** | Percentage | 10% Off | $0 |
 | **`FORMAL20`** | Percentage | 20% Off | $150 |
 | **`SAVE20`** | Fixed Amount | $20 Off | $100 |

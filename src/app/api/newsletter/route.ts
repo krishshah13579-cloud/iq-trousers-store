@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedEmail = String(email).trim().toLowerCase();
-    const discountCode = "IQTROUSERS10";
+    const discountCode = "WELCOME10";
 
     // Ensure the discount code exists in the database
     await prisma.discount.upsert({
