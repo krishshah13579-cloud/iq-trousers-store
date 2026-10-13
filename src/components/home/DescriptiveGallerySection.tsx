@@ -82,13 +82,23 @@ export default function DescriptiveGallerySection({
           >
             {products.map((product) => {
               // Parse images
-              let imageUrl = "/products/imp-001.jpg";
+              let imageUrl = "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600";
               try {
                 const parsed = JSON.parse(product.images);
-                if (Array.isArray(parsed) && parsed.length > 0) imageUrl = parsed[0];
-                else if (typeof parsed === "string") imageUrl = parsed;
+                if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]) {
+                  imageUrl = String(parsed[0]).trim();
+                } else if (typeof parsed === "string" && parsed.trim()) {
+                  imageUrl = parsed.trim();
+                }
               } catch {
-                if (product.images?.startsWith("/")) imageUrl = product.images;
+                if (typeof product.images === "string" && product.images.trim()) {
+                  if (product.images.startsWith("data:")) {
+                    imageUrl = product.images.trim();
+                  } else {
+                    const split = product.images.split(",")[0]?.trim();
+                    if (split) imageUrl = split;
+                  }
+                }
               }
 
               const isWish = isInWishlist(product.id);
