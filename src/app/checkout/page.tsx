@@ -342,7 +342,7 @@ function CheckoutContent() {
                     type="text"
                     value={effectiveFullName}
                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                    placeholder="John Doe"
+                    placeholder="Full Name"
                     className={`w-full px-3.5 py-2.5 text-sm rounded-lg border ${
                       errors.fullName ? "border-red-400 bg-red-50/20" : "border-neutral-200"
                     } focus:outline-none focus:ring-2 focus:ring-neutral-900`}
@@ -361,7 +361,7 @@ function CheckoutContent() {
                     type="text"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    placeholder="123 Market Street, Apt 4B"
+                    placeholder="Address"
                     className={`w-full px-3.5 py-2.5 text-sm rounded-lg border ${
                       errors.address ? "border-red-400 bg-red-50/20" : "border-neutral-200"
                     } focus:outline-none focus:ring-2 focus:ring-neutral-900`}
@@ -381,7 +381,7 @@ function CheckoutContent() {
                       type="text"
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      placeholder="San Francisco"
+                      placeholder="AHMEDABAD"
                       className={`w-full px-3.5 py-2.5 text-sm rounded-lg border ${
                         errors.city ? "border-red-400 bg-red-50/20" : "border-neutral-200"
                       } focus:outline-none focus:ring-2 focus:ring-neutral-900`}
@@ -401,7 +401,7 @@ function CheckoutContent() {
                       list="indian-states-list"
                       value={formData.state}
                       onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                      placeholder="e.g. Gujarat, Maharashtra"
+                      placeholder="Gujarat"
                       className={`w-full px-3.5 py-2.5 text-sm rounded-lg border ${
                         errors.state ? "border-red-400 bg-red-50/20" : "border-neutral-200"
                       } focus:outline-none focus:ring-2 focus:ring-neutral-900`}
@@ -427,7 +427,7 @@ function CheckoutContent() {
                       type="text"
                       value={formData.zipCode}
                       onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
-                      placeholder="e.g. 380001, 400001"
+                      placeholder="380001"
                       className={`w-full px-3.5 py-2.5 text-sm rounded-lg border ${
                         errors.zipCode ? "border-red-400 bg-red-50/20" : "border-neutral-200"
                       } focus:outline-none focus:ring-2 focus:ring-neutral-900`}
@@ -446,7 +446,7 @@ function CheckoutContent() {
                       type="text"
                       value={formData.country}
                       onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                      placeholder="India"
+                      placeholder="INDIA"
                       className={`w-full px-3.5 py-2.5 text-sm rounded-lg border ${
                         errors.country ? "border-red-400 bg-red-50/20" : "border-neutral-200"
                       } focus:outline-none focus:ring-2 focus:ring-neutral-900`}
