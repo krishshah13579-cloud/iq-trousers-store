@@ -57,7 +57,14 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const ALLOWED_STATUSES = ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
+    const ALLOWED_STATUSES = [
+      "PENDING",
+      "CONFIRMED",
+      "PROCESSING",
+      "SHIPPED",
+      "DELIVERED",
+      "CANCELLED",
+    ];
     if (!ALLOWED_STATUSES.includes(status)) {
       return NextResponse.json(
         { error: `Invalid status. Allowed values: ${ALLOWED_STATUSES.join(", ")}` },
@@ -182,6 +189,84 @@ export async function PUT(req: NextRequest) {
     console.error("Failed to update order:", error);
     return NextResponse.json(
       { error: "Failed to update order" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session || !isAdminRole((session.user as { role?: string })?.role)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { searchParams } = new URL(req.url);
+    let orderId = searchParams.get("orderId");
+
+    if (!orderId) {
+      try {
+        const body = await req.json();
+        orderId = body?.orderId;
+      } catch {
+        // body wasn't JSON
+      }
+    }
+
+    if (!orderId || typeof orderId !== "string") {
+      return NextResponse.json(
+        { error: "Order ID is required to delete" },
+        { status: 400 }
+      );
+    }
+
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: true,
+      },
+    });
+
+    if (!existingOrder) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    // Atomic deletion in transaction:
+    // 1. If the order was not already cancelled/delivered, restock products so inventory isn't lost
+    // 2. Delete OrderItem records
+    // 3. Delete Order
+    await prisma.$transaction(async (tx) => {
+      if (existingOrder.status !== "CANCELLED" && existingOrder.status !== "DELIVERED") {
+        for (const item of existingOrder.items) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              stock: {
+                increment: item.quantity,
+              },
+            },
+          });
+        }
+      }
+
+      await tx.orderItem.deleteMany({
+        where: { orderId: existingOrder.id },
+      });
+
+      await tx.order.delete({
+        where: { id: existingOrder.id },
+      });
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Order #${orderId.slice(-8).toUpperCase()} deleted successfully`,
+      orderId,
+    });
+  } catch (error) {
+    console.error("Failed to delete order:", error);
+    return NextResponse.json(
+      { error: "Failed to delete order" },
       { status: 500 }
     );
   }

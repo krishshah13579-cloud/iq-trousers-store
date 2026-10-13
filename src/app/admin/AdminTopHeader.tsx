@@ -12,6 +12,7 @@ import {
   Sparkles,
   ChevronRight,
 } from "lucide-react";
+import AdminNotificationBell from "./AdminNotificationBell";
 
 interface AdminTopHeaderProps {
   onToggleMobileMenu?: () => void;
@@ -68,8 +69,11 @@ export default function AdminTopHeader({
           </div>
         </div>
 
-        {/* Right: Security Badge, Storefront Link, Admin User Pill, Sign Out */}
+        {/* Right: Notifications, Security Badge, Admin User Pill, Sign Out */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Real-time Order & Website Notifications */}
+          <AdminNotificationBell />
+
           {/* Security Status Badge */}
           <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/80">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />

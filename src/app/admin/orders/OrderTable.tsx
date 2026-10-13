@@ -11,6 +11,8 @@ import {
   AlertCircle,
   Truck,
   XCircle,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 import { formatPrice, getOrderStatusColor } from "@/lib/utils";
 
@@ -44,6 +46,7 @@ interface OrderData {
 const statusOptions = [
   "PENDING",
   "CONFIRMED",
+  "PROCESSING",
   "SHIPPED",
   "DELIVERED",
   "CANCELLED",
@@ -54,6 +57,8 @@ export default function OrderTable({ initialOrders }: { initialOrders: OrderData
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
+  const [deleteModalOrder, setDeleteModalOrder] = useState<OrderData | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => ({
@@ -76,18 +81,43 @@ export default function OrderTable({ initialOrders }: { initialOrders: OrderData
       });
 
       if (!res.ok) {
-        throw new Error("Failed to update status");
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error || "Failed to update order status");
       }
 
       const updated = await res.json();
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? { ...o, status: updated.status } : o))
       );
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      alert("Failed to update order status");
+      const msg = err instanceof Error ? err.message : "Failed to update order status";
+      alert(msg);
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const confirmDeleteOrder = async () => {
+    if (!deleteModalOrder) return;
+    const orderId = deleteModalOrder.id;
+    setDeletingId(orderId);
+    try {
+      const res = await fetch(`/api/admin/orders?orderId=${orderId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to delete order");
+      }
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      setDeleteModalOrder(null);
+    } catch (err: unknown) {
+      console.error(err);
+      const msg = err instanceof Error ? err.message : "Failed to delete order";
+      alert(msg);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -157,7 +187,7 @@ export default function OrderTable({ initialOrders }: { initialOrders: OrderData
                 <th scope="col" className="px-5 py-3">Date</th>
                 <th scope="col" className="px-5 py-3">Total</th>
                 <th scope="col" className="px-5 py-3">Status</th>
-                <th scope="col" className="px-5 py-3 text-right">Details</th>
+                <th scope="col" className="px-5 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -232,16 +262,29 @@ export default function OrderTable({ initialOrders }: { initialOrders: OrderData
                             </select>
                           </div>
 
-                          {/* Expand Button */}
-                          <div className="text-right">
+                          {/* Actions: Delete & Expand */}
+                          <div
+                            className="flex items-center justify-end gap-1.5"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <button
                               type="button"
-                              className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                              onClick={() => setDeleteModalOrder(order)}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                              title="Delete this order"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleExpand(order.id)}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                              title={isExpanded ? "Collapse Details" : "View Details"}
                             >
                               {isExpanded ? (
-                                <ChevronUp className="w-5 h-5" />
+                                <ChevronUp className="w-4 h-4" />
                               ) : (
-                                <ChevronDown className="w-5 h-5" />
+                                <ChevronDown className="w-4 h-4" />
                               )}
                             </button>
                           </div>
@@ -354,6 +397,19 @@ export default function OrderTable({ initialOrders }: { initialOrders: OrderData
                                     </button>
                                   </div>
                                 </div>
+
+                                {/* Order Deletion Action in Details */}
+                                <div className="pt-2 border-t border-gray-200/80 flex items-center justify-between">
+                                  <span className="text-xs text-gray-500">Remove order record</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeleteModalOrder(order)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <span>Delete Order</span>
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -367,6 +423,62 @@ export default function OrderTable({ initialOrders }: { initialOrders: OrderData
           </table>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalOrder && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-200 text-gray-900 relative">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-gray-900">
+                  Delete Order #{deleteModalOrder.id.slice(-8).toUpperCase()}?
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1 leading-relaxed">
+                  Are you sure you want to permanently delete this order? This will remove all associated line items. If this order was active, any reserved stock will be safely returned to inventory.
+                </p>
+                <div className="mt-2 text-xs font-medium text-gray-500">
+                  Customer: {deleteModalOrder.user?.name || "Customer"} ({formatPrice(deleteModalOrder.total)})
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!deletingId) setDeleteModalOrder(null);
+                }}
+                disabled={!!deletingId}
+                className="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteOrder}
+                disabled={!!deletingId}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-xs disabled:opacity-70 cursor-pointer"
+              >
+                {deletingId ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Delete Order</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
