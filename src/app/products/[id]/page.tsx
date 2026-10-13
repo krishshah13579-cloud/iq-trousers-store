@@ -8,7 +8,6 @@ import AddToCartSection from "@/components/products/AddToCartSection";
 import ProductDetailsAccordions from "@/components/products/ProductDetailsAccordions";
 import ProductReviewsSection from "@/components/products/ProductReviewsSection";
 import ProductCard from "@/components/products/ProductCard";
-import ProductWishlistButton from "@/components/products/ProductWishlistButton";
 
 interface ProductDetailPageProps {
   params: Promise<{ id: string }>;
@@ -154,12 +153,9 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                   {product.category.name}
                 </Link>
               )}
-              <div className="flex items-start justify-between gap-4 mt-1.5">
-                <h1 className="text-2xl sm:text-3xl font-normal text-gray-900 tracking-tight leading-snug">
-                  {product.name}
-                </h1>
-                <ProductWishlistButton product={product} />
-              </div>
+              <h1 className="text-2xl sm:text-3xl font-normal text-gray-900 tracking-tight mt-1.5 leading-snug">
+                {product.name}
+              </h1>
 
               {/* Rating */}
               <div className="flex items-center gap-2 mt-3">
