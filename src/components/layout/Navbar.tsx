@@ -91,7 +91,7 @@ export default function Navbar() {
           </div>
 
           {/* Search + Action Buttons */}
-          <div className="hidden md:flex items-center space-x-5">
+          <div className="hidden lg:flex items-center space-x-5">
             {/* Search */}
             <form onSubmit={handleSearch} className="relative">
               <input
@@ -281,30 +281,6 @@ export default function Navbar() {
               onClick={() => setMobileOpen(false)}
             >
               Contact Us
-            </Link>
-            <Link
-              href="/wishlist"
-              className="flex items-center justify-between px-3 py-2.5 text-gray-800 hover:text-black text-sm font-medium rounded-lg hover:bg-gray-50"
-              onClick={() => setMobileOpen(false)}
-            >
-              <span>Wishlist</span>
-              {totalWishlist > 0 && (
-                <span className="text-xs bg-rose-500 text-white px-2 py-0.5 rounded-full font-bold">
-                  {totalWishlist}
-                </span>
-              )}
-            </Link>
-            <Link
-              href="/cart"
-              className="flex items-center justify-between px-3 py-2.5 text-gray-800 hover:text-black text-sm font-medium rounded-lg hover:bg-gray-50"
-              onClick={() => setMobileOpen(false)}
-            >
-              <span>Cart</span>
-              {totalItems > 0 && (
-                <span className="text-xs bg-black text-white px-2 py-0.5 rounded-full font-bold">
-                  {totalItems}
-                </span>
-              )}
             </Link>
 
             <div className="pt-3 border-t border-gray-100">
