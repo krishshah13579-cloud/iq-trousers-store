@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { ShippingAddress } from "@/types";
 import { getClientIp, checkRateLimit, createRateLimitResponse } from "@/lib/rateLimit";
 import { getPayUConfig, generatePayUHash } from "@/lib/payu";
+import { calculateShippingFee } from "@/lib/shipping";
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
@@ -141,7 +142,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const shipping = roundedSubtotal >= 100 ? 0 : 10;
+    const shippingQuote = calculateShippingFee(
+      roundedSubtotal,
+      shippingAddress.state,
+      shippingAddress.zipCode
+    );
+    const shipping = shippingQuote.amount;
     const estimatedTax = Math.round(roundedSubtotal * 0.08 * 100) / 100;
     const total = Math.max(
       1,

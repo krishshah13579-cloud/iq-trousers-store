@@ -9,6 +9,11 @@ import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/utils";
 import { ShippingAddress } from "@/types";
 import {
+  calculateShippingFee,
+  FREE_SHIPPING_THRESHOLD,
+  INDIAN_STATES,
+} from "@/lib/shipping";
+import {
   CreditCard,
   MapPin,
   Truck,
@@ -228,8 +233,10 @@ function CheckoutContent() {
 
   // Financial calculations
   const subtotal = totalPrice;
-  const isFreeShipping = subtotal >= 100;
-  const shipping = items.length === 0 ? 0 : isFreeShipping ? 0 : 10;
+  const shippingQuote = calculateShippingFee(subtotal, formData.state, formData.zipCode);
+  const shipping = items.length === 0 ? 0 : shippingQuote.amount;
+  const isFreeShipping = shippingQuote.isFree;
+  const shortfall = shippingQuote.shortfall;
   const estimatedTax = Math.round(subtotal * 0.08 * 100) / 100;
 
   let currentDiscountAmount = 0;
@@ -491,13 +498,19 @@ function CheckoutContent() {
                     <input
                       id="state"
                       type="text"
+                      list="indian-states-list"
                       value={formData.state}
                       onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                      placeholder="CA"
+                      placeholder="e.g. Gujarat, Maharashtra"
                       className={`w-full px-3.5 py-2.5 text-sm rounded-lg border ${
                         errors.state ? "border-red-400 bg-red-50/20" : "border-neutral-200"
                       } focus:outline-none focus:ring-2 focus:ring-neutral-900`}
                     />
+                    <datalist id="indian-states-list">
+                      {INDIAN_STATES.map((st) => (
+                        <option key={st} value={st} />
+                      ))}
+                    </datalist>
                     {errors.state && (
                       <p className="text-xs text-red-600 mt-1">{errors.state}</p>
                     )}
@@ -507,14 +520,14 @@ function CheckoutContent() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="zipCode" className="block text-xs font-semibold text-neutral-700 mb-1">
-                      ZIP / Postal Code *
+                      PIN / Postal Code *
                     </label>
                     <input
                       id="zipCode"
                       type="text"
                       value={formData.zipCode}
                       onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
-                      placeholder="94105"
+                      placeholder="e.g. 380001, 400001"
                       className={`w-full px-3.5 py-2.5 text-sm rounded-lg border ${
                         errors.zipCode ? "border-red-400 bg-red-50/20" : "border-neutral-200"
                       } focus:outline-none focus:ring-2 focus:ring-neutral-900`}
@@ -624,6 +637,43 @@ function CheckoutContent() {
             <div className="bg-neutral-50 rounded-2xl p-6 border border-neutral-200 sticky top-6">
               <h2 className="text-lg font-bold text-neutral-900 mb-4">Order Summary</h2>
 
+              {/* Free Shipping Shortfall Banner */}
+              <div
+                className={`mb-4 p-3 rounded-xl border text-xs ${
+                  isFreeShipping
+                    ? "bg-emerald-50/80 border-emerald-200 text-emerald-900"
+                    : "bg-white border-neutral-200 shadow-xs text-neutral-700"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <Truck
+                      className={`w-4 h-4 shrink-0 ${
+                        isFreeShipping ? "text-emerald-600" : "text-neutral-700"
+                      }`}
+                    />
+                    {isFreeShipping ? (
+                      <span className="font-bold text-emerald-800">
+                        🎉 Free Pan-India Delivery unlocked!
+                      </span>
+                    ) : (
+                      <span>
+                        Add <strong className="text-neutral-900 font-bold">{formatPrice(shortfall)}</strong> more for{" "}
+                        <strong className="text-emerald-700 font-bold">FREE Delivery</strong>
+                      </span>
+                    )}
+                  </div>
+                  {!isFreeShipping && (
+                    <Link
+                      href="/"
+                      className="text-[11px] font-semibold text-neutral-900 underline hover:text-neutral-600 shrink-0"
+                    >
+                      Add items
+                    </Link>
+                  )}
+                </div>
+              </div>
+
               {/* Items List */}
               <div className="divide-y divide-neutral-200 max-h-64 overflow-y-auto mb-6 pr-1">
                 {items.map((item) => {
@@ -717,7 +767,7 @@ function CheckoutContent() {
                                 </button>
                               ) : (
                                 <span className="text-[10px] text-neutral-500 font-medium">
-                                  Min ${coupon.minOrder.toFixed(0)}
+                                  Min {formatPrice(coupon.minOrder)}
                                 </span>
                               )}
                             </div>
@@ -800,18 +850,31 @@ function CheckoutContent() {
                   </div>
                 )}
 
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-1.5">
-                    <Truck className="w-4 h-4 text-neutral-400" />
-                    <span>Shipping</span>
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-1.5">
+                      <Truck className="w-4 h-4 text-neutral-400" />
+                      <span>Shipping</span>
+                    </div>
+                    <span className="font-medium text-neutral-900">
+                      {isFreeShipping ? (
+                        <span className="text-emerald-700 font-semibold">Free</span>
+                      ) : (
+                        formatPrice(shipping)
+                      )}
+                    </span>
                   </div>
-                  <span className="font-medium text-neutral-900">
-                    {isFreeShipping ? (
-                      <span className="text-emerald-700">Free</span>
-                    ) : (
-                      formatPrice(shipping)
+                  <div className="flex justify-between items-center text-[11px] text-neutral-500 pl-5.5">
+                    <span>
+                      {shippingQuote.partner}
+                      {formData.state ? ` (${formData.state})` : ""}
+                    </span>
+                    {!isFreeShipping && (
+                      <span className="text-amber-700 font-medium">
+                        Add {formatPrice(shortfall)} for FREE
+                      </span>
                     )}
-                  </span>
+                  </div>
                 </div>
 
                 <div className="flex justify-between">
