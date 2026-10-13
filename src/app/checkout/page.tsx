@@ -137,7 +137,8 @@ function CheckoutContent() {
   const isFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
   const shipping = items.length === 0 ? 0 : isFreeShipping ? 0 : hasEnteredLocation ? shippingQuote.amount : 0;
   const shortfall = Math.max(0, Math.round((FREE_SHIPPING_THRESHOLD - subtotal) * 100) / 100);
-  const estimatedTax = Math.round(subtotal * 0.05 * 100) / 100;
+  // Estimated tax (5%) rounded off to nearest rupee
+  const estimatedTax = Math.round(subtotal * 0.05);
 
   let currentDiscountAmount = 0;
   if (appliedDiscount && subtotal >= (appliedDiscount.minOrder || 0)) {

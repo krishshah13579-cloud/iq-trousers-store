@@ -148,7 +148,8 @@ export async function POST(req: NextRequest) {
       shippingAddress.zipCode
     );
     const shipping = shippingQuote.amount;
-    const estimatedTax = Math.round(roundedSubtotal * 0.05 * 100) / 100;
+    // Estimated tax (5%) rounded off to nearest rupee
+    const estimatedTax = Math.round(roundedSubtotal * 0.05);
     // Total with round off amount included (rounded to nearest rupee matching cart & checkout)
     const rawTotal = Math.max(1, roundedSubtotal - discountAmount + shipping + estimatedTax);
     const total = Math.round(rawTotal);

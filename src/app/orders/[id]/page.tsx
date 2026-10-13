@@ -412,7 +412,7 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
             <div className="flex justify-between">
               <span>Estimated Tax (5%)</span>
               <span className="font-medium text-neutral-900">
-                {formatPrice(Math.round(itemsSubtotal * 0.05 * 100) / 100)}
+                {formatPrice(Math.round(itemsSubtotal * 0.05))}
               </span>
             </div>
             <div className="border-t border-neutral-200 pt-3 flex justify-between items-baseline">

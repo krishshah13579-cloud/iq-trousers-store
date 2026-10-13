@@ -94,7 +94,8 @@ export default function CartPage() {
     100,
     Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100)
   );
-  const estimatedTax = Math.round(subtotal * 0.05 * 100) / 100;
+  // Estimated tax (5%) rounded off to nearest rupee
+  const estimatedTax = Math.round(subtotal * 0.05);
 
   // Recalculate discount amount based on current subtotal if percentage or fixed
   let currentDiscountAmount = 0;
