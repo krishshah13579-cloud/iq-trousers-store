@@ -20,14 +20,31 @@ export async function POST(
 
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user || !(session.user as { id?: string }).id) {
+    if (!session || !session.user) {
       return NextResponse.json(
         { error: "Authentication required to cancel order" },
         { status: 401 }
       );
     }
 
-    const userId = (session.user as { id: string }).id;
+    let userId = (session.user as { id?: string }).id;
+    if (!userId && session.user.email) {
+      const dbUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true },
+      });
+      if (dbUser) {
+        userId = dbUser.id;
+      }
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User account not found" },
+        { status: 401 }
+      );
+    }
+
     const userRole = (session.user as { role?: string })?.role;
     const { id } = await params;
 
@@ -60,7 +77,11 @@ export async function POST(
     }
 
     // Authorization: User must be order owner or an administrator
-    const isOwner = order.userId === userId;
+    const isOwner =
+      order.userId === userId ||
+      (order.user?.email &&
+        session.user.email &&
+        order.user.email.toLowerCase().trim() === session.user.email.toLowerCase().trim());
     const isAdmin = isAdminRole(userRole);
     if (!isOwner && !isAdmin) {
       return NextResponse.json(

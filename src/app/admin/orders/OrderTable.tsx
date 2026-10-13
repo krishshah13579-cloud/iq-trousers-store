@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   ChevronDown,
   ChevronUp,
@@ -13,6 +14,7 @@ import {
   XCircle,
   Trash2,
   Loader2,
+  ExternalLink,
 } from "lucide-react";
 import { formatPrice, getOrderStatusColor } from "@/lib/utils";
 
@@ -402,9 +404,16 @@ export default function OrderTable({ initialOrders }: { initialOrders: OrderData
                                   </div>
                                 </div>
 
-                                {/* Order Deletion Action in Details */}
+                                {/* Order Deletion & Customer Page Actions */}
                                 <div className="pt-2 border-t border-gray-200/80 flex items-center justify-between">
-                                  <span className="text-xs text-gray-500">Remove order record</span>
+                                  <Link
+                                    href={`/orders/${order.id}`}
+                                    target="_blank"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:text-black hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors cursor-pointer"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                    <span>View Customer Order Page</span>
+                                  </Link>
                                   <button
                                     type="button"
                                     onClick={() => setDeleteModalOrder(order)}

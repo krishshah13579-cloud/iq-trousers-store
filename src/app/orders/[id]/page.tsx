@@ -1,8 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authOptions, isAdminRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatPrice, getOrderStatusColor } from "@/lib/utils";
 import { ShippingAddress } from "@/types";
@@ -79,9 +79,19 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
   }
 
   // Security check: only order owner or admin can view
-  const currentUserId = (session?.user as { id?: string })?.id;
-  const currentUserRole = (session?.user as { role?: string })?.role;
-  if (currentUserId && order.userId !== currentUserId && currentUserRole !== "ADMIN") {
+  if (!session) {
+    redirect(`/login?callbackUrl=/orders/${id}`);
+  }
+
+  const currentUserId = (session.user as { id?: string })?.id;
+  const currentUserEmail = session.user?.email?.toLowerCase().trim();
+  const currentUserRole = (session.user as { role?: string })?.role;
+  const isOwner =
+    (currentUserId && order.userId === currentUserId) ||
+    (currentUserEmail && order.user?.email?.toLowerCase().trim() === currentUserEmail);
+  const isAdmin = isAdminRole(currentUserRole);
+
+  if (!isOwner && !isAdmin) {
     notFound();
   }
 

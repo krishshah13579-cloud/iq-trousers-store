@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
 
     if (!orderId) {
       console.error("[PAYU RESPONSE] Missing order ID in callback", body);
-      return NextResponse.redirect(`${baseUrl}/checkout?error=Payment+verification+failed`, 303);
+      return NextResponse.redirect(new URL("/checkout?error=Payment+verification+failed", req.url), 303);
     }
 
     const order = await prisma.order.findUnique({
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!order) {
-      return NextResponse.redirect(`${baseUrl}/checkout?error=Order+not+found`, 303);
+      return NextResponse.redirect(new URL("/checkout?error=Order+not+found", req.url), 303);
     }
 
     const isSuccess =
@@ -140,8 +140,8 @@ export async function POST(req: NextRequest) {
         console.error("[PAYU EMAIL DISPATCH ERROR]", emailErr);
       }
 
-      // Redirect to Order Details with success banner
-      const redirectUrl = `${baseUrl}/orders/${order.id}?payment=success&payu_txnid=${encodeURIComponent(
+      // Redirect to Order Details with success banner (relative path retains exact browser origin)
+      const redirectUrl = `/orders/${order.id}?payment=success&payu_txnid=${encodeURIComponent(
         txnid || mihpayid
       )}`;
 
@@ -217,7 +217,7 @@ export async function POST(req: NextRequest) {
       });
 
       const failureReason = error_Message || (!isValidHash ? "Payment verification failed" : "Payment was cancelled or unsuccessful");
-      const redirectUrl = `${baseUrl}/orders/${order.id}?payment=failed&reason=${encodeURIComponent(
+      const redirectUrl = `/orders/${order.id}?payment=failed&reason=${encodeURIComponent(
         failureReason
       )}`;
 
@@ -248,7 +248,6 @@ export async function POST(req: NextRequest) {
     }
   } catch (error) {
     console.error("PayU response callback error:", error);
-    const baseUrl = process.env.NEXTAUTH_URL || "https://iqtrousers.com";
-    return NextResponse.redirect(`${baseUrl}/checkout?error=Unexpected+payment+error`, 303);
+    return NextResponse.redirect(new URL("/checkout?error=Unexpected+payment+error", req.url), 303);
   }
 }

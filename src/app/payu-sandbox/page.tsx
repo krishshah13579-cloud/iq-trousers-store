@@ -42,9 +42,22 @@ function PayUSandboxContent() {
   const handleSimulatePayment = (status: "success" | "failure") => {
     setIsProcessing(true);
 
+    const targetUrl = status === "success" ? surl : furl;
+    let actionUrl = targetUrl;
+    try {
+      if (targetUrl.startsWith("http://") || targetUrl.startsWith("https://")) {
+        const parsed = new URL(targetUrl);
+        if (parsed.pathname === "/api/payment/payu/response") {
+          actionUrl = `${window.location.origin}/api/payment/payu/response`;
+        }
+      }
+    } catch {
+      actionUrl = "/api/payment/payu/response";
+    }
+
     const form = document.createElement("form");
     form.method = "POST";
-    form.action = status === "success" ? surl : furl;
+    form.action = actionUrl;
 
     const params: Record<string, string> = {
       status,

@@ -8,18 +8,32 @@ import { getPayUConfig, generatePayUHash } from "@/lib/payu";
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const rl = checkRateLimit(`payu-initiate:${ip}`, { limit: 12, windowMs: 10 * 60 * 1000 });
+  const rl = checkRateLimit(`payu-initiate:${ip}`, { limit: 60, windowMs: 10 * 60 * 1000 });
   if (!rl.success) {
     return createRateLimitResponse(rl.resetMs);
   }
 
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user || !(session.user as { id?: string }).id) {
+    if (!session || !session.user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
-    const userId = (session.user as { id: string }).id;
+    let userId = (session.user as { id?: string }).id;
+    if (!userId && session.user.email) {
+      const dbUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true },
+      });
+      if (dbUser) {
+        userId = dbUser.id;
+      }
+    }
+
+    if (!userId) {
+      return NextResponse.json({ error: "User record not found. Please log in again." }, { status: 401 });
+    }
+
     const body = await req.json();
     const { items, shippingAddress, discountCode } = body as {
       items?: { productId: string; quantity: number; size?: string }[];
@@ -42,27 +56,33 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Fetch and validate products & stock
-    const productIds = items.map((i) => i.productId);
+    // Fetch and validate unique products & stock
+    const uniqueProductIds = Array.from(new Set(items.map((i) => i.productId)));
     const products = await prisma.product.findMany({
-      where: { id: { in: productIds } },
+      where: { id: { in: uniqueProductIds } },
     });
 
-    if (products.length !== productIds.length) {
+    if (products.length !== uniqueProductIds.length) {
       return NextResponse.json({ error: "One or more products were not found" }, { status: 404 });
     }
 
-    for (const item of items) {
-      const product = products.find((p) => p.id === item.productId);
-      if (!product || !product.active) {
+    // Sum requested quantity across variants / duplicate product items
+    const quantityPerProduct = items.reduce((acc, item) => {
+      acc[item.productId] = (acc[item.productId] || 0) + item.quantity;
+      return acc;
+    }, {} as Record<string, number>);
+
+    for (const product of products) {
+      if (!product.active) {
         return NextResponse.json(
-          { error: `Product "${product?.name || item.productId}" is not available` },
+          { error: `Product "${product.name}" is not available` },
           { status: 400 }
         );
       }
-      if (product.stock < item.quantity) {
+      const neededQty = quantityPerProduct[product.id] || 0;
+      if (product.stock < neededQty) {
         return NextResponse.json(
-          { error: `Insufficient stock for "${product.name}". Available: ${product.stock}` },
+          { error: `Insufficient stock for "${product.name}". Available: ${product.stock}, requested: ${neededQty}` },
           { status: 400 }
         );
       }
@@ -132,13 +152,13 @@ export async function POST(req: NextRequest) {
 
     // Create order and decrement stock in a transaction
     const order = await prisma.$transaction(async (tx) => {
-      // Decrement stock
-      for (const item of items) {
+      // Decrement stock per unique product
+      for (const [prodId, totalQty] of Object.entries(quantityPerProduct)) {
         await tx.product.update({
-          where: { id: item.productId },
+          where: { id: prodId },
           data: {
             stock: {
-              decrement: item.quantity,
+              decrement: totalQty,
             },
           },
         });
@@ -196,9 +216,18 @@ export async function POST(req: NextRequest) {
     const email = order.user?.email || session.user?.email || "orders@iqtrousers.com";
     const phone = shippingAddress.phone || "9999999999";
 
-    const baseUrl = process.env.NEXTAUTH_URL || "https://iqtrousers.com";
-    const surl = `${baseUrl}/api/payment/payu/response`;
-    const furl = `${baseUrl}/api/payment/payu/response`;
+    const originHeader = req.headers.get("origin");
+    const hostHeader = req.headers.get("x-forwarded-host") || req.headers.get("host");
+    const protoHeader =
+      req.headers.get("x-forwarded-proto") ||
+      (hostHeader?.includes("localhost") || hostHeader?.includes("127.0.0.1") ? "http" : "https");
+    const dynamicBaseUrl =
+      originHeader ||
+      (hostHeader ? `${protoHeader}://${hostHeader}` : process.env.NEXTAUTH_URL) ||
+      "https://iqtrousers.com";
+
+    const surl = `${dynamicBaseUrl}/api/payment/payu/response`;
+    const furl = `${dynamicBaseUrl}/api/payment/payu/response`;
 
     const hash = generatePayUHash({
       key: config.key,

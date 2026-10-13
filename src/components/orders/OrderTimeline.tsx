@@ -119,41 +119,55 @@ export function OrderTimeline({
   const isCancelled = status?.toUpperCase() === "CANCELLED";
   const currentStep = getStepIndex(status);
 
-  // Calculate estimated delivery if not explicitly provided (e.g., 4 days from placement)
-  const placedDate = new Date(createdAt);
-  const estDate =
-    estimatedDeliveryDate != null
-      ? new Date(estimatedDeliveryDate)
-      : new Date(placedDate.getTime() + 4 * 24 * 60 * 60 * 1000);
+  const safeDate = (val: string | Date | null | undefined): Date | null => {
+    if (!val) return null;
+    try {
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? null : d;
+    } catch {
+      return null;
+    }
+  };
+
+  const validPlacedDate = safeDate(createdAt) || new Date();
+  const validEstDate =
+    safeDate(estimatedDeliveryDate) ||
+    new Date(validPlacedDate.getTime() + 4 * 24 * 60 * 60 * 1000);
 
   const formatStepDate = (stepIndex: number) => {
-    // If completed or active, show calculated / actual date
-    if (stepIndex === 0) {
-      return placedDate.toLocaleDateString("en-IN", {
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      });
-    }
+    try {
+      if (stepIndex === 0) {
+        return validPlacedDate.toLocaleDateString("en-IN", {
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        });
+      }
 
-    if (stepIndex <= currentStep && updatedAt) {
-      const stepTime = new Date(
-        placedDate.getTime() +
-          ((new Date(updatedAt).getTime() - placedDate.getTime()) * stepIndex) /
-            Math.max(currentStep, 1)
-      );
-      return stepTime.toLocaleDateString("en-IN", {
-        month: "short",
-        day: "numeric",
-      });
-    }
+      const validUpdated = safeDate(updatedAt);
+      if (stepIndex <= currentStep && validUpdated) {
+        const stepTime = new Date(
+          validPlacedDate.getTime() +
+            ((validUpdated.getTime() - validPlacedDate.getTime()) * stepIndex) /
+              Math.max(currentStep, 1)
+        );
+        if (!isNaN(stepTime.getTime())) {
+          return stepTime.toLocaleDateString("en-IN", {
+            month: "short",
+            day: "numeric",
+          });
+        }
+      }
 
-    if (stepIndex === 5) {
-      return `Est. ${estDate.toLocaleDateString("en-IN", {
-        month: "short",
-        day: "numeric",
-      })}`;
+      if (stepIndex === 5) {
+        return `Est. ${validEstDate.toLocaleDateString("en-IN", {
+          month: "short",
+          day: "numeric",
+        })}`;
+      }
+    } catch {
+      return null;
     }
 
     return null;
@@ -202,7 +216,7 @@ export function OrderTimeline({
               <>
                 Estimated Delivery by{" "}
                 <span className="text-emerald-700">
-                  {estDate.toLocaleDateString("en-IN", {
+                  {validEstDate.toLocaleDateString("en-IN", {
                     weekday: "short",
                     month: "short",
                     day: "numeric",
