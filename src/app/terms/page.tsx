@@ -1,71 +1,63 @@
 export const metadata = {
-  title: "Terms and Conditions | IQ Trousers",
-  description: "Terms and Conditions of sale, use, and service by Krish Clothing Co.",
+  title: "Terms and Conditions & Shipping Policy | IQ Trousers",
+  description: "Official shipping policy, exchange policy, and terms of service by Krish Clothing Co.",
 };
 
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-white py-16 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto space-y-8 text-neutral-700 text-sm leading-relaxed">
+      <div className="max-w-4xl mx-auto space-y-10 text-neutral-700 text-sm leading-relaxed">
         <div className="border-b border-neutral-200 pb-8">
           <span className="text-xs uppercase tracking-widest text-neutral-400 font-semibold">
-            Legal & Policy
+            Legal & Customer Policies
           </span>
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-neutral-900 tracking-tight mt-2">
             Terms and Conditions
           </h1>
-          <p className="text-xs text-neutral-500 mt-2">
-            Effective Date: January 1, 2026 | Krish Clothing Co.
-          </p>
         </div>
 
-        <section className="space-y-3">
-          <h2 className="text-base font-serif font-bold text-neutral-900">
-            1. Overview & Agreement
+        {/* Shipping Policy */}
+        <section className="bg-neutral-50 p-6 sm:p-8 rounded-2xl border border-neutral-200 space-y-3">
+          <h2 className="text-lg font-serif font-bold text-neutral-900">
+            Shipping Policy
           </h2>
-          <p>
-            This website is operated by <strong className="text-neutral-900">Krish Clothing Co.</strong> doing business as <strong className="text-neutral-900">IQ Trousers</strong> (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;), registered at Q-8, Samet Business Park, Near Parishkar - 2, Khokhra Circle, Maninagar, Ahmedabad - 380008, Gujarat, India. By accessing or purchasing from our platform, you agree to comply with and be bound by the following terms and conditions.
+          <p className="text-neutral-700 leading-relaxed">
+            At IQ Trousers, we believe premium service shouldn&apos;t cost extra. That’s why we offer <strong className="text-neutral-900">Free Standard Delivery on all orders across India</strong>. Once your order is placed, it will be processed and dispatched quickly. You will receive a tracking link as soon as your trousers leave our warehouse.
           </p>
         </section>
 
-        <section className="space-y-3">
-          <h2 className="text-base font-serif font-bold text-neutral-900">
-            2. Products & Sizing Accuracy
+        {/* Exchange Policy */}
+        <section className="bg-neutral-50 p-6 sm:p-8 rounded-2xl border border-neutral-200 space-y-3">
+          <h2 className="text-lg font-serif font-bold text-neutral-900">
+            Exchange Policy
           </h2>
-          <p>
-            We take every precaution to display our trouser fabrics, cuts, and colors with utmost fidelity. Available sizes range from 28 to 44. Minor variations in fabric batch shade and measurement tolerances within +/- 0.5 inches are considered acceptable industrial standards in bespoke and ready-to-wear tailoring.
+          <p className="text-neutral-700 leading-relaxed">
+            We want you to find the perfect fit. While we do not offer refunds or returns, we are happy to offer an <strong className="text-neutral-900">exchange for a different size or color</strong>. Exchanges are accepted within <strong className="text-neutral-900">7 days of delivery</strong>, provided the trousers are unworn, unwashed, and still have their original tags attached. Please contact our support team to initiate an exchange.
           </p>
         </section>
 
-        <section className="space-y-3">
+        {/* Business and Manufacturing Details */}
+        <section className="space-y-3 pt-4">
           <h2 className="text-base font-serif font-bold text-neutral-900">
-            3. Promotional Codes & Discounts
+            About Our Manufacturing & Operations
           </h2>
           <p>
-            The 10% welcome discount code (<code className="font-mono bg-neutral-100 px-1.5 py-0.5 rounded text-neutral-900">IQTROUSERS10</code>) generated via our newsletter subscription is non-transferable, intended for single use per customer, and cannot be stacked with other promotional vouchers unless specified otherwise.
+            This website is operated by <strong className="text-neutral-900">Krish Clothing Co.</strong> under the brand name <strong className="text-neutral-900">IQ Trousers</strong>. All products are manufactured in Ahmedabad adhering to strict garment standards and quality control.
           </p>
         </section>
 
+        {/* Contact Info */}
         <section className="space-y-3">
           <h2 className="text-base font-serif font-bold text-neutral-900">
-            4. Shipping & Delivery
+            Contact & Support
           </h2>
           <p>
-            Orders are processed and dispatched within 24 to 48 business hours from Ahmedabad. Tracking numbers are transmitted via email upon courier handover. We are not liable for delays resulting from logistical carrier strikes, weather emergencies, or incorrect recipient addresses.
+            For order inquiries, tracking updates, or exchanges, contact us at:
           </p>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-base font-serif font-bold text-neutral-900">
-            5. Contact Information
-          </h2>
-          <p>
-            Questions regarding these Terms and Conditions should be directed to our legal and customer compliance desk:
-          </p>
-          <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-200 text-xs space-y-1">
-            <p className="font-semibold text-neutral-900">Krish Clothing Co. (IQ Trousers)</p>
-            <p>Q-8, Samet Business Park, Near Parishkar - 2, Khokhra Circle, Maninagar, Ahmedabad - 380008</p>
-            <p>Email: support@iqtrousers.com</p>
+          <div className="p-5 bg-neutral-50 rounded-xl border border-neutral-200 text-xs space-y-1.5">
+            <p className="font-semibold text-neutral-900 text-sm">Krish Clothing Co. (IQ Trousers)</p>
+            <p className="text-neutral-600">Q-8, Samet Business Park, Near Parishkar - 2, Khokhra Circle, Maninagar, Ahmedabad - 380008</p>
+            <p className="text-neutral-600">Customer Care: Mon - SAT, 10am - 7pm</p>
           </div>
         </section>
       </div>

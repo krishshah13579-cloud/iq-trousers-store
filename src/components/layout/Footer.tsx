@@ -274,14 +274,6 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/size-guide"
-                  className="text-neutral-300 hover:text-white transition-colors"
-                >
-                  Size Guide
-                </Link>
-              </li>
-              <li>
-                <Link
                   href="/about"
                   className="text-neutral-300 hover:text-white transition-colors"
                 >
@@ -307,7 +299,7 @@ export default function Footer() {
             <ul className="space-y-2.5 text-sm">
               <li>
                 <a
-                  href="https://instagram.com"
+                  href="https://www.instagram.com/iqtrousers"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-neutral-300 hover:text-white transition-colors"
@@ -318,7 +310,7 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="https://facebook.com"
+                  href="https://www.facebook.com/iqtrouser"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-neutral-300 hover:text-white transition-colors"
@@ -352,21 +344,13 @@ export default function Footer() {
                   Terms And Conditions
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="/wishlist"
-                  className="text-neutral-300 hover:text-white transition-colors"
-                >
-                  My Wishlist
-                </Link>
-              </li>
             </ul>
           </div>
 
           {/* Physical Address */}
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 mb-4">
-              Headquarters
+              Headoffice
             </h3>
             <div className="flex items-start gap-2.5 text-sm text-neutral-300 leading-relaxed">
               <MapPin className="w-5 h-5 text-neutral-400 shrink-0 mt-0.5" />
@@ -382,11 +366,8 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar with Copyright */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-500 gap-4">
+        <div className="pt-8 text-center text-xs text-neutral-500">
           <p>© 2026 by Krish Clothing Co. All rights reserved.</p>
-          <p className="font-serif italic text-neutral-400">
-            IQ Trousers — Engineered for Precision & Elegance
-          </p>
         </div>
       </div>
     </footer>

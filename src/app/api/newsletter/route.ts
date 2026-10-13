@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getClientIp, checkRateLimit, createRateLimitResponse } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
+  // Rate Limiting: Max 5 newsletter subscriptions per 10 minutes per IP
+  const ip = getClientIp(req);
+  const rl = checkRateLimit(`newsletter:${ip}`, { limit: 5, windowMs: 10 * 60 * 1000 });
+  if (!rl.success) {
+    return createRateLimitResponse(rl.resetMs);
+  }
+
   try {
     const body = await req.json();
     const { firstName, lastName, email, consent } = body;

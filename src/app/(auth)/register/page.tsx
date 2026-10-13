@@ -53,21 +53,8 @@ export default function RegisterPage() {
         return;
       }
 
-      // Automatically sign in upon successful registration
-      const signInResult = await signIn("credentials", {
-        redirect: false,
-        email: email.trim(),
-        password,
-        callbackUrl: "/",
-      });
-
-      if (signInResult?.error) {
-        // If auto-signin fails for any reason, redirect to login page
-        router.push("/login?message=Registration successful. Please sign in.");
-      } else {
-        router.push("/");
-        router.refresh();
-      }
+      // Account created: redirect to login page with pre-filled email to authenticate with 2FA
+      router.push(`/login?registered=1&email=${encodeURIComponent(email.trim())}`);
     } catch {
       setError("An unexpected error occurred. Please try again.");
       setLoading(false);
@@ -79,9 +66,13 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <div className="bg-white px-8 py-10 shadow-sm border border-gray-100 rounded-2xl sm:px-10">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gray-900 text-white mb-4">
-              <UserPlus className="w-6 h-6" />
-            </div>
+            <Link href="/" className="inline-block mb-4">
+              <img
+                src="/iq-trousers-logo-transparent.png"
+                alt="IQ Trousers"
+                className="h-16 w-auto mx-auto object-contain hover:opacity-90 transition-opacity"
+              />
+            </Link>
             <h1 className="text-2xl font-bold tracking-tight text-gray-900">
               Create an account
             </h1>

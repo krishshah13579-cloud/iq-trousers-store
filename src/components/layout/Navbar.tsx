@@ -16,6 +16,7 @@ import {
   LayoutDashboard,
   Heart,
   Ruler,
+  ShieldCheck,
 } from "lucide-react";
 
 export default function Navbar() {
@@ -36,7 +37,8 @@ export default function Navbar() {
     }
   };
 
-  const isAdmin = (session?.user as { role?: string })?.role === "ADMIN";
+  const userRole = (session?.user as { role?: string })?.role;
+  const isAdmin = userRole === "ADMIN" || userRole === "SUPER_ADMIN";
 
   return (
     <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
@@ -44,17 +46,14 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-20">
           {/* Brand / Logo */}
           <Link href="/" className="flex items-center space-x-3 group">
-            <div className="w-9 h-9 bg-black rounded-lg flex items-center justify-center transition-transform group-hover:scale-105">
-              <span className="text-white font-serif font-black text-base tracking-wider">
-                IQ
-              </span>
-            </div>
+            <img
+              src="/iq-trousers-logo-transparent.png"
+              alt="IQ Trousers"
+              className="h-12 w-auto object-contain transition-transform group-hover:scale-105"
+            />
             <div className="flex flex-col">
-              <span className="text-xl font-bold tracking-tight text-gray-950 font-serif leading-none">
+              <span className="text-xl font-bold tracking-tight text-gray-950 font-sans uppercase leading-none">
                 IQ Trousers
-              </span>
-              <span className="text-[10px] uppercase tracking-widest text-gray-500 font-sans mt-0.5">
-                Krish Clothing Co.
               </span>
             </div>
           </Link>
@@ -131,6 +130,18 @@ export default function Navbar() {
               <span className="text-xs font-semibold">Cart</span>
             </Link>
 
+            {/* Direct Admin Panel shortcut for administrators */}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 text-white text-xs font-semibold rounded-full shadow-xs transition-colors"
+                title="Go to Admin Panel"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                <span>Admin Panel</span>
+              </Link>
+            )}
+
             {/* Login / Sign Up or Account Menu */}
             {session ? (
               <div className="relative">
@@ -157,14 +168,6 @@ export default function Navbar() {
                       >
                         <Package className="w-3.5 h-3.5" />
                         <span>My Orders</span>
-                      </Link>
-                      <Link
-                        href="/wishlist"
-                        className="flex items-center space-x-2 px-4 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        <Heart className="w-3.5 h-3.5" />
-                        <span>My Wishlist</span>
                       </Link>
                       {isAdmin && (
                         <Link
@@ -300,6 +303,16 @@ export default function Navbar() {
             <div className="pt-3 border-t border-gray-100">
               {session ? (
                 <>
+                  {isAdmin && (
+                    <Link
+                      href="/admin"
+                      className="flex items-center gap-2 px-3 py-2.5 text-zinc-950 font-bold bg-amber-50/80 border border-amber-200/80 text-sm rounded-lg hover:bg-amber-100 transition-colors mb-2"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      <ShieldCheck className="w-4 h-4 text-amber-600" />
+                      <span>Admin Panel</span>
+                    </Link>
+                  )}
                   <Link
                     href="/orders"
                     className="block px-3 py-2 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50"
@@ -307,15 +320,6 @@ export default function Navbar() {
                   >
                     My Orders
                   </Link>
-                  {isAdmin && (
-                    <Link
-                      href="/admin"
-                      className="block px-3 py-2 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50"
-                      onClick={() => setMobileOpen(false)}
-                    >
-                      Admin Dashboard
-                    </Link>
-                  )}
                   <button
                     onClick={() => signOut()}
                     className="block w-full text-left px-3 py-2 text-rose-600 text-sm font-medium rounded-lg hover:bg-gray-50"

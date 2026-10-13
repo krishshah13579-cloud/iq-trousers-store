@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getClientIp, checkRateLimit, createRateLimitResponse } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
+  // Rate Limiting: Max 15 validation attempts per minute per IP to prevent coupon enumeration
+  const ip = getClientIp(req);
+  const rl = checkRateLimit(`discount-validate:${ip}`, { limit: 15, windowMs: 60 * 1000 });
+  if (!rl.success) {
+    return createRateLimitResponse(rl.resetMs);
+  }
+
   try {
     const body = await req.json();
     const { code, orderTotal } = body;

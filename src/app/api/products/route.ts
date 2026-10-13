@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getClientIp, checkRateLimit, createRateLimitResponse } from "@/lib/rateLimit";
 
 export async function GET(request: NextRequest) {
+  // Rate Limiting: Max 60 product searches / listing requests per minute per IP
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(`products:${ip}`, { limit: 60, windowMs: 60 * 1000 });
+  if (!rl.success) {
+    return createRateLimitResponse(rl.resetMs);
+  }
+
   try {
     const searchParams = request.nextUrl.searchParams;
 

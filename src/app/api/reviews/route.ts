@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getClientIp, checkRateLimit, createRateLimitResponse } from "@/lib/rateLimit";
 
 export async function GET(request: NextRequest) {
   try {
@@ -43,6 +44,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Rate Limiting: Max 10 review submissions per 5 minutes per IP
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(`reviews:${ip}`, { limit: 10, windowMs: 5 * 60 * 1000 });
+  if (!rl.success) {
+    return createRateLimitResponse(rl.resetMs);
+  }
+
   try {
     const session = await getServerSession(authOptions);
 
@@ -80,7 +88,7 @@ export async function POST(request: NextRequest) {
     }
 
     const numRating = Number(rating);
-    if (isNaN(numRating) || numRating < 1 || numRating > 5) {
+    if (isNaN(numRating) || numRating < 1 || numRating > 5 || !Number.isInteger(numRating)) {
       return NextResponse.json(
         { error: "Rating must be an integer between 1 and 5" },
         { status: 400 }
@@ -90,6 +98,13 @@ export async function POST(request: NextRequest) {
     if (!comment || typeof comment !== "string" || comment.trim().length === 0) {
       return NextResponse.json(
         { error: "Review comment cannot be empty" },
+        { status: 400 }
+      );
+    }
+
+    if (comment.trim().length > 1000) {
+      return NextResponse.json(
+        { error: "Review comment exceeds maximum limit of 1,000 characters" },
         { status: 400 }
       );
     }

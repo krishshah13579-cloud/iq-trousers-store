@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authOptions, isAdminRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
 export async function PUT(req: NextRequest, { params }: Params) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as { role?: string })?.role !== "ADMIN") {
+  if (!session || !isAdminRole((session.user as { role?: string })?.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -44,12 +44,14 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const {
       name,
       description,
+      careInstructions,
       price,
       comparePrice,
       categoryId,
       stock,
       images,
       sizes,
+      colors,
       featured,
       active,
     } = body;
@@ -81,11 +83,85 @@ export async function PUT(req: NextRequest, { params }: Params) {
       if (Array.isArray(images)) {
         imagesJson = JSON.stringify(images);
       } else if (typeof images === "string") {
-        const parsed = images
-          .split(",")
-          .map((img: string) => img.trim())
-          .filter(Boolean);
-        imagesJson = JSON.stringify(parsed);
+        try {
+          const parsed = JSON.parse(images);
+          imagesJson = Array.isArray(parsed) ? JSON.stringify(parsed) : JSON.stringify([images]);
+        } catch {
+          const parsed = images
+            .split(",")
+            .map((img: string) => img.trim())
+            .filter(Boolean);
+          imagesJson = JSON.stringify(parsed);
+        }
+      }
+    }
+
+    let colorsJson = existingProduct.colors;
+    if (colors !== undefined) {
+      if (Array.isArray(colors)) {
+        colorsJson = JSON.stringify(colors);
+      } else if (typeof colors === "string") {
+        try {
+          const parsed = JSON.parse(colors);
+          colorsJson = Array.isArray(parsed) ? JSON.stringify(parsed) : JSON.stringify([colors]);
+        } catch {
+          colorsJson = JSON.stringify(
+            colors
+              .split(",")
+              .map((c: string) => c.trim())
+              .filter(Boolean)
+          );
+        }
+      }
+    }
+
+    // Process inventory availability by size and color
+    let inventoryJson = existingProduct.inventory;
+    let computedStock = stock !== undefined ? parseInt(stock, 10) : undefined;
+    const rawInventory = body.inventory;
+
+    if (rawInventory !== undefined) {
+      if (typeof rawInventory === "object" && rawInventory !== null) {
+        inventoryJson = JSON.stringify(rawInventory);
+        let sum = 0;
+        let hasVariants = false;
+        Object.values(rawInventory).forEach((row: any) => {
+          if (typeof row === "object" && row !== null) {
+            Object.values(row).forEach((val: any) => {
+              hasVariants = true;
+              sum += Math.max(0, parseInt(String(val || 0), 10) || 0);
+            });
+          } else if (typeof row === "number" || typeof row === "string") {
+            hasVariants = true;
+            sum += Math.max(0, parseInt(String(row || 0), 10) || 0);
+          }
+        });
+        if (hasVariants) {
+          computedStock = sum;
+        }
+      } else if (typeof rawInventory === "string") {
+        try {
+          const parsed = JSON.parse(rawInventory);
+          inventoryJson = JSON.stringify(parsed);
+          let sum = 0;
+          let hasVariants = false;
+          Object.values(parsed).forEach((row: any) => {
+            if (typeof row === "object" && row !== null) {
+              Object.values(row).forEach((val: any) => {
+                hasVariants = true;
+                sum += Math.max(0, parseInt(String(val || 0), 10) || 0);
+              });
+            } else if (typeof row === "number" || typeof row === "string") {
+              hasVariants = true;
+              sum += Math.max(0, parseInt(String(row || 0), 10) || 0);
+            }
+          });
+          if (hasVariants) {
+            computedStock = sum;
+          }
+        } catch {
+          inventoryJson = "{}";
+        }
       }
     }
 
@@ -95,6 +171,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
         ...(name !== undefined && { name }),
         ...(slug !== undefined && { slug }),
         ...(description !== undefined && { description }),
+        ...(careInstructions !== undefined && { careInstructions: String(careInstructions).trim() }),
         ...(price !== undefined && { price: parseFloat(price) }),
         comparePrice:
           comparePrice !== undefined
@@ -105,11 +182,13 @@ export async function PUT(req: NextRequest, { params }: Params) {
         ...(categoryId !== undefined && {
           category: { connect: { id: categoryId } },
         }),
-        ...(stock !== undefined && { stock: parseInt(stock, 10) }),
+        ...(computedStock !== undefined && { stock: computedStock }),
         images: imagesJson,
         ...(sizes !== undefined && {
           sizes: Array.isArray(sizes) ? JSON.stringify(sizes) : String(sizes),
         }),
+        colors: colorsJson,
+        ...(inventoryJson !== undefined && { inventory: inventoryJson }),
         ...(featured !== undefined && { featured: Boolean(featured) }),
         ...(active !== undefined && { active: Boolean(active) }),
       },
@@ -130,7 +209,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
 export async function DELETE(req: NextRequest, { params }: Params) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as { role?: string })?.role !== "ADMIN") {
+  if (!session || !isAdminRole((session.user as { role?: string })?.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

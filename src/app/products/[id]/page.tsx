@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/utils";
 import ProductImageGallery from "@/components/products/ProductImageGallery";
 import AddToCartSection from "@/components/products/AddToCartSection";
+import ProductDetailsAccordions from "@/components/products/ProductDetailsAccordions";
 import ProductReviewsSection from "@/components/products/ProductReviewsSection";
 import ProductCard from "@/components/products/ProductCard";
 
@@ -180,29 +181,14 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
               )}
             </div>
 
-            {/* Product Description */}
-            <div className="prose prose-sm text-gray-600 leading-relaxed pt-2">
-              <p>{product.description}</p>
-            </div>
-
             {/* Interactive Add to Cart & Stock Status */}
             <AddToCartSection product={product} />
 
-            {/* Value Guarantees */}
-            <div className="border-t border-gray-100 pt-6 space-y-3">
-              <div className="flex items-center gap-3 text-xs text-gray-600">
-                <Truck className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                <span>Complimentary standard shipping on orders over $100</span>
-              </div>
-              <div className="flex items-center gap-3 text-xs text-gray-600">
-                <RotateCcw className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                <span>Free returns within 30 days of delivery</span>
-              </div>
-              <div className="flex items-center gap-3 text-xs text-gray-600">
-                <ShieldCheck className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                <span>2-year limited manufacturer warranty included</span>
-              </div>
-            </div>
+            {/* Collapsible Accordions: Product Description (Open) & Care Instructions */}
+            <ProductDetailsAccordions
+              description={product.description}
+              careInstructions={product.careInstructions}
+            />
           </div>
         </div>
 

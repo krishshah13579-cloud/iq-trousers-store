@@ -5,7 +5,7 @@ import { CartItemType } from "@/types";
 
 interface CartContextType {
   items: CartItemType[];
-  addItem: (product: CartItemType["product"], quantity?: number, size?: string) => void;
+  addItem: (product: CartItemType["product"], quantity?: number, size?: string, color?: string) => void;
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
@@ -35,10 +35,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("cart", JSON.stringify(items));
   }, [items]);
 
-  const addItem = (product: CartItemType["product"], quantity = 1, size?: string) => {
+  const addItem = (product: CartItemType["product"], quantity = 1, size?: string, color?: string) => {
     setItems((prev) => {
       const existing = prev.find(
-        (item) => item.productId === product.id && item.size === size
+        (item) => item.productId === product.id && item.size === size && item.color === color
       );
       if (existing) {
         return prev.map((item) =>
@@ -50,9 +50,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return [
         ...prev,
         {
-          id: `${product.id}-${size || "nosize"}-${Date.now()}`,
+          id: `${product.id}-${size || "nosize"}-${color || "nocolor"}-${Date.now()}`,
           productId: product.id,
           size,
+          color,
           quantity,
           product,
         },

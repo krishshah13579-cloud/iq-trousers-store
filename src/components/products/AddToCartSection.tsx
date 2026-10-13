@@ -13,6 +13,7 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
   const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [sizeError, setSizeError] = useState(false);
   const [added, setAdded] = useState(false);
 
@@ -35,8 +36,73 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
     return ["28", "30", "32", "34", "36", "38", "40", "42", "44"];
   })();
 
-  const isOutOfStock = product.stock <= 0;
-  const isLowStock = product.stock > 0 && product.stock <= 5;
+  const availableColors: string[] = (() => {
+    if (!product.colors) return [];
+    try {
+      const parsed = JSON.parse(product.colors);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {
+      // fallback
+    }
+    if (typeof product.colors === "string") {
+      return product.colors
+        .split(",")
+        .map((c) => c.trim())
+        .filter(Boolean);
+    }
+    return [];
+  })();
+
+  const inventoryMap: Record<string, Record<string, number>> | null = (() => {
+    if (!product.inventory) return null;
+    try {
+      const parsed =
+        typeof product.inventory === "string"
+          ? JSON.parse(product.inventory)
+          : product.inventory;
+      if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
+        return parsed as Record<string, Record<string, number>>;
+      }
+    } catch {}
+    return null;
+  })();
+
+  const activeColor = selectedColor || (availableColors.length > 0 ? availableColors[0] : null);
+
+  const getVariantStock = (size?: string | null, color?: string | null): number => {
+    if (!inventoryMap) {
+      return product.stock;
+    }
+    const targetColor = color || activeColor;
+    if (targetColor && inventoryMap[targetColor]) {
+      if (size && inventoryMap[targetColor][size] !== undefined) {
+        return Number(inventoryMap[targetColor][size]);
+      }
+      return Object.values(inventoryMap[targetColor]).reduce(
+        (a, b) => a + Number(b || 0),
+        0
+      );
+    }
+    if (size) {
+      let sizeSum = 0;
+      let found = false;
+      Object.values(inventoryMap).forEach((colMap) => {
+        if (typeof colMap === "object" && colMap && colMap[size] !== undefined) {
+          sizeSum += Number(colMap[size]);
+          found = true;
+        }
+      });
+      if (found) return sizeSum;
+    }
+    return product.stock;
+  };
+
+  const currentVariantStock = selectedSize
+    ? getVariantStock(selectedSize, activeColor)
+    : product.stock;
+
+  const isOutOfStock = product.stock <= 0 || (Boolean(selectedSize) && currentVariantStock <= 0);
+  const isLowStock = currentVariantStock > 0 && currentVariantStock <= 5;
 
   const handleDecrement = () => {
     if (quantity > 1) {
@@ -45,7 +111,7 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
   };
 
   const handleIncrement = () => {
-    if (quantity < product.stock) {
+    if (quantity < currentVariantStock) {
       setQuantity((q) => q + 1);
     }
   };
@@ -56,7 +122,10 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
       setSizeError(true);
       return;
     }
-    addItem(product, quantity, selectedSize || undefined);
+    if (currentVariantStock <= 0) {
+      return;
+    }
+    addItem(product, quantity, selectedSize || undefined, activeColor || undefined);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
@@ -76,15 +145,53 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
         />
         <span className="text-xs font-medium text-gray-700">
           {isOutOfStock
-            ? "Out of stock"
+            ? selectedSize
+              ? `Size ${selectedSize} is out of stock in ${activeColor || "this color"}`
+              : "Out of stock"
             : isLowStock
-            ? `Only ${product.stock} left in stock - order soon`
+            ? `Only ${currentVariantStock} left in stock - order soon`
             : "In stock and ready to ship"}
         </span>
       </div>
 
       {!isOutOfStock && (
         <>
+          {/* Available Colors Selector */}
+          {availableColors.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-gray-900 uppercase tracking-wider">
+                  Available Color{" "}
+                  {selectedColor && (
+                    <span className="font-normal text-gray-500 normal-case">
+                      ({selectedColor})
+                    </span>
+                  )}
+                </label>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {availableColors.map((color) => {
+                  const isSelected = (selectedColor || availableColors[0]) === color;
+                  return (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setSelectedColor(color)}
+                      className={`px-3.5 py-1.5 text-xs font-medium rounded-lg border transition-all duration-150 flex items-center gap-1.5 ${
+                        isSelected
+                          ? "bg-gray-900 text-white border-gray-900 shadow-xs"
+                          : "bg-white text-gray-800 border-gray-200 hover:border-gray-900 hover:bg-gray-50"
+                      }`}
+                    >
+                      <span>{color}</span>
+                      {isSelected && <Check className="w-3 h-3 text-white" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Size Selector */}
           {availableSizes.length > 0 && (
             <div className="space-y-3">
@@ -97,11 +204,13 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                     </span>
                   )}
                 </label>
-                <span className="text-xs text-gray-400">Regular Fit</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {availableSizes.map((size) => {
                   const isSelected = selectedSize === size;
+                  const sizeStock = getVariantStock(size, activeColor);
+                  const isSoldOut = inventoryMap ? sizeStock <= 0 : false;
+
                   return (
                     <button
                       key={size}
@@ -110,13 +219,18 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                         setSelectedSize(size);
                         setSizeError(false);
                       }}
-                      className={`min-w-[46px] h-10 px-3 text-xs font-medium rounded-lg border transition-all duration-150 flex items-center justify-center ${
+                      className={`relative min-w-[46px] h-10 px-3 text-xs font-medium rounded-lg border transition-all duration-150 flex items-center justify-center ${
                         isSelected
                           ? "bg-gray-900 text-white border-gray-900 shadow-xs"
+                          : isSoldOut
+                          ? "bg-gray-50 text-gray-400 border-gray-200 hover:border-gray-300"
                           : "bg-white text-gray-800 border-gray-200 hover:border-gray-900 hover:bg-gray-50"
                       }`}
                     >
-                      {size}
+                      <span className={isSoldOut ? "line-through opacity-60" : ""}>{size}</span>
+                      {isSoldOut && !isSelected && (
+                        <span className="sr-only">(Sold out)</span>
+                      )}
                     </button>
                   );
                 })}
@@ -148,7 +262,7 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
               <button
                 type="button"
                 onClick={handleIncrement}
-                disabled={quantity >= product.stock}
+                disabled={quantity >= currentVariantStock || currentVariantStock <= 0}
                 aria-label="Increase quantity"
                 className="p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
@@ -160,10 +274,12 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
             <button
               type="button"
               onClick={handleAddToCart}
-              disabled={added}
-              className={`flex-1 inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full font-medium text-sm transition-all duration-200 shadow-sm ${
+              disabled={added || isOutOfStock || currentVariantStock <= 0}
+              className={`flex-1 inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full font-medium text-sm transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${
                 added
                   ? "bg-emerald-600 text-white"
+                  : isOutOfStock || currentVariantStock <= 0
+                  ? "bg-gray-300 text-gray-600"
                   : "bg-gray-900 text-white hover:bg-gray-800 active:scale-[0.99]"
               }`}
             >
@@ -172,6 +288,8 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                   <Check className="w-4 h-4" />
                   <span>Added to cart!</span>
                 </>
+              ) : isOutOfStock || currentVariantStock <= 0 ? (
+                <span>Out of Stock</span>
               ) : (
                 <>
                   <ShoppingCart className="w-4 h-4" />

@@ -32,7 +32,7 @@ export default function ContactPage() {
             Contact IQ Trousers
           </h1>
           <p className="text-neutral-500 text-sm sm:text-base mt-3 leading-relaxed">
-            Have questions about fit, fabric care, or bespoke bulk orders? Our team at Krish Clothing Co. is here to assist you.
+            Have questions about fit, fabric care, or wholesale bulk manufacturing? Our team at Krish Clothing Co. is here to assist you.
           </p>
         </div>
 
@@ -59,7 +59,7 @@ export default function ContactPage() {
                 <Mail className="w-5 h-5 text-neutral-900 shrink-0" />
                 <div className="text-sm text-neutral-700">
                   <p className="font-semibold text-neutral-900">Email Inquiries</p>
-                  <p className="text-xs text-neutral-500">support@iqtrousers.com</p>
+                  <p className="text-xs text-neutral-500">krishclothingco3@gmail.com</p>
                 </div>
               </div>
 
@@ -67,16 +67,16 @@ export default function ContactPage() {
                 <Phone className="w-5 h-5 text-neutral-900 shrink-0" />
                 <div className="text-sm text-neutral-700">
                   <p className="font-semibold text-neutral-900">Client Care Line</p>
-                  <p className="text-xs text-neutral-500">+91 (079) 2546-8800</p>
+                  <p className="text-xs text-neutral-500">+91 81287 56632</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3.5">
                 <Clock className="w-5 h-5 text-neutral-900 shrink-0" />
                 <div className="text-sm text-neutral-700">
-                  <p className="font-semibold text-neutral-900">Operating Hours</p>
+                  <p className="font-semibold text-neutral-900">Customer Care Hours</p>
                   <p className="text-xs text-neutral-500">
-                    Monday – Saturday: 9:30 AM to 7:00 PM IST
+                    Mon - Sat, 10:00 AM - 7:00 PM
                   </p>
                 </div>
               </div>

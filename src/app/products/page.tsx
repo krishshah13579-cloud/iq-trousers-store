@@ -45,10 +45,19 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   }
 
   if (category && category.trim() !== "") {
+    const cat = category.trim();
+    const slugCandidates = [cat];
+    if (cat === "casual-everyday" || cat === "everyday-casual") {
+      slugCandidates.push("casual-everyday", "everyday-casual");
+    }
+    if (cat === "formal-wear" || cat === "formal") {
+      slugCandidates.push("formal-wear", "formal");
+    }
+
     where.category = {
       OR: [
-        { slug: category.trim() },
-        { id: category.trim() },
+        ...slugCandidates.map((s) => ({ slug: s })),
+        { id: cat },
       ],
     };
   }

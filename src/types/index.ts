@@ -17,10 +17,13 @@ export interface Product {
   name: string;
   slug: string;
   description: string;
+  careInstructions?: string | null;
   price: number;
   comparePrice: number | null;
   images: string;
   sizes?: string | null; // JSON array string e.g. '["28","30","32"]'
+  colors?: string | null; // JSON array string e.g. '["Navy Blue","Charcoal"]'
+  inventory?: string | null; // JSON map string e.g. '{"Navy Blue":{"30":10,"32":15}}'
   categoryId: string;
   category?: Category;
   stock: number;
@@ -47,6 +50,7 @@ export interface CartItemType {
   productId: string;
   quantity: number;
   size?: string; // e.g. "32"
+  color?: string; // e.g. "Navy Blue"
   product: Product;
 }
 

@@ -1,20 +1,61 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  Save,
+  Upload,
+  Image as ImageIcon,
+  Trash2,
+  Plus,
+  X,
+  Check,
+  Star,
+  Palette,
+  AlertCircle,
+  Link as LinkIcon,
+  Boxes,
+  RefreshCw,
+  Layers,
+  Menu,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Shirt,
+} from "lucide-react";
 import { Category, CLOTHING_SIZES } from "@/types";
+
+// Standard Trouser & Formal Color Presets
+const PRESET_COLORS = [
+  { name: "Jet Black", hex: "#0a0a0a", text: "white" },
+  { name: "Navy Blue", hex: "#1e293b", text: "white" },
+  { name: "Charcoal Grey", hex: "#334155", text: "white" },
+  { name: "Light Grey", hex: "#94a3b8", text: "black" },
+  { name: "Khaki", hex: "#c2b280", text: "black" },
+  { name: "Olive Green", hex: "#3f4f34", text: "white" },
+  { name: "Beige", hex: "#e7dbc8", text: "black" },
+  { name: "Dark Brown", hex: "#452a1a", text: "white" },
+  { name: "Tan", hex: "#c19a6b", text: "black" },
+  { name: "Off White", hex: "#f8fafc", text: "black", border: true },
+  { name: "Slate Blue", hex: "#475569", text: "white" },
+  { name: "Burgundy", hex: "#581c24", text: "white" },
+];
 
 interface ProductFormData {
   name: string;
   description: string;
+  careInstructions?: string;
   price: string | number;
   comparePrice: string | number;
   categoryId: string;
   stock: string | number;
-  images: string;
+  images: string | string[];
   sizes?: string | string[];
+  colors?: string | string[];
+  inventory?: string | Record<string, Record<string, number>>;
   featured: boolean;
   active: boolean;
 }
@@ -31,11 +72,32 @@ export default function ProductForm({
   productId,
 }: ProductFormProps) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Collapsible Accordions (Description open by default, Care Instructions closed by default)
+  const [isDescriptionOpen, setIsDescriptionOpen] = useState(true);
+  const [isCareInstructionsOpen, setIsCareInstructionsOpen] = useState(false);
+
+  // Form base state
+  const [formData, setFormData] = useState({
+    name: initialData?.name || "",
+    description: initialData?.description || "",
+    careInstructions: initialData?.careInstructions || "",
+    price: initialData?.price ?? "",
+    comparePrice: initialData?.comparePrice ?? "",
+    categoryId: initialData?.categoryId || "",
+    stock: initialData?.stock ?? 0,
+    featured: initialData?.featured ?? false,
+    active: initialData?.active ?? true,
+  });
+
+  // Sizes parsing
   const parseInitialSizes = (): string[] => {
     if (!initialData?.sizes) return [...CLOTHING_SIZES];
     if (Array.isArray(initialData.sizes)) return initialData.sizes;
@@ -49,22 +111,203 @@ export default function ProductForm({
       ? initialData.sizes.split(",").map((s) => s.trim()).filter(Boolean)
       : [...CLOTHING_SIZES];
   };
-
   const [selectedSizes, setSelectedSizes] = useState<string[]>(parseInitialSizes);
 
-  const [formData, setFormData] = useState<ProductFormData>({
-    name: initialData?.name || "",
-    description: initialData?.description || "",
-    price: initialData?.price ?? "",
-    comparePrice: initialData?.comparePrice ?? "",
-    categoryId: initialData?.categoryId || "",
-    stock: initialData?.stock ?? 0,
-    images: initialData?.images || "",
-    featured: initialData?.featured ?? false,
-    active: initialData?.active ?? true,
-  });
+  // Colors parsing
+  const parseInitialColors = (): string[] => {
+    if (!initialData?.colors) return ["Navy Blue", "Jet Black", "Charcoal Grey"];
+    if (Array.isArray(initialData.colors)) return initialData.colors;
+    try {
+      const parsed = JSON.parse(initialData.colors);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      // fallback
+    }
+    return typeof initialData.colors === "string"
+      ? initialData.colors.split(",").map((c) => c.trim()).filter(Boolean)
+      : [];
+  };
+  const [selectedColors, setSelectedColors] = useState<string[]>(parseInitialColors);
+  const [customColorInput, setCustomColorInput] = useState("");
 
-  // Fetch categories on mount
+  // Inventory State (by Color & Size)
+  const parseInitialInventory = (): Record<string, Record<string, number>> => {
+    if (!initialData?.inventory) return {};
+    try {
+      const parsed =
+        typeof initialData.inventory === "string"
+          ? JSON.parse(initialData.inventory)
+          : initialData.inventory;
+      if (parsed && typeof parsed === "object") {
+        return parsed as Record<string, Record<string, number>>;
+      }
+    } catch {
+      // fallback
+    }
+    return {};
+  };
+
+  const [inventory, setInventory] = useState<Record<string, Record<string, number>>>(
+    parseInitialInventory
+  );
+  const [bulkQtyInput, setBulkQtyInput] = useState<string>("10");
+
+  // Auto-distribute if existing product had stock count but empty inventory breakdown
+  useEffect(() => {
+    if (
+      Object.keys(inventory).length === 0 &&
+      selectedColors.length > 0 &&
+      selectedSizes.length > 0
+    ) {
+      const initialStockNum = Number(formData.stock) || 0;
+      const totalVariants = selectedColors.length * selectedSizes.length;
+      const defaultQty =
+        initialStockNum > 0
+          ? Math.max(1, Math.round(initialStockNum / totalVariants))
+          : 10;
+
+      const generated: Record<string, Record<string, number>> = {};
+      selectedColors.forEach((color) => {
+        generated[color] = {};
+        selectedSizes.forEach((size) => {
+          generated[color][size] = defaultQty;
+        });
+      });
+      setInventory(generated);
+      const sum = totalVariants * defaultQty;
+      setFormData((prev) => ({ ...prev, stock: sum }));
+    }
+  }, []);
+
+  const getColorHex = (name: string): string => {
+    const found = PRESET_COLORS.find(
+      (c) => c.name.toLowerCase() === name.toLowerCase()
+    );
+    if (found) return found.hex;
+    return "#334155";
+  };
+
+  const getVariantQty = (color: string, size: string): number => {
+    return inventory[color]?.[size] ?? 0;
+  };
+
+  const updateVariantStock = (color: string, size: string, val: string | number) => {
+    const qty = Math.max(0, parseInt(String(val) || "0", 10) || 0);
+    setInventory((prev) => {
+      const nextInv = {
+        ...prev,
+        [color]: {
+          ...(prev[color] || {}),
+          [size]: qty,
+        },
+      };
+      let sum = 0;
+      selectedColors.forEach((c) => {
+        selectedSizes.forEach((s) => {
+          sum += nextInv[c]?.[s] ?? 0;
+        });
+      });
+      setFormData((f) => ({ ...f, stock: sum }));
+      return nextInv;
+    });
+  };
+
+  const getColorTotal = (color: string): number => {
+    let sum = 0;
+    selectedSizes.forEach((s) => {
+      sum += inventory[color]?.[s] ?? 0;
+    });
+    return sum;
+  };
+
+  const getSizeTotal = (size: string): number => {
+    let sum = 0;
+    selectedColors.forEach((c) => {
+      sum += inventory[c]?.[size] ?? 0;
+    });
+    return sum;
+  };
+
+  const handleBulkSetAll = (overrideQty?: number) => {
+    const targetQty =
+      overrideQty !== undefined
+        ? overrideQty
+        : Math.max(0, parseInt(bulkQtyInput || "0", 10) || 0);
+    const nextInv: Record<string, Record<string, number>> = {};
+    selectedColors.forEach((c) => {
+      nextInv[c] = {};
+      selectedSizes.forEach((s) => {
+        nextInv[c][s] = targetQty;
+      });
+    });
+    setInventory(nextInv);
+    const total = selectedColors.length * selectedSizes.length * targetQty;
+    setFormData((f) => ({ ...f, stock: total }));
+  };
+
+  const handleFillColorRow = (color: string) => {
+    const targetQty = Math.max(0, parseInt(bulkQtyInput || "0", 10) || 0);
+    setInventory((prev) => {
+      const nextInv = {
+        ...prev,
+        [color]: {
+          ...(prev[color] || {}),
+        },
+      };
+      selectedSizes.forEach((s) => {
+        nextInv[color][s] = targetQty;
+      });
+      let sum = 0;
+      selectedColors.forEach((c) => {
+        selectedSizes.forEach((s) => {
+          sum += nextInv[c]?.[s] ?? 0;
+        });
+      });
+      setFormData((f) => ({ ...f, stock: sum }));
+      return nextInv;
+    });
+  };
+
+  const handleFillSizeColumn = (size: string) => {
+    const targetQty = Math.max(0, parseInt(bulkQtyInput || "0", 10) || 0);
+    setInventory((prev) => {
+      const nextInv = { ...prev };
+      selectedColors.forEach((c) => {
+        nextInv[c] = {
+          ...(nextInv[c] || {}),
+          [size]: targetQty,
+        };
+      });
+      let sum = 0;
+      selectedColors.forEach((c) => {
+        selectedSizes.forEach((s) => {
+          sum += nextInv[c]?.[s] ?? 0;
+        });
+      });
+      setFormData((f) => ({ ...f, stock: sum }));
+      return nextInv;
+    });
+  };
+
+  // Images state
+  const parseInitialImages = (): string[] => {
+    if (!initialData?.images) return [];
+    if (Array.isArray(initialData.images)) return initialData.images;
+    try {
+      const parsed = JSON.parse(initialData.images);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      // fallback
+    }
+    return typeof initialData.images === "string"
+      ? initialData.images.split(",").map((img) => img.trim()).filter(Boolean)
+      : [];
+  };
+  const [imagesList, setImagesList] = useState<string[]>(parseInitialImages);
+  const [externalUrlInput, setExternalUrlInput] = useState("");
+  const [showUrlInput, setShowUrlInput] = useState(false);
+
+  // Fetch categories
   useEffect(() => {
     async function loadCategories() {
       try {
@@ -84,36 +327,93 @@ export default function ProductForm({
     loadCategories();
   }, [isEdit]);
 
-  // Update initial form data if initialData changes after fetching
-  useEffect(() => {
-    if (initialData) {
-      setFormData({
-        name: initialData.name || "",
-        description: initialData.description || "",
-        price: initialData.price ?? "",
-        comparePrice: initialData.comparePrice ?? "",
-        categoryId: initialData.categoryId || "",
-        stock: initialData.stock ?? 0,
-        images: initialData.images || "",
-        featured: initialData.featured ?? false,
-        active: initialData.active ?? true,
-      });
-      if (initialData.sizes) {
-        if (Array.isArray(initialData.sizes)) {
-          setSelectedSizes(initialData.sizes);
-        } else {
-          try {
-            const parsed = JSON.parse(initialData.sizes);
-            if (Array.isArray(parsed)) setSelectedSizes(parsed);
-          } catch {
-            setSelectedSizes(
-              initialData.sizes.split(",").map((s) => s.trim()).filter(Boolean)
-            );
-          }
-        }
+  // Handle image upload from computer
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImages(true);
+    setError(null);
+
+    try {
+      const uploadFormData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        uploadFormData.append("files", files[i]);
       }
+
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: uploadFormData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to upload image(s)");
+      }
+
+      if (data.urls && Array.isArray(data.urls)) {
+        setImagesList((prev) => [...prev, ...data.urls]);
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Error uploading image");
+    } finally {
+      setUploadingImages(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
-  }, [initialData]);
+  };
+
+  // Add external image URL
+  const handleAddExternalUrl = () => {
+    const trimmed = externalUrlInput.trim();
+    if (!trimmed) return;
+    setImagesList((prev) => [...prev, trimmed]);
+    setExternalUrlInput("");
+  };
+
+  // Remove image
+  const handleRemoveImage = (index: number) => {
+    setImagesList((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Make cover photo (move to index 0)
+  const handleMakeCover = (index: number) => {
+    if (index === 0) return;
+    setImagesList((prev) => {
+      const copy = [...prev];
+      const [item] = copy.splice(index, 1);
+      return [item, ...copy];
+    });
+  };
+
+  // Toggle color preset
+  const handleToggleColor = (colorName: string) => {
+    setSelectedColors((prev) =>
+      prev.includes(colorName)
+        ? prev.filter((c) => c !== colorName)
+        : [...prev, colorName]
+    );
+  };
+
+  // Add custom color
+  const handleAddCustomColor = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = customColorInput.trim();
+    if (!trimmed) return;
+    if (!selectedColors.includes(trimmed)) {
+      setSelectedColors((prev) => [...prev, trimmed]);
+    }
+    setCustomColorInput("");
+  };
+
+  const addCarePreset = (preset: string) => {
+    setFormData((prev) => {
+      const existing = prev.careInstructions?.trim() || "";
+      if (existing.includes(preset)) return prev;
+      const updated = existing ? `${existing} • ${preset}` : preset;
+      return { ...prev, careInstructions: updated };
+    });
+  };
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -133,23 +433,53 @@ export default function ProductForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!formData.name.trim()) {
+      setError("Product name is required");
+      return;
+    }
+    if (!formData.description.trim()) {
+      setError("Description is required");
+      return;
+    }
+    if (formData.price === "" || Number(formData.price) < 0) {
+      setError("A valid price is required");
+      return;
+    }
+    if (!formData.categoryId) {
+      setError("Please select a category");
+      return;
+    }
+    if (imagesList.length === 0) {
+      setError("Please upload at least one image for the product");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      if (!formData.name.trim()) throw new Error("Product name is required");
-      if (!formData.description.trim()) throw new Error("Description is required");
-      if (formData.price === "" || Number(formData.price) < 0)
-        throw new Error("A valid price is required");
-      if (!formData.categoryId) throw new Error("Please select a category");
-
       const endpoint = isEdit
         ? `/api/admin/products/${productId}`
         : "/api/admin/products";
       const method = isEdit ? "PUT" : "POST";
+      let finalStock = Number(formData.stock) || 0;
+      if (selectedColors.length > 0 && selectedSizes.length > 0) {
+        let sum = 0;
+        selectedColors.forEach((c) => {
+          selectedSizes.forEach((s) => {
+            sum += inventory[c]?.[s] ?? 0;
+          });
+        });
+        finalStock = sum;
+      }
 
       const payload = {
         ...formData,
-        sizes: JSON.stringify(selectedSizes),
+        stock: finalStock,
+        images: imagesList,
+        sizes: selectedSizes,
+        colors: selectedColors,
+        inventory: inventory,
       };
 
       const res = await fetch(endpoint, {
@@ -173,20 +503,22 @@ export default function ProductForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-4xl space-y-6">
+    <form onSubmit={handleSubmit} className="max-w-4xl space-y-8">
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
-          {error}
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-2 animate-fadeIn">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-xs space-y-6">
-        <h2 className="text-base font-semibold text-gray-900 border-b border-gray-100 pb-3">
+      {/* 1. Garment Details */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
+        <h2 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3">
           Garment Details
         </h2>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
             Product Name *
           </label>
           <input
@@ -195,40 +527,166 @@ export default function ProductForm({
             required
             value={formData.name}
             onChange={handleChange}
-            placeholder="e.g. Classic Oxford Formal Shirt"
-            className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+            placeholder="e.g. IMP-001 or Everyday Cotton Chino"
+            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black focus:border-transparent transition-all"
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Description *
-          </label>
-          <textarea
-            name="description"
-            rows={4}
-            required
-            value={formData.description}
-            onChange={handleChange}
-            placeholder="Fabric specifications, cut, styling recommendations..."
-            className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black focus:border-transparent transition-all"
-          />
+        {/* 1. Product Description (Collapsible Hamburger - OPEN by default) */}
+        <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-2xs transition-all">
+          <button
+            type="button"
+            onClick={() => setIsDescriptionOpen((prev) => !prev)}
+            className="w-full px-5 py-4 bg-gray-50/70 hover:bg-gray-100/70 transition-colors flex items-center justify-between text-left select-none border-b border-gray-100"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-white border border-gray-200 text-gray-800 shadow-2xs">
+                <Menu className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-gray-900 tracking-tight">
+                    Product Description
+                  </h3>
+                  <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full uppercase">
+                    Required *
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Fabric specifications, weave architecture, fit silhouette &amp; pocket details
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-gray-500">
+              <span className="text-xs font-medium text-gray-400 hidden sm:inline">
+                {isDescriptionOpen ? "Collapse" : "Expand"}
+              </span>
+              <div className="p-1 rounded-lg hover:bg-gray-200/60 text-gray-600 transition-transform">
+                {isDescriptionOpen ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </div>
+            </div>
+          </button>
+
+          {isDescriptionOpen && (
+            <div className="p-5 space-y-2 animate-fadeIn">
+              <textarea
+                name="description"
+                rows={5}
+                required
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Engineered from 4-way stretch high-twist twill with adaptive flex waistband. Perfect for boardroom elegance and 24/7 travel comfort..."
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:ring-2 focus:ring-black focus:border-transparent transition-all leading-relaxed placeholder:text-gray-400"
+              />
+              <div className="flex items-center justify-between text-[11px] text-gray-400 pt-1">
+                <span>Markdown or clean text supported</span>
+                <span>{formData.description.length} characters</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 2. Care Instructions (Collapsible Hamburger - CLOSED by default) */}
+        <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-2xs transition-all">
+          <button
+            type="button"
+            onClick={() => setIsCareInstructionsOpen((prev) => !prev)}
+            className="w-full px-5 py-4 bg-gray-50/70 hover:bg-gray-100/70 transition-colors flex items-center justify-between text-left select-none border-b border-gray-100"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-white border border-gray-200 text-[#162082] shadow-2xs">
+                <Shirt className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-gray-900 tracking-tight">
+                    Care Instructions
+                  </h3>
+                  <span className="text-[10px] font-semibold text-gray-600 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">
+                    Collapsible • Fabric Care
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Washing temperatures, drying instructions &amp; iron settings
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-gray-500">
+              <span className="text-xs font-medium text-gray-400 hidden sm:inline">
+                {isCareInstructionsOpen ? "Collapse" : "Expand"}
+              </span>
+              <div className="p-1 rounded-lg hover:bg-gray-200/60 text-gray-600 transition-transform">
+                {isCareInstructionsOpen ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </div>
+            </div>
+          </button>
+
+          {isCareInstructionsOpen && (
+            <div className="p-5 space-y-3.5 animate-fadeIn">
+              {/* Quick Preset Badges */}
+              <div className="space-y-1.5">
+                <span className="text-xs font-semibold text-gray-700 block">
+                  Quick Care Presets (Click to add):
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "Machine wash cold (30°C)",
+                    "Gentle cycle with like colors",
+                    "Do not bleach",
+                    "Line dry in shade",
+                    "Do not tumble dry",
+                    "Warm iron on reverse",
+                    "Dry clean compatible",
+                  ].map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => addCarePreset(preset)}
+                      className="text-xs px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-neutral-900 hover:text-white text-gray-700 transition-colors border border-gray-200/80 cursor-pointer"
+                    >
+                      + {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <textarea
+                name="careInstructions"
+                rows={3}
+                value={formData.careInstructions}
+                onChange={handleChange}
+                placeholder="e.g. Machine wash cold with like colors, gentle cycle. Do not bleach. Line dry in shade. Warm iron inside-out."
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-hidden focus:ring-2 focus:ring-black focus:border-transparent transition-all leading-relaxed placeholder:text-gray-400"
+              />
+              <p className="text-[11px] text-gray-400">
+                This information will appear in the customer-facing care accordion on the product page.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
               Category *
             </label>
             {loadingCategories ? (
-              <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
+              <div className="h-10 bg-gray-100 rounded-xl animate-pulse" />
             ) : (
               <select
                 name="categoryId"
                 required
                 value={formData.categoryId}
                 onChange={handleChange}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-black focus:border-transparent transition-all"
               >
                 <option value="">Select Category</option>
                 {categories.map((cat) => (
@@ -241,30 +699,313 @@ export default function ProductForm({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Inventory Stock *
-            </label>
-            <input
-              type="number"
-              min="0"
-              name="stock"
-              required
-              value={formData.stock}
-              onChange={handleChange}
-              placeholder="50"
-              className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black focus:border-transparent transition-all"
-            />
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700">
+                Total Stock Units *
+              </label>
+              <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                Auto-synced with variants
+              </span>
+            </div>
+            <div className="relative">
+              <input
+                type="number"
+                min="0"
+                name="stock"
+                required
+                value={formData.stock}
+                onChange={handleChange}
+                placeholder="50"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black focus:border-transparent transition-all font-semibold"
+              />
+              <div className="text-xs text-gray-500 mt-1 flex items-center justify-between">
+                <span>Calculated from Color & Size matrix below</span>
+                <a
+                  href="#inventory-matrix"
+                  className="text-black font-semibold underline hover:text-gray-700"
+                >
+                  Manage Availability ↓
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Available Clothing Sizes */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-xs space-y-4">
+      {/* 2. Image Upload (Direct from computer + Drag/Drop) */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
         <div className="flex items-center justify-between border-b border-gray-100 pb-3">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">Available Sizes</h2>
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-gray-700" />
+              <span>Product Images</span>
+            </h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              Select which sizes are available for this specific product
+              Upload photos from your computer. First image will be used as the primary cover photo.
+            </p>
+          </div>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">
+            {imagesList.length} Image{imagesList.length === 1 ? "" : "s"}
+          </span>
+        </div>
+
+        {/* Dropzone / Upload Button */}
+        <div
+          onClick={() => fileInputRef.current?.click()}
+          className="relative border-2 border-dashed border-gray-300 hover:border-gray-900 bg-gray-50/60 hover:bg-gray-50 rounded-2xl p-8 text-center cursor-pointer transition-all group"
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+
+          <div className="flex flex-col items-center justify-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-gray-700 shadow-xs group-hover:scale-105 transition-transform">
+              {uploadingImages ? (
+                <Loader2 className="w-6 h-6 animate-spin text-gray-900" />
+              ) : (
+                <Upload className="w-6 h-6" />
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                {uploadingImages
+                  ? "Uploading image files..."
+                  : "Click to upload product images from computer"}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                PNG, JPG, JPEG, WEBP or AVIF supported
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Image Grid Preview */}
+        {imagesList.length > 0 && (
+          <div className="space-y-3">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700">
+              Uploaded Gallery Preview
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {imagesList.map((imgUrl, idx) => (
+                <div
+                  key={idx}
+                  className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-xs"
+                >
+                  <img
+                    src={imgUrl}
+                    alt={`Product image ${idx + 1}`}
+                    className="w-full h-full object-cover object-center"
+                  />
+
+                  {/* Cover badge */}
+                  {idx === 0 ? (
+                    <div className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-black/80 text-white text-[10px] font-bold uppercase tracking-wider backdrop-blur-xs">
+                      <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                      <span>Cover Photo</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleMakeCover(idx)}
+                      className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 rounded-md bg-white/90 text-black text-[10px] font-semibold hover:bg-white shadow-xs"
+                    >
+                      Set as Cover
+                    </button>
+                  )}
+
+                  {/* Remove button */}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(idx)}
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md bg-red-600 text-white hover:bg-red-700 shadow-xs"
+                    title="Remove image"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Optional Add by External URL toggle */}
+        <div className="pt-2">
+          {!showUrlInput ? (
+            <button
+              type="button"
+              onClick={() => setShowUrlInput(true)}
+              className="text-xs text-gray-500 hover:text-black font-medium flex items-center gap-1.5 transition-colors"
+            >
+              <LinkIcon className="w-3.5 h-3.5" />
+              <span>Or add image via web URL</span>
+            </button>
+          ) : (
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+              <label className="block text-xs font-semibold text-gray-700">
+                Image Web URL
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="https://images.unsplash.com/photo-..."
+                  value={externalUrlInput}
+                  onChange={(e) => setExternalUrlInput(e.target.value)}
+                  className="flex-1 px-3.5 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-black"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddExternalUrl}
+                  className="px-4 py-2 bg-black text-white rounded-lg text-xs font-semibold hover:bg-gray-800 transition-colors"
+                >
+                  Add URL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowUrlInput(false)}
+                  className="p-2 text-gray-400 hover:text-gray-700"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 3. Available Colors Section (NEW) */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
+        <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Palette className="w-5 h-5 text-gray-700" />
+              <span>Available Colors</span>
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Select or type the color variants available for this trouser design.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedColors(PRESET_COLORS.map((c) => c.name))}
+              className="text-xs text-gray-600 hover:text-black font-medium underline"
+            >
+              Select All
+            </button>
+            <span className="text-gray-300">|</span>
+            <button
+              type="button"
+              onClick={() => setSelectedColors([])}
+              className="text-xs text-gray-600 hover:text-black font-medium underline"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+
+        {/* Color Presets */}
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-2.5">
+            Standard Trouser Colors
+          </label>
+          <div className="flex flex-wrap gap-2.5">
+            {PRESET_COLORS.map((color) => {
+              const isSelected = selectedColors.includes(color.name);
+              return (
+                <button
+                  key={color.name}
+                  type="button"
+                  onClick={() => handleToggleColor(color.name)}
+                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all duration-150 ${
+                    isSelected
+                      ? "bg-gray-900 text-white border-gray-900 shadow-xs"
+                      : "bg-white text-gray-700 border-gray-200 hover:border-gray-400 hover:bg-gray-50"
+                  }`}
+                >
+                  <span
+                    className="w-3.5 h-3.5 rounded-full border shrink-0"
+                    style={{
+                      backgroundColor: color.hex,
+                      borderColor: color.border ? "#cbd5e1" : "transparent",
+                    }}
+                  />
+                  <span>{color.name}</span>
+                  {isSelected && <Check className="w-3 h-3 text-white ml-0.5" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Custom Color Input */}
+        <div className="pt-2 border-t border-gray-100">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
+            Add Custom Color Name
+          </label>
+          <div className="flex gap-2 max-w-md">
+            <input
+              type="text"
+              placeholder="e.g. Royal Navy, Slate Blue, Stone Beige"
+              value={customColorInput}
+              onChange={(e) => setCustomColorInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddCustomColor();
+                }
+              }}
+              className="flex-1 px-3.5 py-2 bg-gray-50 border border-gray-300 rounded-xl text-sm focus:outline-hidden focus:bg-white focus:ring-2 focus:ring-black"
+            />
+            <button
+              type="button"
+              onClick={() => handleAddCustomColor()}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white rounded-xl text-xs font-semibold hover:bg-black transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Currently Selected Colors Chips */}
+        {selectedColors.length > 0 && (
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+            <p className="text-xs font-semibold text-gray-700">
+              Selected Colors ({selectedColors.length}):
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {selectedColors.map((color) => (
+                <span
+                  key={color}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-white border border-gray-200 text-gray-900 shadow-2xs"
+                >
+                  <span>{color}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleColor(color)}
+                    className="text-gray-400 hover:text-red-600 transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 4. Available Clothing Sizes */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-4">
+        <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Available Sizes</h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Select available sizes for this trouser pattern (Waist sizes 28 through 44)
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -300,7 +1041,7 @@ export default function ProductForm({
                       : [...prev, size].sort((a, b) => Number(a) - Number(b))
                   );
                 }}
-                className={`min-w-[48px] h-10 px-3.5 text-xs font-semibold rounded-lg border transition-all duration-150 flex items-center justify-center ${
+                className={`min-w-[48px] h-10 px-3.5 text-xs font-semibold rounded-xl border transition-all duration-150 flex items-center justify-center ${
                   isSelected
                     ? "bg-black text-white border-black shadow-xs"
                     : "bg-white text-gray-600 border-gray-300 hover:border-black"
@@ -311,22 +1052,264 @@ export default function ProductForm({
             );
           })}
         </div>
-        {selectedSizes.length === 0 && (
-          <p className="text-xs text-amber-600 font-medium">
-            Warning: No sizes selected. Customers won't be able to select a size.
-          </p>
+      </div>
+
+      {/* 5. Inventory Availability by Size & Color */}
+      <div
+        id="inventory-matrix"
+        className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6 scroll-mt-6"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-4 gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Boxes className="w-5 h-5 text-gray-700" />
+              <span>Inventory Availability by Size & Color</span>
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Specify exact stock units available for each color and waist size. Real-time availability on the product page will adapt to these values.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">
+              {selectedColors.length} Color{selectedColors.length === 1 ? "" : "s"}
+            </span>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">
+              {selectedSizes.length} Size{selectedSizes.length === 1 ? "" : "s"}
+            </span>
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-black text-white shadow-2xs">
+              {formData.stock} Units Total
+            </span>
+          </div>
+        </div>
+
+        {selectedColors.length === 0 || selectedSizes.length === 0 ? (
+          <div className="p-6 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold">Colors or sizes are missing</p>
+              <p className="text-xs text-amber-700">
+                Please select at least one color in the <strong>Available Colors</strong> section and at least one size in the <strong>Available Sizes</strong> section above to configure inventory availability.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {/* Quick Batch Tools */}
+            <div className="p-4 bg-gray-50/80 rounded-2xl border border-gray-200/80 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Bulk Fill:
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  value={bulkQtyInput}
+                  onChange={(e) => setBulkQtyInput(e.target.value)}
+                  className="w-16 px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-center focus:ring-2 focus:ring-black"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleBulkSetAll()}
+                  className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-semibold hover:bg-black transition-colors"
+                >
+                  Apply to All Variants
+                </button>
+              </div>
+
+              {/* Quick Presets */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs text-gray-500 mr-1">Presets:</span>
+                {[5, 10, 20, 50].map((qty) => (
+                  <button
+                    key={qty}
+                    type="button"
+                    onClick={() => handleBulkSetAll(qty)}
+                    className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-gray-200 bg-white hover:border-black text-gray-700 transition-colors"
+                  >
+                    All: {qty}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => handleBulkSetAll(0)}
+                  className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors"
+                >
+                  Clear All (0)
+                </button>
+              </div>
+            </div>
+
+            {/* Matrix Table */}
+            <div className="overflow-x-auto rounded-2xl border border-gray-200 shadow-2xs">
+              <table className="w-full border-collapse text-left text-sm">
+                <thead>
+                  <tr className="bg-gray-900 text-white">
+                    <th className="p-3.5 text-xs font-bold uppercase tracking-wider min-w-[150px]">
+                      Color \ Size
+                    </th>
+                    {selectedSizes.map((size) => (
+                      <th
+                        key={size}
+                        className="p-3 text-center text-xs font-bold tracking-wider min-w-[90px]"
+                      >
+                        <div className="flex flex-col items-center">
+                          <span>Size {size}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleFillSizeColumn(size)}
+                            title={`Set all colors in size ${size} to ${bulkQtyInput}`}
+                            className="text-[10px] text-gray-400 hover:text-white underline font-normal mt-0.5"
+                          >
+                            Set col
+                          </button>
+                        </div>
+                      </th>
+                    ))}
+                    <th className="p-3 text-center text-xs font-bold uppercase tracking-wider min-w-[100px] bg-gray-800">
+                      Color Total
+                    </th>
+                    <th className="p-3 text-center text-xs font-bold uppercase tracking-wider min-w-[120px] bg-gray-800">
+                      Quick Row Fill
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {selectedColors.map((color) => {
+                    const colorTotal = getColorTotal(color);
+                    return (
+                      <tr
+                        key={color}
+                        className="hover:bg-gray-50/70 transition-colors"
+                      >
+                        <td className="p-3.5 font-semibold text-gray-900">
+                          <div className="flex items-center gap-2.5">
+                            <span
+                              className="w-4 h-4 rounded-full border border-gray-300 shadow-2xs shrink-0"
+                              style={{ backgroundColor: getColorHex(color) }}
+                            />
+                            <span className="truncate">{color}</span>
+                          </div>
+                        </td>
+                        {selectedSizes.map((size) => {
+                          const qty = getVariantQty(color, size);
+                          return (
+                            <td key={size} className="p-2.5 text-center">
+                              <div className="flex flex-col items-center gap-1">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={qty}
+                                  onChange={(e) =>
+                                    updateVariantStock(color, size, e.target.value)
+                                  }
+                                  className={`w-16 px-2 py-1.5 text-center rounded-xl border text-xs font-bold transition-all focus:outline-hidden focus:ring-2 focus:ring-black ${
+                                    qty === 0
+                                      ? "border-rose-300 bg-rose-50/80 text-rose-700"
+                                      : qty <= 5
+                                      ? "border-amber-300 bg-amber-50/80 text-amber-800"
+                                      : "border-gray-200 bg-white text-gray-900 hover:border-gray-400"
+                                  }`}
+                                />
+                                <span
+                                  className={`text-[10px] font-semibold leading-tight ${
+                                    qty === 0
+                                      ? "text-rose-600"
+                                      : qty <= 5
+                                      ? "text-amber-700"
+                                      : "text-emerald-700"
+                                  }`}
+                                >
+                                  {qty === 0 ? "Out" : qty <= 5 ? "Low" : "In Stock"}
+                                </span>
+                              </div>
+                            </td>
+                          );
+                        })}
+                        <td className="p-3.5 text-center font-bold text-gray-900 bg-gray-50/50">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                              colorTotal === 0
+                                ? "bg-rose-100 text-rose-800"
+                                : colorTotal <= 10
+                                ? "bg-amber-100 text-amber-800"
+                                : "bg-gray-100 text-gray-900"
+                            }`}
+                          >
+                            {colorTotal}
+                          </span>
+                        </td>
+                        <td className="p-2.5 text-center bg-gray-50/50">
+                          <button
+                            type="button"
+                            onClick={() => handleFillColorRow(color)}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 transition-colors shadow-2xs"
+                          >
+                            Fill ({bulkQtyInput})
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="bg-gray-100/90 font-bold border-t-2 border-gray-300">
+                  <tr>
+                    <td className="p-3.5 text-xs font-bold uppercase tracking-wider text-gray-700">
+                      Size Totals
+                    </td>
+                    {selectedSizes.map((size) => (
+                      <td
+                        key={size}
+                        className="p-3.5 text-center text-xs font-bold text-gray-900"
+                      >
+                        {getSizeTotal(size)}
+                      </td>
+                    ))}
+                    <td className="p-3.5 text-center text-sm font-black text-black bg-gray-200/80">
+                      {formData.stock}
+                    </td>
+                    <td className="p-3.5 text-center text-xs text-gray-600 bg-gray-200/80 font-medium">
+                      All Units
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            {/* Availability Legend */}
+            <div className="flex flex-wrap items-center justify-between text-xs text-gray-500 pt-2 px-1">
+              <div className="flex items-center gap-4">
+                <span className="font-semibold text-gray-700">Stock Legend:</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  <span>In Stock (&gt;5)</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  <span>Low Stock (1–5)</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                  <span>Out of Stock (0)</span>
+                </span>
+              </div>
+              <span className="text-[11px] text-gray-400">
+                Values auto-save upon clicking Save/Update Trouser.
+              </span>
+            </div>
+          </div>
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-xs space-y-6">
-        <h2 className="text-base font-semibold text-gray-900 border-b border-gray-100 pb-3">
-          Pricing
+      {/* 6. Pricing (INR ₹) */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
+        <h2 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3">
+          Pricing (₹ INR)
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Selling Price ($) *
+            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
+              Selling Price (₹) *
             </label>
             <input
               type="number"
@@ -336,14 +1319,14 @@ export default function ProductForm({
               required
               value={formData.price}
               onChange={handleChange}
-              placeholder="29.99"
-              className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+              placeholder="1290.00"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black focus:border-transparent transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Compare at Price ($)
+            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
+              Compare at Regular Price (₹)
             </label>
             <input
               type="number"
@@ -352,40 +1335,24 @@ export default function ProductForm({
               name="comparePrice"
               value={formData.comparePrice}
               onChange={handleChange}
-              placeholder="39.99"
-              className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+              placeholder="1700.00"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black focus:border-transparent transition-all"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Original regular price before discount (optional)
+              Original regular price before discount (optional for strikethrough)
             </p>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-xs space-y-6">
-        <h2 className="text-base font-semibold text-gray-900 border-b border-gray-100 pb-3">
-          Media & Status
+      {/* 6. Status & Storefront Display */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-4">
+        <h2 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3">
+          Publishing & Storefront Visibility
         </h2>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Image URLs (comma-separated)
-          </label>
-          <input
-            type="text"
-            name="images"
-            value={formData.images}
-            onChange={handleChange}
-            placeholder="https://images.unsplash.com/photo-..., https://..."
-            className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black focus:border-transparent transition-all"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Enter public image URLs separated by commas.
-          </p>
-        </div>
-
-        <div className="pt-2 flex flex-col sm:flex-row gap-6">
-          <label className="flex items-center gap-2.5 cursor-pointer">
+        <div className="flex flex-col sm:flex-row gap-6 pt-1">
+          <label className="flex items-center gap-3 cursor-pointer select-none">
             <input
               type="checkbox"
               name="active"
@@ -394,11 +1361,11 @@ export default function ProductForm({
               className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
             />
             <span className="text-sm font-medium text-gray-700">
-              Active (Visible in storefront)
+              Active (Visible in storefront catalog)
             </span>
           </label>
 
-          <label className="flex items-center gap-2.5 cursor-pointer">
+          <label className="flex items-center gap-3 cursor-pointer select-none">
             <input
               type="checkbox"
               name="featured"
@@ -407,35 +1374,36 @@ export default function ProductForm({
               className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
             />
             <span className="text-sm font-medium text-gray-700">
-              Featured product
+              Featured Trouser
             </span>
           </label>
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-2">
+      {/* Footer Controls */}
+      <div className="flex items-center justify-between pt-4 border-t border-gray-200">
         <Link
           href="/admin/products"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Cancel</span>
+          <span>Back to Products</span>
         </Link>
 
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-black hover:bg-gray-800 transition-colors shadow-xs disabled:opacity-50"
+          className="inline-flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-semibold text-white bg-black hover:bg-gray-800 transition-colors shadow-xs disabled:opacity-50"
         >
           {submitting ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Saving...</span>
+              <span>Saving Garment...</span>
             </>
           ) : (
             <>
               <Save className="w-4 h-4" />
-              <span>{isEdit ? "Update Garment" : "Create Garment"}</span>
+              <span>{isEdit ? "Update Trouser" : "Save Trouser"}</span>
             </>
           )}
         </button>

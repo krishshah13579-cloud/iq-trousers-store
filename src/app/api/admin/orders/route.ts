@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authOptions, isAdminRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as { role?: string })?.role !== "ADMIN") {
+  if (!session || !isAdminRole((session.user as { role?: string })?.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -40,7 +40,7 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as { role?: string })?.role !== "ADMIN") {
+  if (!session || !isAdminRole((session.user as { role?: string })?.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -51,6 +51,14 @@ export async function PUT(req: NextRequest) {
     if (!orderId || !status) {
       return NextResponse.json(
         { error: "Order ID and status are required" },
+        { status: 400 }
+      );
+    }
+
+    const ALLOWED_STATUSES = ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
+    if (!ALLOWED_STATUSES.includes(status)) {
+      return NextResponse.json(
+        { error: `Invalid status. Allowed values: ${ALLOWED_STATUSES.join(", ")}` },
         { status: 400 }
       );
     }

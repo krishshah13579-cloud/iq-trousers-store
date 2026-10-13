@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { getClientIp, checkRateLimit, createRateLimitResponse } from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
+  // Rate Limiting: Max 5 registration attempts per 15 minutes per IP
+  const ip = getClientIp(req);
+  const rl = checkRateLimit(`register:${ip}`, { limit: 5, windowMs: 15 * 60 * 1000 });
+  if (!rl.success) {
+    return createRateLimitResponse(rl.resetMs);
+  }
+
   try {
     const body = await req.json();
     const { name, email, password } = body;
@@ -20,6 +28,13 @@ export async function POST(req: Request) {
     if (password.length < 6) {
       return NextResponse.json(
         { error: "Password must be at least 6 characters long" },
+        { status: 400 }
+      );
+    }
+
+    if (password.length > 128) {
+      return NextResponse.json(
+        { error: "Password cannot exceed 128 characters" },
         { status: 400 }
       );
     }

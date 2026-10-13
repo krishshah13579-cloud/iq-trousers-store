@@ -14,14 +14,14 @@ async function main() {
   await prisma.discount.deleteMany();
   await prisma.user.deleteMany();
 
-  // Create admin user
+  // Create Super Admin user
   const adminPassword = await bcrypt.hash("admin123", 10);
   const admin = await prisma.user.create({
     data: {
-      name: "Admin User",
-      email: "admin@store.com",
+      name: "Krish Shah",
+      email: "krishshah13579@gmail.com",
       password: adminPassword,
-      role: "ADMIN",
+      role: "SUPER_ADMIN",
     },
   });
 
@@ -41,7 +41,7 @@ async function main() {
     data: {
       name: "Casual Everyday",
       slug: "casual-everyday",
-      description: "Relaxed essentials, denim, premium tees, and everyday casualwear designed for comfort and modern style.",
+      description: "Relaxed everyday trousers, stretch chinos, and casual bottoms designed for comfort and modern style.",
       image: "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=600",
     },
   });
@@ -50,7 +50,7 @@ async function main() {
     data: {
       name: "Formal Wear",
       slug: "formal-wear",
-      description: "Impeccably tailored suits, crisp dress shirts, pleated trousers, and elevated occasionwear.",
+      description: "Impeccably manufactured formal trousers, pleated dress pants, and executive formals.",
       image: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=600",
     },
   });
@@ -263,7 +263,7 @@ async function main() {
     prisma.review.create({
       data: {
         rating: 5,
-        comment: "The cut on the Italian wool blazer is impeccable. Fits like a bespoke suit straight off the rack!",
+        comment: "The cut on the Italian wool blazer is impeccable. Fits like a tailored suit straight off the rack!",
         userId: user.id,
         productId: products[6].id,
       },
@@ -380,8 +380,8 @@ async function main() {
   console.log("✅ Clothing database seeded successfully!");
   console.log("🏷️ Categories: Casual Everyday & Formal Wear");
   console.log("📏 Sizes available: 28, 30, 32, 34, 36, 38, 40, 42, 44");
-  console.log("📧 Admin: admin@store.com / admin123");
-  console.log("📧 User:  john@example.com / user123");
+  console.log("📧 Super Admin: krishshah13579@gmail.com / admin123");
+  console.log("📧 User:        john@example.com / user123");
 }
 
 main()

@@ -9,7 +9,7 @@ export const metadata = {
 const FAQS = [
   {
     q: "What sizes are available in IQ Trousers?",
-    a: "We produce an extensive sizing range: 28, 30, 32, 34, 36, 38, 40, 42, and 44. Each size is crafted with specific waist, rise, and thigh proportions to ensure an optimal tailored fit.",
+    a: "We produce an extensive sizing range engineered with specific waist, rise, and thigh proportions to ensure an optimal tailored fit. Please consult our Size Guide in the navigation bar for detailed measurements.",
   },
   {
     q: "How do I choose between Casual Everyday and Formal Wear?",

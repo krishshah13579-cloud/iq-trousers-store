@@ -3,8 +3,16 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ShippingAddress } from "@/types";
+import { getClientIp, checkRateLimit, createRateLimitResponse } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
+  // Rate Limiting: Max 10 order creation attempts per 10 minutes per IP
+  const ip = getClientIp(req);
+  const rl = checkRateLimit(`orders:${ip}`, { limit: 10, windowMs: 10 * 60 * 1000 });
+  if (!rl.success) {
+    return createRateLimitResponse(rl.resetMs);
+  }
+
   try {
     const session = await getServerSession(authOptions);
     if (!session || !session.user || !(session.user as { id?: string }).id) {

@@ -1,39 +1,58 @@
 import Link from "next/link";
-import { DollarSign, ShoppingCart, Package, Users, ArrowRight } from "lucide-react";
+import {
+  DollarSign,
+  ShoppingCart,
+  Package,
+  Users,
+  FolderTree,
+  ShieldCheck,
+  ArrowRight,
+  Tag,
+} from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatPrice, getOrderStatusColor } from "@/lib/utils";
 
+export const revalidate = 0;
 
 export default async function AdminDashboardPage() {
-  const [revenueResult, totalOrders, totalProducts, totalUsers, recentOrders] =
-    await Promise.all([
-      prisma.order.aggregate({
-        _sum: {
-          total: true,
+  const [
+    revenueResult,
+    totalOrders,
+    totalProducts,
+    totalCustomers,
+    totalAdmins,
+    totalCategories,
+    recentOrders,
+  ] = await Promise.all([
+    prisma.order.aggregate({
+      _sum: {
+        total: true,
+      },
+      where: {
+        status: {
+          not: "CANCELLED",
         },
-        where: {
-          status: {
-            not: "CANCELLED",
+      },
+    }),
+    prisma.order.count(),
+    prisma.product.count(),
+    prisma.user.count({ where: { role: "USER" } }),
+    prisma.user.count({ where: { role: { in: ["ADMIN", "SUPER_ADMIN"] } } }),
+    prisma.category.count(),
+    prisma.order.findMany({
+      take: 10,
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
           },
         },
-      }),
-      prisma.order.count(),
-      prisma.product.count(),
-      prisma.user.count(),
-      prisma.order.findMany({
-        take: 10,
-        orderBy: { createdAt: "desc" },
-        include: {
-          user: {
-            select: {
-              name: true,
-              email: true,
-            },
-          },
-          items: true,
-        },
-      }),
-    ]);
+        items: true,
+      },
+    }),
+  ]);
 
   const totalRevenue = revenueResult._sum.total || 0;
 
@@ -44,49 +63,55 @@ export default async function AdminDashboardPage() {
       icon: DollarSign,
       description: "Excluding cancelled orders",
       color: "text-emerald-600 bg-emerald-50",
+      href: "/admin/orders",
     },
     {
       title: "Total Orders",
       value: totalOrders.toLocaleString(),
       icon: ShoppingCart,
-      description: "All-time customer orders",
+      description: "All customer purchases",
       color: "text-blue-600 bg-blue-50",
+      href: "/admin/orders",
     },
     {
-      title: "Total Products",
+      title: "Products & Stock",
       value: totalProducts.toLocaleString(),
       icon: Package,
-      description: "Active & inactive inventory",
+      description: "In inventory catalog",
       color: "text-indigo-600 bg-indigo-50",
+      href: "/admin/products",
     },
     {
-      title: "Total Users",
-      value: totalUsers.toLocaleString(),
+      title: "Registered Users",
+      value: totalCustomers.toLocaleString(),
       icon: Users,
-      description: "Registered accounts",
+      description: "Active customer accounts",
       color: "text-amber-600 bg-amber-50",
+      href: "/admin/users",
     },
   ];
 
   return (
     <div className="space-y-8">
+      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">
           Dashboard Overview
         </h1>
         <p className="text-sm text-gray-500 mt-1">
-          Welcome back. Here is what is happening across your store today.
+          Welcome back. Here is what is happening across your IQ Trousers store today.
         </p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Main Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
-            <div
+            <Link
               key={card.title}
-              className="bg-white rounded-xl border border-gray-200 p-5 shadow-xs transition hover:shadow-sm"
+              href={card.href}
+              className="bg-white rounded-xl border border-gray-200 p-5 shadow-xs transition hover:shadow-md hover:border-gray-300 block group"
             >
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-600">
@@ -102,9 +127,72 @@ export default async function AdminDashboardPage() {
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">{card.description}</p>
               </div>
-            </div>
+            </Link>
           );
         })}
+      </div>
+
+      {/* Secondary Quick Action Cards (Categories, Admins, Discounts) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <Link
+          href="/admin/categories"
+          className="bg-white p-5 rounded-xl border border-gray-200 shadow-xs hover:border-gray-300 transition-all flex items-center justify-between group"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600">
+              <FolderTree className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-gray-900 text-sm">
+                Categories
+              </p>
+              <p className="text-xs text-gray-500">
+                {totalCategories} active collections
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+        </Link>
+
+        <Link
+          href="/admin/admins"
+          className="bg-white p-5 rounded-xl border border-gray-200 shadow-xs hover:border-gray-300 transition-all flex items-center justify-between group"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-gray-900 text-sm">
+                Admin Users
+              </p>
+              <p className="text-xs text-gray-500">
+                {totalAdmins} authorized administrator(s)
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+        </Link>
+
+        <Link
+          href="/admin/discounts"
+          className="bg-white p-5 rounded-xl border border-gray-200 shadow-xs hover:border-gray-300 transition-all flex items-center justify-between group"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="p-2.5 rounded-xl bg-pink-50 text-pink-600">
+              <Tag className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-gray-900 text-sm">
+                Discounts & Coupons
+              </p>
+              <p className="text-xs text-gray-500">
+                Manage promotional codes
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+        </Link>
       </div>
 
       {/* Recent Orders Section */}

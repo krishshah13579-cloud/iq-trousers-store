@@ -209,10 +209,15 @@ export default function CartPage() {
                     >
                       {item.product.name}
                     </Link>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
                       <p className="text-sm text-neutral-500">
                         {formatPrice(item.product.price)} each
                       </p>
+                      {item.color && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200">
+                          Color: {item.color}
+                        </span>
+                      )}
                       {item.size && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200">
                           Size: {item.size}
@@ -377,7 +382,7 @@ export default function CartPage() {
               </div>
 
               <div className="flex justify-between">
-                <span>Estimated Tax (8%)</span>
+                <span>Estimated Tax (5%)</span>
                 <span className="font-medium text-neutral-900">{formatPrice(estimatedTax)}</span>
               </div>
 

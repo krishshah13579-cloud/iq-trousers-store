@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authOptions, isAdminRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as { role?: string })?.role !== "ADMIN") {
+  if (!session || !isAdminRole((session.user as { role?: string })?.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -30,7 +30,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || (session.user as { role?: string })?.role !== "ADMIN") {
+  if (!session || !isAdminRole((session.user as { role?: string })?.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -39,12 +39,14 @@ export async function POST(req: NextRequest) {
     const {
       name,
       description,
+      careInstructions,
       price,
       comparePrice,
       categoryId,
       stock,
       images,
       sizes,
+      colors,
       featured,
       active,
     } = body;
@@ -65,16 +67,21 @@ export async function POST(req: NextRequest) {
       counter++;
     }
 
-    // Normalize images: if array stringify, if comma-separated string convert to json array
+    // Normalize images
     let imagesJson: string;
     if (Array.isArray(images)) {
       imagesJson = JSON.stringify(images);
     } else if (typeof images === "string") {
-      const parsed = images
-        .split(",")
-        .map((img: string) => img.trim())
-        .filter(Boolean);
-      imagesJson = JSON.stringify(parsed);
+      try {
+        const parsed = JSON.parse(images);
+        imagesJson = Array.isArray(parsed) ? JSON.stringify(parsed) : JSON.stringify([images]);
+      } catch {
+        const parsed = images
+          .split(",")
+          .map((img: string) => img.trim())
+          .filter(Boolean);
+        imagesJson = JSON.stringify(parsed);
+      }
     } else {
       imagesJson = JSON.stringify([]);
     }
@@ -84,7 +91,81 @@ export async function POST(req: NextRequest) {
       if (Array.isArray(sizes)) {
         sizesJson = JSON.stringify(sizes);
       } else if (typeof sizes === "string") {
-        sizesJson = sizes;
+        try {
+          const parsed = JSON.parse(sizes);
+          sizesJson = Array.isArray(parsed) ? JSON.stringify(parsed) : sizes;
+        } catch {
+          sizesJson = sizes;
+        }
+      }
+    }
+
+    let colorsJson = JSON.stringify([]);
+    if (colors) {
+      if (Array.isArray(colors)) {
+        colorsJson = JSON.stringify(colors);
+      } else if (typeof colors === "string") {
+        try {
+          const parsed = JSON.parse(colors);
+          colorsJson = Array.isArray(parsed) ? JSON.stringify(parsed) : JSON.stringify([colors]);
+        } catch {
+          colorsJson = JSON.stringify(
+            colors
+              .split(",")
+              .map((c: string) => c.trim())
+              .filter(Boolean)
+          );
+        }
+      }
+    }
+
+    // Process inventory availability by size and color
+    let inventoryJson = "{}";
+    let computedStock = stock !== undefined ? parseInt(stock, 10) : 0;
+    const rawInventory = body.inventory;
+
+    if (rawInventory) {
+      if (typeof rawInventory === "object" && rawInventory !== null) {
+        inventoryJson = JSON.stringify(rawInventory);
+        let sum = 0;
+        let hasVariants = false;
+        Object.values(rawInventory).forEach((row: any) => {
+          if (typeof row === "object" && row !== null) {
+            Object.values(row).forEach((val: any) => {
+              hasVariants = true;
+              sum += Math.max(0, parseInt(String(val || 0), 10) || 0);
+            });
+          } else if (typeof row === "number" || typeof row === "string") {
+            hasVariants = true;
+            sum += Math.max(0, parseInt(String(row || 0), 10) || 0);
+          }
+        });
+        if (hasVariants) {
+          computedStock = sum;
+        }
+      } else if (typeof rawInventory === "string") {
+        try {
+          const parsed = JSON.parse(rawInventory);
+          inventoryJson = JSON.stringify(parsed);
+          let sum = 0;
+          let hasVariants = false;
+          Object.values(parsed).forEach((row: any) => {
+            if (typeof row === "object" && row !== null) {
+              Object.values(row).forEach((val: any) => {
+                hasVariants = true;
+                sum += Math.max(0, parseInt(String(val || 0), 10) || 0);
+              });
+            } else if (typeof row === "number" || typeof row === "string") {
+              hasVariants = true;
+              sum += Math.max(0, parseInt(String(row || 0), 10) || 0);
+            }
+          });
+          if (hasVariants) {
+            computedStock = sum;
+          }
+        } catch {
+          inventoryJson = "{}";
+        }
       }
     }
 
@@ -93,12 +174,15 @@ export async function POST(req: NextRequest) {
         name,
         slug,
         description,
+        careInstructions: careInstructions ? String(careInstructions).trim() : "",
         price: parseFloat(price),
         comparePrice: comparePrice ? parseFloat(comparePrice) : null,
         category: { connect: { id: categoryId } },
-        stock: parseInt(stock ?? 0, 10),
+        stock: computedStock,
         images: imagesJson,
         sizes: sizesJson,
+        colors: colorsJson,
+        inventory: inventoryJson,
         featured: Boolean(featured),
         active: active !== undefined ? Boolean(active) : true,
       },
