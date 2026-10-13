@@ -54,7 +54,12 @@ export default function ProductTable({ products }: { products: ProductItem[] }) 
       setProductToDelete(null);
       router.refresh();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error deleting product");
+      const rawMsg = err instanceof Error ? err.message : "Error deleting product";
+      const cleanMsg =
+        rawMsg.includes("did not match the expected pattern") || rawMsg.includes("Unexpected token")
+          ? "Failed to delete product. Please try again."
+          : rawMsg;
+      setError(cleanMsg);
     } finally {
       setDeletingId(null);
     }

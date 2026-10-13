@@ -67,7 +67,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     // Update slug if name changed
     let slug = existingProduct.slug;
     if (name && name !== existingProduct.name) {
-      let baseSlug = slugify(name);
+      let baseSlug = slugify(name) || `trouser-${Date.now()}`;
       slug = baseSlug;
       let counter = 1;
       while (true) {
@@ -172,11 +172,13 @@ export async function PUT(req: NextRequest, { params }: Params) {
         ...(slug !== undefined && { slug }),
         ...(description !== undefined && { description }),
         ...(careInstructions !== undefined && { careInstructions: String(careInstructions).trim() }),
-        ...(price !== undefined && { price: parseFloat(price) }),
+        ...(price !== undefined && {
+          price: parseFloat(String(price).replace(/[^0-9.]/g, "")) || 0,
+        }),
         comparePrice:
           comparePrice !== undefined
             ? comparePrice
-              ? parseFloat(comparePrice)
+              ? parseFloat(String(comparePrice).replace(/[^0-9.]/g, "")) || null
               : null
             : existingProduct.comparePrice,
         ...(categoryId !== undefined && {

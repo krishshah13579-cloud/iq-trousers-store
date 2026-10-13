@@ -66,6 +66,133 @@ interface ProductFormProps {
   productId?: string;
 }
 
+/**
+ * Safely parse HTTP responses without throwing SyntaxError on non-JSON/HTML error pages.
+ * WebKit/Safari throws "SyntaxError: The string did not match the expected pattern"
+ * when res.json() is called on non-JSON content.
+ */
+async function safeParseResponse(res: Response): Promise<{ ok: boolean; data: any; error?: string }> {
+  let data: any = null;
+  let text = "";
+  try {
+    const contentType = res.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      data = await res.json();
+    } else {
+      text = await res.text();
+    }
+  } catch {
+    try {
+      text = await res.text();
+    } catch {
+      text = "";
+    }
+  }
+
+  if (!res.ok) {
+    if (res.status === 413) {
+      return {
+        ok: false,
+        data: null,
+        error: "The upload payload is too large. Image files have been auto-compressed, but please try fewer images at once.",
+      };
+    }
+    if (res.status === 401) {
+      return {
+        ok: false,
+        data: null,
+        error: "Your admin session expired. Please refresh the page and log in again.",
+      };
+    }
+    const extractedError =
+      data?.error ||
+      data?.message ||
+      (text && text.length > 0 && text.length < 250 && !text.includes("<!DOCTYPE")
+        ? text
+        : `Server request failed (Status ${res.status}). Please try again.`);
+    return { ok: false, data, error: extractedError };
+  }
+
+  return { ok: true, data: data ?? {} };
+}
+
+/**
+ * Client-side image compression to ensure camera/phone uploads fit within serverless limits.
+ */
+async function compressImageFile(file: File, maxDimension = 1600, quality = 0.85): Promise<File> {
+  if (
+    typeof window === "undefined" ||
+    !file.type.startsWith("image/") ||
+    file.type === "image/svg+xml" ||
+    file.type === "image/gif"
+  ) {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        let { width, height } = img;
+
+        if (width <= maxDimension && height <= maxDimension && file.size < 800 * 1024) {
+          resolve(file);
+          return;
+        }
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            const cleanName = file.name.replace(/\.[^/.]+$/, ".jpg");
+            const compressedFile = new File([blob], cleanName, {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(file);
+      };
+
+      img.src = objectUrl;
+    } catch {
+      resolve(file);
+    }
+  });
+}
+
 export default function ProductForm({
   initialData,
   isEdit = false,
@@ -312,8 +439,9 @@ export default function ProductForm({
     async function loadCategories() {
       try {
         const res = await fetch("/api/categories");
-        if (!res.ok) throw new Error("Failed to load categories");
-        const data = await res.json();
+        const parsed = await safeParseResponse(res);
+        if (!parsed.ok) throw new Error(parsed.error || "Failed to load categories");
+        const data = Array.isArray(parsed.data) ? parsed.data : [];
         setCategories(data);
         if (!formData.categoryId && data.length > 0 && !isEdit) {
           setFormData((prev) => ({ ...prev, categoryId: data[0].id }));
@@ -338,7 +466,8 @@ export default function ProductForm({
     try {
       const uploadFormData = new FormData();
       for (let i = 0; i < files.length; i++) {
-        uploadFormData.append("files", files[i]);
+        const compressed = await compressImageFile(files[i]);
+        uploadFormData.append("files", compressed);
       }
 
       const res = await fetch("/api/admin/upload", {
@@ -346,17 +475,22 @@ export default function ProductForm({
         body: uploadFormData,
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to upload image(s)");
+      const parsed = await safeParseResponse(res);
+      if (!parsed.ok) {
+        throw new Error(parsed.error || "Failed to upload image(s)");
       }
 
-      if (data.urls && Array.isArray(data.urls)) {
+      const data = parsed.data;
+      if (data?.urls && Array.isArray(data.urls)) {
         setImagesList((prev) => [...prev, ...data.urls]);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error uploading image");
+      const rawMsg = err instanceof Error ? err.message : "Error uploading image";
+      const cleanMsg =
+        rawMsg.includes("did not match the expected pattern") || rawMsg.includes("Unexpected token")
+          ? "Image upload could not be completed. Please ensure the files are standard JPG, PNG, or WEBP photos."
+          : rawMsg;
+      setError(cleanMsg);
     } finally {
       setUploadingImages(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -424,9 +558,17 @@ export default function ProductForm({
     const { name, value, type } = target;
     const checked = target.checked;
 
+    let cleanValue: any = value;
+    if (type === "checkbox") {
+      cleanValue = checked;
+    } else if (name === "price" || name === "comparePrice") {
+      // Strip currency signs and stray commas cleanly
+      cleanValue = value.replace(/[^\d.]/g, "");
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: cleanValue,
     }));
   };
 
@@ -442,7 +584,8 @@ export default function ProductForm({
       setError("Description is required");
       return;
     }
-    if (formData.price === "" || Number(formData.price) < 0) {
+    const cleanPrice = parseFloat(String(formData.price).replace(/[^0-9.]/g, ""));
+    if (isNaN(cleanPrice) || cleanPrice < 0) {
       setError("A valid price is required");
       return;
     }
@@ -473,8 +616,14 @@ export default function ProductForm({
         finalStock = sum;
       }
 
+      const cleanComparePrice = formData.comparePrice
+        ? parseFloat(String(formData.comparePrice).replace(/[^0-9.]/g, "")) || null
+        : null;
+
       const payload = {
         ...formData,
+        price: cleanPrice,
+        comparePrice: cleanComparePrice,
         stock: finalStock,
         images: imagesList,
         sizes: selectedSizes,
@@ -488,22 +637,26 @@ export default function ProductForm({
         body: JSON.stringify(payload),
       });
 
-      const result = await res.json();
-
-      if (!res.ok) {
-        throw new Error(result.error || "Failed to save product");
+      const parsed = await safeParseResponse(res);
+      if (!parsed.ok) {
+        throw new Error(parsed.error || "Failed to save product");
       }
 
       router.push("/admin/products");
       router.refresh();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      const rawMsg = err instanceof Error ? err.message : "Something went wrong";
+      const cleanMsg =
+        rawMsg.includes("did not match the expected pattern") || rawMsg.includes("Unexpected token")
+          ? "Unable to save garment. Please verify all fields and image files."
+          : rawMsg;
+      setError(cleanMsg);
       setSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-4xl space-y-8">
+    <form noValidate onSubmit={handleSubmit} className="max-w-4xl space-y-8">
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-2 animate-fadeIn">
           <AlertCircle className="w-5 h-5 shrink-0" />
@@ -1313,7 +1466,7 @@ export default function ProductForm({
             </label>
             <input
               type="number"
-              step="0.01"
+              step="any"
               min="0"
               name="price"
               required
@@ -1330,7 +1483,7 @@ export default function ProductForm({
             </label>
             <input
               type="number"
-              step="0.01"
+              step="any"
               min="0"
               name="comparePrice"
               value={formData.comparePrice}

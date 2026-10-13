@@ -456,7 +456,6 @@ function CustomerLoginForm() {
                       }}
                       type="text"
                       inputMode="numeric"
-                      pattern="[0-9]*"
                       maxLength={1}
                       value={digit}
                       onChange={(e) => handleOtpChange(idx, e.target.value)}

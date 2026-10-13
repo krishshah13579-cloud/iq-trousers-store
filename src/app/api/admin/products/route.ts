@@ -59,13 +59,24 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate unique slug
-    let baseSlug = slugify(name);
+    let baseSlug = slugify(name) || `trouser-${Date.now()}`;
     let slug = baseSlug;
     let counter = 1;
     while (await prisma.product.findUnique({ where: { slug } })) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
+
+    const parsedPrice = parseFloat(String(price).replace(/[^0-9.]/g, ""));
+    if (isNaN(parsedPrice) || parsedPrice < 0) {
+      return NextResponse.json(
+        { error: "A valid positive price is required" },
+        { status: 400 }
+      );
+    }
+    const parsedComparePrice = comparePrice
+      ? parseFloat(String(comparePrice).replace(/[^0-9.]/g, "")) || null
+      : null;
 
     // Normalize images
     let imagesJson: string;
@@ -175,8 +186,8 @@ export async function POST(req: NextRequest) {
         slug,
         description,
         careInstructions: careInstructions ? String(careInstructions).trim() : "",
-        price: parseFloat(price),
-        comparePrice: comparePrice ? parseFloat(comparePrice) : null,
+        price: parsedPrice,
+        comparePrice: parsedComparePrice,
         category: { connect: { id: categoryId } },
         stock: computedStock,
         images: imagesJson,

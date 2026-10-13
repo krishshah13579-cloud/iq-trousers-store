@@ -20,9 +20,20 @@ export default function EditProductPage() {
         setLoading(true);
         const res = await fetch(`/api/admin/products/${id}`);
         if (!res.ok) {
-          throw new Error("Failed to load product data");
+          throw new Error(`Failed to load product data (Status ${res.status})`);
         }
-        const data = await res.json();
+
+        let data: any = null;
+        try {
+          const contentType = res.headers.get("content-type") || "";
+          if (contentType.includes("application/json")) {
+            data = await res.json();
+          } else {
+            throw new Error("Invalid response format received from server");
+          }
+        } catch (jsonErr: unknown) {
+          throw new Error("Could not parse product data. Please refresh and try again.");
+        }
 
         // Convert images JSON to comma separated if needed
         let imagesStr = "";
@@ -42,7 +53,12 @@ export default function EditProductPage() {
           images: imagesStr,
         });
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Failed to load product");
+        const rawMsg = err instanceof Error ? err.message : "Failed to load product";
+        const cleanMsg =
+          rawMsg.includes("did not match the expected pattern") || rawMsg.includes("Unexpected token")
+            ? "Could not load trouser details. Please refresh the page or try again."
+            : rawMsg;
+        setError(cleanMsg);
       } finally {
         setLoading(false);
       }
