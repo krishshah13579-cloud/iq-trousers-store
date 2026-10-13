@@ -7,6 +7,65 @@ import { Product } from "@/types";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 
+function getColorHex(colorName: string): { hex: string; isLight: boolean } {
+  const norm = colorName.trim().toLowerCase();
+  const palette: Record<string, string> = {
+    "jet black": "#0a0a0a",
+    "black": "#121212",
+    "navy blue": "#1e293b",
+    "navy": "#1e293b",
+    "midnight blue": "#0f172a",
+    "royal blue": "#1d4ed8",
+    "slate blue": "#475569",
+    "blue": "#2563eb",
+    "charcoal grey": "#334155",
+    "charcoal gray": "#334155",
+    "charcoal": "#334155",
+    "dark grey": "#374151",
+    "dark gray": "#374151",
+    "grey": "#64748b",
+    "gray": "#64748b",
+    "light grey": "#cbd5e1",
+    "light gray": "#cbd5e1",
+    "khaki": "#c2b280",
+    "dark khaki": "#b0a068",
+    "olive green": "#3f4f34",
+    "olive": "#3f4f34",
+    "army green": "#4b5320",
+    "green": "#166534",
+    "forest green": "#14532d",
+    "beige": "#e7dbc8",
+    "cream": "#fef3c7",
+    "tan": "#c19a6b",
+    "camel": "#c19a6b",
+    "dark brown": "#452a1a",
+    "brown": "#5c3a21",
+    "chocolate": "#3b2219",
+    "coffee": "#4a2c1d",
+    "burgundy": "#581c24",
+    "maroon": "#6b1d2f",
+    "wine": "#581c24",
+    "off white": "#f8fafc",
+    "white": "#ffffff",
+    "stone": "#d6d3d1",
+    "sand": "#e2d9cc",
+    "taupe": "#8b8589",
+    "rust": "#b45309",
+  };
+
+  const hex = palette[norm] || "#475569";
+  const isLight = [
+    "#ffffff",
+    "#f8fafc",
+    "#e7dbc8",
+    "#fef3c7",
+    "#cbd5e1",
+    "#d6d3d1",
+    "#e2d9cc",
+  ].includes(hex);
+  return { hex, isLight };
+}
+
 interface AddToCartSectionProps {
   product: Product;
 }
@@ -20,6 +79,7 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [sizeError, setSizeError] = useState(false);
+  const [colorError, setColorError] = useState(false);
   const [added, setAdded] = useState(false);
 
   const availableSizes: string[] = (() => {
@@ -72,7 +132,7 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
     return null;
   })();
 
-  const activeColor = selectedColor || (availableColors.length > 0 ? availableColors[0] : null);
+  const activeColor = selectedColor;
 
   const getVariantStock = (size?: string | null, color?: string | null): number => {
     if (!inventoryMap) {
@@ -123,6 +183,10 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
 
   const handleAddToCart = () => {
     if (isOutOfStock) return;
+    if (availableColors.length > 0 && !selectedColor) {
+      setColorError(true);
+      return;
+    }
     if (availableSizes.length > 0 && !selectedSize) {
       setSizeError(true);
       return;
@@ -130,13 +194,17 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
     if (currentVariantStock <= 0) {
       return;
     }
-    addItem(product, quantity, selectedSize || undefined, activeColor || undefined);
+    addItem(product, quantity, selectedSize || undefined, selectedColor || undefined);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
 
   const handleBuyNow = () => {
     if (isOutOfStock) return;
+    if (availableColors.length > 0 && !selectedColor) {
+      setColorError(true);
+      return;
+    }
     if (availableSizes.length > 0 && !selectedSize) {
       setSizeError(true);
       return;
@@ -144,7 +212,7 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
     if (currentVariantStock <= 0) {
       return;
     }
-    addItem(product, quantity, selectedSize || undefined, activeColor || undefined);
+    addItem(product, quantity, selectedSize || undefined, selectedColor || undefined);
     router.push("/checkout");
   };
 
@@ -174,35 +242,70 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
 
       {!isOutOfStock && (
         <>
-          {/* Available Colors Selector */}
+          {/* Available Colors Palette */}
           {availableColors.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                  Available Color{" "}
-                  {selectedColor && (
-                    <span className="font-normal text-gray-500 normal-case">
-                      ({selectedColor})
+                <label className="text-xs font-semibold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>Available Color:</span>
+                  {selectedColor ? (
+                    <span className="font-semibold text-gray-900 normal-case">
+                      {selectedColor}
+                    </span>
+                  ) : (
+                    <span className="font-normal text-gray-400 normal-case">
+                      (Choose a color)
                     </span>
                   )}
                 </label>
+                {colorError && (
+                  <span className="text-xs font-medium text-rose-600 animate-pulse">
+                    Please select a color
+                  </span>
+                )}
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-3 pt-0.5">
                 {availableColors.map((color) => {
-                  const isSelected = (selectedColor || availableColors[0]) === color;
+                  const isSelected = selectedColor === color;
+                  const { hex, isLight } = getColorHex(color);
                   return (
                     <button
                       key={color}
                       type="button"
-                      onClick={() => setSelectedColor(color)}
-                      className={`px-3.5 py-1.5 text-xs font-medium rounded-lg border transition-all duration-150 flex items-center gap-1.5 ${
+                      onClick={() => {
+                        setSelectedColor(color);
+                        setColorError(false);
+                      }}
+                      title={color}
+                      aria-label={`Select color ${color}`}
+                      className={`group relative w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
                         isSelected
-                          ? "bg-gray-900 text-white border-gray-900 shadow-xs"
-                          : "bg-white text-gray-800 border-gray-200 hover:border-gray-900 hover:bg-gray-50"
+                          ? "ring-2 ring-offset-2 ring-gray-950 scale-110 shadow-sm"
+                          : "hover:scale-105 hover:shadow-xs ring-1 ring-black/10"
                       }`}
+                      style={{
+                        backgroundColor: hex,
+                      }}
                     >
-                      <span>{color}</span>
-                      {isSelected && <Check className="w-3 h-3 text-white" />}
+                      {/* Subtle border for light shades */}
+                      {isLight && (
+                        <span className="absolute inset-0 rounded-full border border-gray-300 pointer-events-none" />
+                      )}
+
+                      {/* Selected checkmark indicator */}
+                      {isSelected && (
+                        <Check
+                          className={`w-4 h-4 ${
+                            isLight ? "text-gray-900" : "text-white"
+                          }`}
+                          strokeWidth={2.5}
+                        />
+                      )}
+
+                      {/* Tooltip on hover */}
+                      <span className="absolute -bottom-7 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-gray-900 text-white text-[10px] font-medium rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 shadow-xs">
+                        {color}
+                      </span>
                     </button>
                   );
                 })}
