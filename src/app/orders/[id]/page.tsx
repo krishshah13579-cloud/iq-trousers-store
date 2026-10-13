@@ -397,13 +397,26 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
             <div className="flex justify-between">
               <span>Shipping</span>
               <span className="font-medium text-neutral-900">
-                {itemsSubtotal >= 100 ? "Free" : formatPrice(10)}
+                {itemsSubtotal >= 1499
+                  ? "Free"
+                  : formatPrice(
+                      Math.max(
+                        0,
+                        Math.round(
+                          (order.total -
+                            (itemsSubtotal -
+                              order.discountAmount +
+                              Math.round(itemsSubtotal * 0.05 * 100) / 100)) *
+                            100
+                        ) / 100
+                      )
+                    )}
               </span>
             </div>
             <div className="flex justify-between">
-              <span>Estimated Tax</span>
+              <span>Estimated Tax (5%)</span>
               <span className="font-medium text-neutral-900">
-                {formatPrice(Math.round(itemsSubtotal * 0.08 * 100) / 100)}
+                {formatPrice(Math.round(itemsSubtotal * 0.05 * 100) / 100)}
               </span>
             </div>
             <div className="border-t border-neutral-200 pt-3 flex justify-between items-baseline">

@@ -94,7 +94,7 @@ export default function CartPage() {
     100,
     Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100)
   );
-  const estimatedTax = Math.round(subtotal * 0.08 * 100) / 100;
+  const estimatedTax = Math.round(subtotal * 0.05 * 100) / 100;
 
   // Recalculate discount amount based on current subtotal if percentage or fixed
   let currentDiscountAmount = 0;
@@ -579,50 +579,28 @@ export default function CartPage() {
                 </div>
               )}
 
-              {/* Shipping overview without option selector */}
-              <div className="space-y-1">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-1.5">
-                    <Truck className="w-3.5 h-3.5 text-neutral-500" />
-                    <span>Shipping</span>
-                  </div>
-                  <span className="font-medium text-neutral-900">
-                    {isFreeShipping ? (
-                      <span className="text-emerald-700 font-semibold">Free</span>
-                    ) : (
-                      <span className="text-xs text-neutral-600 font-normal">Calculated at checkout</span>
-                    )}
-                  </span>
+              {/* Shipping overview */}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-1.5">
+                  <Truck className="w-3.5 h-3.5 text-neutral-500" />
+                  <span>Shipping</span>
                 </div>
-
-                {!isFreeShipping ? (
-                  <div className="flex justify-between items-center text-[11px] text-neutral-500 pl-5">
-                    <span>Gujarat: ₹50 • Maharashtra: ₹100 • Rest of India: DTDC</span>
-                    <span className="text-amber-700 font-medium">
-                      Add {formatPrice(shortfall)} for FREE
-                    </span>
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-emerald-700 pl-5">
-                    Pan-India Free Express Delivery unlocked
-                  </p>
-                )}
+                <span className="font-medium text-neutral-900">
+                  {isFreeShipping ? (
+                    <span className="text-emerald-700 font-semibold">Free</span>
+                  ) : (
+                    <span className="text-xs text-neutral-600 font-normal">Calculated at checkout</span>
+                  )}
+                </span>
               </div>
 
               <div className="flex justify-between">
-                <span>Estimated Tax (8%)</span>
+                <span>Estimated Tax (5%)</span>
                 <span className="font-medium text-neutral-900">{formatPrice(estimatedTax)}</span>
               </div>
 
               <div className="border-t border-neutral-200 pt-4 flex justify-between items-baseline">
-                <div>
-                  <span className="text-base font-bold text-neutral-900">Total</span>
-                  {!isFreeShipping && (
-                    <p className="text-[11px] text-neutral-400 font-normal">
-                      + Shipping added at checkout as per location
-                    </p>
-                  )}
-                </div>
+                <span className="text-base font-bold text-neutral-900">Total</span>
                 <span className="text-xl font-bold text-neutral-900">
                   {formatPrice(finalTotal)}
                 </span>

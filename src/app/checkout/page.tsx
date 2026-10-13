@@ -137,7 +137,7 @@ function CheckoutContent() {
   const isFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
   const shipping = items.length === 0 ? 0 : isFreeShipping ? 0 : hasEnteredLocation ? shippingQuote.amount : 0;
   const shortfall = Math.max(0, Math.round((FREE_SHIPPING_THRESHOLD - subtotal) * 100) / 100);
-  const estimatedTax = Math.round(subtotal * 0.08 * 100) / 100;
+  const estimatedTax = Math.round(subtotal * 0.05 * 100) / 100;
 
   let currentDiscountAmount = 0;
   if (appliedDiscount && subtotal >= (appliedDiscount.minOrder || 0)) {
@@ -663,48 +663,24 @@ function CheckoutContent() {
                   </div>
                 )}
 
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-1.5">
-                      <Truck className="w-4 h-4 text-neutral-400" />
-                      <span>Shipping</span>
-                    </div>
-                    <span className="font-medium text-neutral-900">
-                      {isFreeShipping ? (
-                        <span className="text-emerald-700 font-semibold">Free</span>
-                      ) : hasEnteredLocation ? (
-                        formatPrice(shipping)
-                      ) : (
-                        <span className="text-xs text-neutral-500 font-normal">Calculated once address entered</span>
-                      )}
-                    </span>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-1.5">
+                    <Truck className="w-4 h-4 text-neutral-400" />
+                    <span>Shipping</span>
                   </div>
-                  {hasEnteredLocation ? (
-                    <div className="flex justify-between items-center text-[11px] text-neutral-500 pl-5.5">
-                      <span>
-                        {shippingQuote.partner}
-                        {formData.state ? ` (${formData.state})` : ""}
-                      </span>
-                      {!isFreeShipping && (
-                        <span className="text-amber-700 font-medium">
-                          Add {formatPrice(shortfall)} for FREE
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex justify-between items-center text-[11px] text-neutral-400 pl-5.5">
-                      <span>Gujarat: ₹50 • Maharashtra: ₹100 • Rest of India: DTDC</span>
-                      {!isFreeShipping && (
-                        <span className="text-amber-700 font-medium">
-                          Add {formatPrice(shortfall)} for FREE
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  <span className="font-medium text-neutral-900">
+                    {isFreeShipping ? (
+                      <span className="text-emerald-700 font-semibold">Free</span>
+                    ) : hasEnteredLocation ? (
+                      formatPrice(shipping)
+                    ) : (
+                      <span className="text-xs text-neutral-500 font-normal">Calculated once address entered</span>
+                    )}
+                  </span>
                 </div>
 
                 <div className="flex justify-between">
-                  <span>Estimated Tax (8%)</span>
+                  <span>Estimated Tax (5%)</span>
                   <span className="font-medium text-neutral-900">{formatPrice(estimatedTax)}</span>
                 </div>
 

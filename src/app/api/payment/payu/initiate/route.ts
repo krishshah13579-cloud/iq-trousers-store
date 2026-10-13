@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
       shippingAddress.zipCode
     );
     const shipping = shippingQuote.amount;
-    const estimatedTax = Math.round(roundedSubtotal * 0.08 * 100) / 100;
+    const estimatedTax = Math.round(roundedSubtotal * 0.05 * 100) / 100;
     const total = Math.max(
       1,
       Math.round((roundedSubtotal - discountAmount + shipping + estimatedTax) * 100) / 100
