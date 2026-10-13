@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { ShoppingCart, Plus, Minus, Check, AlertCircle, Zap, Heart } from "lucide-react";
 import { Product } from "@/types";
 import { useCart } from "@/context/CartContext";
@@ -72,6 +73,7 @@ interface AddToCartSectionProps {
 
 export default function AddToCartSection({ product }: AddToCartSectionProps) {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const { addItem } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const isWish = isInWishlist(product.id);
@@ -194,6 +196,23 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
     if (currentVariantStock <= 0) {
       return;
     }
+
+    if (status === "unauthenticated" || !session) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem(
+          "iq_pending_cart_item",
+          JSON.stringify({
+            product,
+            quantity,
+            size: selectedSize || undefined,
+            color: selectedColor || undefined,
+          })
+        );
+      }
+      router.push("/login?callbackUrl=/cart");
+      return;
+    }
+
     addItem(product, quantity, selectedSize || undefined, selectedColor || undefined);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -212,6 +231,23 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
     if (currentVariantStock <= 0) {
       return;
     }
+
+    if (status === "unauthenticated" || !session) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem(
+          "iq_pending_cart_item",
+          JSON.stringify({
+            product,
+            quantity,
+            size: selectedSize || undefined,
+            color: selectedColor || undefined,
+          })
+        );
+      }
+      router.push("/login?callbackUrl=/checkout");
+      return;
+    }
+
     addItem(product, quantity, selectedSize || undefined, selectedColor || undefined);
     router.push("/checkout");
   };

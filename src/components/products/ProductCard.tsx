@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Star, ShoppingCart, Check, Heart } from "lucide-react";
 import { Product } from "@/types";
 import { formatPrice } from "@/lib/utils";
@@ -13,6 +15,8 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const { addItem } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [added, setAdded] = useState(false);
@@ -56,6 +60,24 @@ export default function ProductCard({ product }: ProductCardProps) {
     return [];
   })();
 
+  // Parse available clothing colors
+  const availableColors: string[] = (() => {
+    if (!product.colors) return [];
+    try {
+      const parsed = JSON.parse(product.colors);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      // fallback
+    }
+    if (typeof product.colors === "string") {
+      return product.colors
+        .split(",")
+        .map((c) => c.trim())
+        .filter(Boolean);
+    }
+    return [];
+  })();
+
   // Calculate average rating
   const reviews = product.reviews || [];
   const reviewCount = product._count?.reviews ?? reviews.length;
@@ -69,7 +91,25 @@ export default function ProductCard({ product }: ProductCardProps) {
     e.stopPropagation();
     // Default to first available size or undefined
     const defaultSize = availableSizes.length > 0 ? availableSizes[0] : undefined;
-    addItem(product, 1, defaultSize);
+    const defaultColor = availableColors.length > 0 ? availableColors[0] : undefined;
+
+    if (status === "unauthenticated" || !session) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem(
+          "iq_pending_cart_item",
+          JSON.stringify({
+            product,
+            quantity: 1,
+            size: defaultSize,
+            color: defaultColor,
+          })
+        );
+      }
+      router.push("/login?callbackUrl=/cart");
+      return;
+    }
+
+    addItem(product, 1, defaultSize, defaultColor);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   };
