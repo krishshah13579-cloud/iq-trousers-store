@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getPayUConfig } from "@/lib/payu";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,7 @@ export async function GET() {
   const hasSmtpUser = Boolean(process.env.SMTP_USER);
   const hasSmtpPass = Boolean(process.env.SMTP_PASS);
   const hasNextAuthSecret = Boolean(process.env.NEXTAUTH_SECRET);
+  const payuConfig = getPayUConfig();
 
   let databaseConnected = false;
   let userCount = 0;
@@ -36,6 +38,15 @@ export async function GET() {
       hasSmtpUser,
       hasSmtpPass,
       hasNextAuthSecret,
+    },
+    payu: {
+      isConfigured: payuConfig.isConfigured,
+      mode: payuConfig.mode,
+      gatewayUrl: payuConfig.isConfigured
+        ? payuConfig.isLive
+          ? "https://secure.payu.in/_payment (LIVE PRODUCTION)"
+          : "https://test.payu.in/_payment (TEST GATEWAY)"
+        : "Local Sandbox Simulator",
     },
     timestamp: new Date().toISOString(),
   });
