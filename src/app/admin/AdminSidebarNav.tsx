@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { performLogout } from "@/lib/clientLogout";
 import {
   LayoutDashboard,
   Package,
@@ -186,7 +187,10 @@ export default function AdminSidebarNav({ onItemClick }: AdminSidebarNavProps) {
         {/* Sign Out Button */}
         <button
           type="button"
-          onClick={() => signOut({ callbackUrl: "/admin" })}
+          onClick={() => {
+            if (onItemClick) onItemClick();
+            performLogout("/");
+          }}
           className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 transition-colors border border-rose-200/80 cursor-pointer shadow-2xs"
           title="Sign out of Admin Session"
         >

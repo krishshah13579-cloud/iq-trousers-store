@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { performLogout } from "@/lib/clientLogout";
 import {
   ShieldCheck,
   Lock,
@@ -387,7 +387,7 @@ export default function TwoFactorChallengeScreen({
 
           <button
             type="button"
-            onClick={() => signOut({ callbackUrl: "/admin" })}
+            onClick={() => performLogout("/")}
             className="inline-flex items-center gap-1 text-neutral-400 hover:text-rose-400 transition-colors"
           >
             <LogOut className="w-3.5 h-3.5" />

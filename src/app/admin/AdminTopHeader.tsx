@@ -1,8 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import Link from "next/link";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { performLogout } from "@/lib/clientLogout";
 import {
   ShieldCheck,
   LogOut,
@@ -100,7 +100,7 @@ export default function AdminTopHeader({
           {/* Direct Sign Out Button */}
           <button
             type="button"
-            onClick={() => signOut({ callbackUrl: "/admin" })}
+            onClick={() => performLogout("/")}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200/80 rounded-lg transition-colors cursor-pointer"
             title="Sign out of Administrative Session"
           >

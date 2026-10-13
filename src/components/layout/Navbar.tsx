@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { performLogout } from "@/lib/clientLogout";
 import {
   ShoppingCart,
   User,
@@ -187,7 +188,10 @@ export default function Navbar() {
                         </Link>
                       )}
                       <button
-                        onClick={() => signOut()}
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          performLogout("/");
+                        }}
                         className="flex items-center space-x-2 px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 w-full text-left"
                       >
                         <LogOut className="w-3.5 h-3.5" />
@@ -304,7 +308,10 @@ export default function Navbar() {
                     My Orders
                   </Link>
                   <button
-                    onClick={() => signOut()}
+                    onClick={() => {
+                      setMobileOpen(false);
+                      performLogout("/");
+                    }}
                     className="block w-full text-left px-3 py-2 text-rose-600 text-sm font-medium rounded-lg hover:bg-gray-50"
                   >
                     Sign Out
