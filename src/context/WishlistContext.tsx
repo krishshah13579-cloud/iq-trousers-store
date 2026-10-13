@@ -15,21 +15,26 @@ const WishlistContext = createContext<WishlistContextType | undefined>(undefined
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<Product[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("iq_wishlist");
-    if (saved) {
-      try {
+    try {
+      const saved = localStorage.getItem("iq_wishlist");
+      if (saved) {
         setItems(JSON.parse(saved));
-      } catch {
-        localStorage.removeItem("iq_wishlist");
       }
+    } catch {
+      localStorage.removeItem("iq_wishlist");
+    } finally {
+      setIsLoaded(true);
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("iq_wishlist", JSON.stringify(items));
-  }, [items]);
+    if (isLoaded) {
+      localStorage.setItem("iq_wishlist", JSON.stringify(items));
+    }
+  }, [items, isLoaded]);
 
   const toggleWishlist = (product: Product) => {
     setItems((prev) => {

@@ -12,49 +12,62 @@ import {
 import { prisma } from "@/lib/prisma";
 import { formatPrice, getOrderStatusColor } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminDashboardPage() {
-  const [
-    revenueResult,
-    totalOrders,
-    totalProducts,
-    totalCustomers,
-    totalAdmins,
-    totalCategories,
-    recentOrders,
-  ] = await Promise.all([
-    prisma.order.aggregate({
-      _sum: {
-        total: true,
-      },
-      where: {
-        status: {
-          not: "CANCELLED",
+  let revenueResult = { _sum: { total: 0 } };
+  let totalOrders = 0;
+  let totalProducts = 0;
+  let totalCustomers = 0;
+  let totalAdmins = 0;
+  let totalCategories = 0;
+  let recentOrders: any[] = [];
+
+  try {
+    const results = await Promise.all([
+      prisma.order.aggregate({
+        _sum: {
+          total: true,
         },
-      },
-    }),
-    prisma.order.count(),
-    prisma.product.count(),
-    prisma.user.count({ where: { role: "USER" } }),
-    prisma.user.count({ where: { role: { in: ["ADMIN", "SUPER_ADMIN"] } } }),
-    prisma.category.count(),
-    prisma.order.findMany({
-      take: 10,
-      orderBy: { createdAt: "desc" },
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
+        where: {
+          status: {
+            not: "CANCELLED",
           },
         },
-        items: true,
-      },
-    }),
-  ]);
+      }),
+      prisma.order.count(),
+      prisma.product.count(),
+      prisma.user.count({ where: { role: "USER" } }),
+      prisma.user.count({ where: { role: { in: ["ADMIN", "SUPER_ADMIN"] } } }),
+      prisma.category.count(),
+      prisma.order.findMany({
+        take: 10,
+        orderBy: { createdAt: "desc" },
+        include: {
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+          items: true,
+        },
+      }),
+    ]);
 
-  const totalRevenue = revenueResult._sum.total || 0;
+    revenueResult = results[0] as any;
+    totalOrders = results[1];
+    totalProducts = results[2];
+    totalCustomers = results[3];
+    totalAdmins = results[4];
+    totalCategories = results[5];
+    recentOrders = results[6];
+  } catch (error) {
+    console.error("Failed to query AdminDashboardPage stats:", error);
+  }
+
+  const totalRevenue = revenueResult?._sum?.total || 0;
 
   const statCards = [
     {
@@ -233,9 +246,9 @@ export default async function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {recentOrders.map((order) => {
-                  const itemsCount = order.items.reduce(
-                    (sum, item) => sum + item.quantity,
+                {recentOrders.map((order: any) => {
+                  const itemsCount = (order.items || []).reduce(
+                    (sum: number, item: any) => sum + (item.quantity || 0),
                     0
                   );
                   return (

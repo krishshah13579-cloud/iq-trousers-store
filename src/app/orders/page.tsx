@@ -6,37 +6,52 @@ import { authOptions } from "@/lib/auth";
 import { formatPrice, getOrderStatusColor } from "@/lib/utils";
 import { Package, Calendar, ChevronRight, ArrowRight, ShoppingBag } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "My Orders — Store",
   description: "View and manage your previous orders.",
 };
 
 export default async function OrdersPage() {
-  const session = await getServerSession(authOptions);
+  let session = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch {
+    session = null;
+  }
 
   if (!session?.user?.email) {
     redirect("/login?callbackUrl=/orders");
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-  });
+  let user = null;
+  let orders: any[] = [];
+  try {
+    user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
 
-  if (!user) {
-    redirect("/login?callbackUrl=/orders");
+    if (user) {
+      orders = await prisma.order.findMany({
+        where: { userId: user.id },
+        include: {
+          items: {
+            include: {
+              product: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+    }
+  } catch (error) {
+    console.error("Failed to query user orders:", error);
   }
 
-  const orders = await prisma.order.findMany({
-    where: { userId: user.id },
-    include: {
-      items: {
-        include: {
-          product: true,
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  if (!user && session?.user?.email) {
+    redirect("/login?callbackUrl=/orders");
+  }
 
   return (
     <div className="min-h-screen bg-gray-50/50 py-10 sm:py-14">
@@ -73,15 +88,15 @@ export default async function OrdersPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {orders.map((order) => {
+            {orders.map((order: any) => {
               const formattedDate = new Date(order.createdAt).toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
                 year: "numeric",
               });
 
-              const totalQuantity = order.items.reduce(
-                (sum, item) => sum + item.quantity,
+              const totalQuantity = (order.items || []).reduce(
+                (sum: number, item: any) => sum + (item.quantity || 0),
                 0
               );
 
@@ -146,7 +161,7 @@ export default async function OrdersPage() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="flex items-center gap-3 overflow-hidden">
                         <div className="flex -space-x-2 overflow-hidden py-1">
-                          {order.items.slice(0, 4).map((item) => {
+                          {(order.items || []).slice(0, 4).map((item: any) => {
                             let imageUrl = "/placeholder.png";
                             try {
                               const parsed = JSON.parse(item.product.images);

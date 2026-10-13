@@ -2,28 +2,36 @@ import { prisma } from "@/lib/prisma";
 import OrderTable from "./OrderTable";
 
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminOrdersPage() {
-  const orders = await prisma.order.findMany({
-    include: {
-      user: {
-        select: {
-          name: true,
-          email: true,
+  let orders: any[] = [];
+  try {
+    orders = await prisma.order.findMany({
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
         },
-      },
-      items: {
-        include: {
-          product: {
-            select: {
-              name: true,
-              images: true,
+        items: {
+          include: {
+            product: {
+              select: {
+                name: true,
+                images: true,
+              },
             },
           },
         },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (error) {
+    console.error("Failed to query orders in AdminOrdersPage:", error);
+    orders = [];
+  }
 
   return (
     <div className="space-y-6">

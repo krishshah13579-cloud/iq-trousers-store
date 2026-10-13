@@ -13,31 +13,39 @@ interface ProductDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
   const { id } = await params;
 
-  const product = await prisma.product.findFirst({
-    where: {
-      OR: [{ id }, { slug: id }],
-    },
-    include: {
-      category: true,
-      reviews: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
+  let product = null;
+  try {
+    product = await prisma.product.findFirst({
+      where: {
+        OR: [{ id }, { slug: id }],
+      },
+      include: {
+        category: true,
+        reviews: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
             },
           },
-        },
-        orderBy: {
-          createdAt: "desc",
+          orderBy: {
+            createdAt: "desc",
+          },
         },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.error("Failed to query product details:", error);
+    product = null;
+  }
 
   if (!product) {
     notFound();
@@ -59,18 +67,24 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   }
 
   // Fetch related products from the same category
-  const relatedProducts = await prisma.product.findMany({
-    where: {
-      categoryId: product.categoryId,
-      id: { not: product.id },
-      active: true,
-    },
-    include: {
-      category: true,
-      reviews: true,
-    },
-    take: 4,
-  });
+  let relatedProducts: any[] = [];
+  try {
+    relatedProducts = await prisma.product.findMany({
+      where: {
+        categoryId: product.categoryId,
+        id: { not: product.id },
+        active: true,
+      },
+      include: {
+        category: true,
+        reviews: true,
+      },
+      take: 4,
+    });
+  } catch (error) {
+    console.error("Failed to query related products:", error);
+    relatedProducts = [];
+  }
 
   // Calculate review stats
   const totalReviews = product.reviews.length;

@@ -17,6 +17,8 @@ interface ProductsPageProps {
   }>;
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const resolvedParams = await searchParams;
   const { search, category, sort, minPrice, maxPrice, featured } = resolvedParams || {};
@@ -85,33 +87,45 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   }
 
   // Query products and categories
-  const [products, categories, selectedCategoryObj] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      include: {
-        category: true,
-        reviews: true,
-      },
-      orderBy,
-    }),
-    prisma.category.findMany({
-      include: {
-        _count: {
-          select: { products: true },
+  let products: any[] = [];
+  let categories: any[] = [];
+  let selectedCategoryObj: any = null;
+
+  try {
+    const results = await Promise.all([
+      prisma.product.findMany({
+        where,
+        include: {
+          category: true,
+          reviews: true,
         },
-      },
-      orderBy: {
-        name: "asc",
-      },
-    }),
-    category
-      ? prisma.category.findFirst({
-          where: {
-            OR: [{ slug: category }, { id: category }],
+        orderBy,
+      }),
+      prisma.category.findMany({
+        include: {
+          _count: {
+            select: { products: true },
           },
-        })
-      : null,
-  ]);
+        },
+        orderBy: {
+          name: "asc",
+        },
+      }),
+      category
+        ? prisma.category.findFirst({
+            where: {
+              OR: [{ slug: category }, { id: category }],
+            },
+          })
+        : null,
+    ]);
+
+    products = results[0];
+    categories = results[1];
+    selectedCategoryObj = results[2];
+  } catch (error) {
+    console.error("Failed to query products/categories:", error);
+  }
 
   return (
     <div className="min-h-screen bg-white">

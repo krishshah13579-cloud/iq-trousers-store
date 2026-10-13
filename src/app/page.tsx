@@ -4,6 +4,7 @@ import BrandValueProps from "@/components/home/BrandValueProps";
 import TrouserCraftsmanship from "@/components/home/TrouserCraftsmanship";
 import DescriptiveGallerySection from "@/components/home/DescriptiveGallerySection";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 0; // Ensure fresh product data
 
 export default async function HomePage() {

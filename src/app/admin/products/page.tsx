@@ -4,17 +4,25 @@ import { prisma } from "@/lib/prisma";
 import ProductTable from "./ProductTable";
 
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminProductsPage() {
-  const products = await prisma.product.findMany({
-    include: {
-      category: {
-        select: {
-          name: true,
+  let products: any[] = [];
+  try {
+    products = await prisma.product.findMany({
+      include: {
+        category: {
+          select: {
+            name: true,
+          },
         },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (error) {
+    console.error("Failed to query products in AdminProductsPage:", error);
+    products = [];
+  }
 
   return (
     <div className="space-y-6">

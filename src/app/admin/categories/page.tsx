@@ -5,17 +5,24 @@ export const metadata = {
   title: "Categories Management | IQ Trousers Admin",
 };
 
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminCategoriesPage() {
-  const categories = await prisma.category.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      _count: {
-        select: { products: true },
+  let categories: any[] = [];
+  try {
+    categories = await prisma.category.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        _count: {
+          select: { products: true },
+        },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.error("Failed to query categories in AdminCategoriesPage:", error);
+    categories = [];
+  }
 
   // Serialize dates for Client Component
   const serialized = categories.map((c) => ({

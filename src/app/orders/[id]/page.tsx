@@ -34,27 +34,40 @@ function getProductImage(images: string): string {
   return "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400";
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function OrderDetailsPage({ params }: OrderPageProps) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
+  let session = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch {
+    session = null;
+  }
 
-  const order = await prisma.order.findUnique({
-    where: { id },
-    include: {
-      items: {
-        include: {
-          product: true,
+  let order = null;
+  try {
+    order = await prisma.order.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
         },
       },
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-    },
-  });
+    });
+  } catch (error) {
+    console.error("Failed to query order details:", error);
+    order = null;
+  }
 
   if (!order) {
     notFound();
