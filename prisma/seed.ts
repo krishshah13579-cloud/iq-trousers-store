@@ -39,8 +39,8 @@ async function main() {
   // Create categories for clothing
   const casual = await prisma.category.create({
     data: {
-      name: "Casual Everyday",
-      slug: "casual-everyday",
+      name: "Everyday Casual",
+      slug: "everyday-casual",
       description: "Relaxed everyday trousers, stretch chinos, and casual bottoms designed for comfort and modern style.",
       image: "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=600",
     },
