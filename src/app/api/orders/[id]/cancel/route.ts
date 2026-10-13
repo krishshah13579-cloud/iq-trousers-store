@@ -146,11 +146,11 @@ export async function POST(
       return { updatedOrder, restoredCouponCode };
     });
 
-    // 4. Dispatch cancellation confirmation email (non-blocking)
+    // 4. Dispatch cancellation confirmation email (awaited to guarantee delivery)
     try {
       const recipientEmail = order.user?.email || session.user?.email;
       if (recipientEmail) {
-        sendOrderCancellationEmail({
+        await sendOrderCancellationEmail({
           to: recipientEmail,
           orderId: order.id,
           customerName: order.user?.name || "Valued Customer",
@@ -163,8 +163,6 @@ export async function POST(
           total: order.total,
           restoredDiscountCode: result.restoredCouponCode,
           cancellationDate: new Date(),
-        }).catch((emailErr) => {
-          console.error("[ORDER CANCELLATION EMAIL ERROR]", emailErr);
         });
       }
     } catch (emailPrepErr) {

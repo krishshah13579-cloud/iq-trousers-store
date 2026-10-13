@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions, isAdminRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-import { sendOrderCancellationEmail } from "@/lib/email";
+import { sendOrderCancellationEmail, sendOrderStatusUpdateEmail } from "@/lib/email";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -167,24 +167,55 @@ export async function PUT(req: NextRequest) {
       });
     });
 
-    // Send cancellation email if order was cancelled
-    if (isCancellingNow && existingOrder.user?.email) {
-      sendOrderCancellationEmail({
-        to: existingOrder.user.email,
-        orderId: existingOrder.id,
-        customerName: existingOrder.user.name || "Valued Customer",
-        items: existingOrder.items.map((i) => ({
-          name: i.product.name,
-          quantity: i.quantity,
-          price: i.price,
-          size: i.size,
-        })),
-        total: existingOrder.total,
-        restoredDiscountCode: restoredCouponCode,
-        cancellationDate: new Date(),
-      }).catch((emailErr) => {
-        console.error("[ADMIN CANCEL EMAIL ERROR]", emailErr);
-      });
+    // Resolve recipient customer email
+    let customerEmail = existingOrder.user?.email;
+    if (!customerEmail && existingOrder.shippingAddress) {
+      try {
+        const parsed = JSON.parse(existingOrder.shippingAddress);
+        customerEmail = parsed.email;
+      } catch {}
+    }
+
+    if (customerEmail) {
+      if (isCancellingNow) {
+        try {
+          await sendOrderCancellationEmail({
+            to: customerEmail,
+            orderId: existingOrder.id,
+            customerName: existingOrder.user?.name || "Valued Customer",
+            items: existingOrder.items.map((i) => ({
+              name: i.product.name,
+              quantity: i.quantity,
+              price: i.price,
+              size: i.size,
+            })),
+            total: existingOrder.total,
+            restoredDiscountCode: restoredCouponCode,
+            cancellationDate: new Date(),
+          });
+        } catch (emailErr) {
+          console.error("[ADMIN CANCEL EMAIL ERROR]", emailErr);
+        }
+      } else if (status !== existingOrder.status) {
+        try {
+          await sendOrderStatusUpdateEmail({
+            to: customerEmail,
+            orderId: existingOrder.id,
+            customerName: existingOrder.user?.name || "Valued Customer",
+            newStatus: status,
+            trackingNumber: trackingNumber !== undefined ? trackingNumber : existingOrder.trackingNumber,
+            items: existingOrder.items.map((i) => ({
+              name: i.product.name,
+              quantity: i.quantity,
+              price: i.price,
+              size: i.size,
+            })),
+            total: existingOrder.total,
+          });
+        } catch (emailErr) {
+          console.error("[ADMIN STATUS UPDATE EMAIL ERROR]", emailErr);
+        }
+      }
     }
 
     return NextResponse.json(updated);

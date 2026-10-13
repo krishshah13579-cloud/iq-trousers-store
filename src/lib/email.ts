@@ -1151,3 +1151,245 @@ Explore new trousers: ${baseUrl}/products
   return { delivered: false, info: "Logged to server console" };
 }
 
+export interface SendOrderStatusUpdateEmailParams {
+  to: string;
+  orderId: string;
+  customerName?: string;
+  newStatus: string;
+  trackingNumber?: string | null;
+  items?: OrderEmailItem[];
+  total?: number;
+}
+
+/**
+ * Dispatches an order status progression email to the customer when updated by the admin or courier.
+ */
+export async function sendOrderStatusUpdateEmail({
+  to,
+  orderId,
+  customerName,
+  newStatus,
+  trackingNumber,
+  items = [],
+  total,
+}: SendOrderStatusUpdateEmailParams): Promise<{ delivered: boolean; info?: string }> {
+  const from =
+    process.env.EMAIL_FROM ||
+    (process.env.SMTP_USER
+      ? `"IQ Trousers" <${process.env.SMTP_USER}>`
+      : '"IQ Trousers" <orders@iqtrousers.com>');
+
+  const displayOrderNum =
+    orderId.length > 8 ? orderId.slice(-8).toUpperCase() : orderId.toUpperCase();
+  const displayName = customerName || "Valued Customer";
+  const baseUrl = process.env.NEXTAUTH_URL || "https://iqtrousers.com";
+  const orderUrl = `${baseUrl}/orders/${orderId}`;
+
+  // Configure status-specific copy, badge, and color
+  let statusTitle = "Order Update";
+  let statusHeadline = "Status Update for Your Order";
+  let statusMessage = "Your order status has been updated.";
+  let badgeColor = "#0284c7";
+  let badgeBg = "#f0f9ff";
+
+  const normStatus = (newStatus || "").toUpperCase();
+
+  switch (normStatus) {
+    case "CONFIRMED":
+      statusTitle = "Order Confirmed";
+      statusHeadline = "Your Order is Confirmed!";
+      statusMessage =
+        "We've verified your order and payment. Our team has reserved your items and is preparing them for packaging.";
+      badgeColor = "#0284c7";
+      badgeBg = "#f0f9ff";
+      break;
+    case "DISPATCHED":
+    case "PROCESSING":
+      statusTitle = "Order Dispatched";
+      statusHeadline = "Your Package Has Been Dispatched!";
+      statusMessage =
+        "Your IQ Trousers have been tailored, packed, and handed over to our courier partner for departure.";
+      badgeColor = "#4f46e5";
+      badgeBg = "#eef2ff";
+      break;
+    case "IN_TRANSIT":
+    case "SHIPPED":
+      statusTitle = "Order In Transit";
+      statusHeadline = "Your Package is In Transit!";
+      statusMessage =
+        "Your package is moving smoothly across our logistics network and is heading towards your local delivery facility.";
+      badgeColor = "#7c3aed";
+      badgeBg = "#f5f3ff";
+      break;
+    case "OUT_FOR_DELIVERY":
+      statusTitle = "Out For Delivery Today";
+      statusHeadline = "Your Package is Out For Delivery!";
+      statusMessage =
+        "The courier delivery agent is on the road with your order and will arrive at your address today. Please keep your phone accessible.";
+      badgeColor = "#0d9488";
+      badgeBg = "#f0fdfa";
+      break;
+    case "DELIVERED":
+      statusTitle = "Order Delivered";
+      statusHeadline = "Your Order Has Been Delivered!";
+      statusMessage =
+        "Your package was successfully delivered to your doorstep. We hope you enjoy your new IQ Trousers!";
+      badgeColor = "#059669";
+      badgeBg = "#ecfdf5";
+      break;
+    default:
+      statusTitle = `Order Status: ${newStatus}`;
+      statusHeadline = `Your Order is now ${newStatus}`;
+      statusMessage = `Your order status has transitioned to ${newStatus}.`;
+      break;
+  }
+
+  const subject = `${statusTitle} #${displayOrderNum} — IQ Trousers`;
+
+  const trackingHtml = trackingNumber
+    ? `
+      <div style="background: #fafafa; border: 1px solid #e4e4e7; border-radius: 12px; padding: 16px; margin: 20px 0; text-align: center;">
+        <div style="font-size: 11px; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: 1px;">
+          📦 Courier AWB Tracking Number
+        </div>
+        <div style="margin: 8px 0; font-size: 18px; font-weight: 800; color: #18181b; letter-spacing: 1.5px; font-family: monospace;">
+          ${trackingNumber}
+        </div>
+        <div style="font-size: 12px; color: #71717a;">
+          Live tracking events are synchronized with your order dashboard.
+        </div>
+      </div>`
+    : "";
+
+  const itemsHtml =
+    items.length > 0
+      ? `
+      <div style="margin-top: 24px; border-top: 1px solid #e4e4e7; padding-top: 16px;">
+        <div style="font-size: 12px; font-weight: 700; color: #71717a; text-transform: uppercase; margin-bottom: 10px;">
+          Items in this shipment:
+        </div>
+        ${items
+          .map(
+            (i) => `
+          <div style="display: flex; justify-content: space-between; font-size: 13px; color: #3f3f46; margin-bottom: 6px;">
+            <span>• ${i.name} ${i.size ? `<strong style="color:#18181b;">(Size ${i.size})</strong>` : ""} × ${i.quantity}</span>
+            <span style="font-weight: 600; color:#18181b;">${formatINR(i.price * i.quantity)}</span>
+          </div>`
+          )
+          .join("")}
+      </div>`
+      : "";
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${subject}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f5; margin: 0; padding: 24px; color: #18181b; }
+    .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e4e4e7; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.04); }
+    .header { background: #09090b; padding: 32px 24px; text-align: center; }
+    .logo-text { color: #ffffff; font-size: 24px; font-weight: 800; letter-spacing: 2.5px; margin: 0; text-transform: uppercase; }
+    .sublogo { color: #a1a1aa; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 6px; }
+    .badge-bar { background: ${badgeBg}; border-bottom: 1px solid ${badgeColor}33; padding: 12px 24px; text-align: center; color: ${badgeColor}; font-size: 13px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+    .content { padding: 32px 28px; }
+    .greeting { font-size: 20px; font-weight: 700; color: #18181b; margin-bottom: 8px; }
+    .intro { font-size: 14px; line-height: 1.6; color: #52525b; margin-bottom: 20px; }
+    .headline-box { border-left: 4px solid ${badgeColor}; padding-left: 14px; margin-bottom: 20px; }
+    .headline-title { font-size: 16px; font-weight: 700; color: #18181b; }
+    .headline-desc { font-size: 13px; color: #71717a; margin-top: 4px; line-height: 1.5; }
+    .btn-container { text-align: center; margin: 32px 0 16px; }
+    .btn { display: inline-block; background: #09090b; color: #ffffff !important; padding: 14px 28px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; letter-spacing: 0.3px; }
+    .footer { background: #fafafa; padding: 24px; text-align: center; font-size: 12px; color: #a1a1aa; border-top: 1px solid #f4f4f5; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-text">IQ TROUSERS</div>
+      <div class="sublogo">KRISH CLOTHING CO. • SHIPMENT TRACKING</div>
+    </div>
+    <div class="badge-bar">
+      ● ${statusTitle}
+    </div>
+    <div class="content">
+      <div class="greeting">Hello, ${displayName}</div>
+      <p class="intro">
+        We have an update regarding your IQ Trousers order <strong>#${displayOrderNum}</strong>:
+      </p>
+
+      <div class="headline-box">
+        <div class="headline-title">${statusHeadline}</div>
+        <div class="headline-desc">${statusMessage}</div>
+      </div>
+
+      ${trackingHtml}
+      ${itemsHtml}
+
+      ${total ? `<div style="margin-top: 16px; text-align: right; font-size: 14px; font-weight: 700; color: #18181b;">Total Paid: ${formatINR(total)}</div>` : ""}
+
+      <div class="btn-container">
+        <a href="${orderUrl}" class="btn">View Live Timeline</a>
+      </div>
+    </div>
+    <div class="footer">
+      Track real-time order progression and delivery milestones anytime on your account.<br>
+      © ${new Date().getFullYear()} IQ Trousers by Krish Clothing Co. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  const textContent = `IQ TROUSERS - ${statusTitle.toUpperCase()}
+Order #${displayOrderNum}
+Customer: ${displayName}
+
+${statusHeadline}
+${statusMessage}
+
+${trackingNumber ? `Tracking / AWB Number: ${trackingNumber}\n` : ""}
+Track live order progress online:
+${orderUrl}
+
+Thank you for choosing IQ Trousers!`;
+
+  const transporter = getTransporter();
+
+  if (transporter) {
+    try {
+      const sendPromise = transporter.sendMail({
+        from,
+        to,
+        subject,
+        text: textContent,
+        html: htmlContent,
+      });
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("SMTP timeout after 7 seconds")), 7000)
+      );
+
+      await Promise.race([sendPromise, timeoutPromise]);
+      console.log(`[ORDER STATUS UPDATE EMAIL] Dispatched to ${to} for Order #${displayOrderNum} [${normStatus}]`);
+      return { delivered: true, info: `Sent via SMTP to ${to}` };
+    } catch (err: unknown) {
+      console.error("[ORDER STATUS UPDATE EMAIL] SMTP dispatch failed:", err);
+    }
+  }
+
+  console.log(
+    `\n======================================================\n` +
+    `[ORDER STATUS UPDATE EMAIL DISPATCH]\n` +
+    `To: ${to}\n` +
+    `Subject: ${subject}\n` +
+    `Status: ${newStatus}\n` +
+    `Tracking: ${trackingNumber || "None"}\n` +
+    `======================================================\n`
+  );
+
+  return { delivered: false, info: "Logged to server console" };
+}
+
+

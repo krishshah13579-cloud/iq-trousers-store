@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // 2. Dispatch confirmation email (non-blocking)
+      // 2. Dispatch confirmation email (awaited to guarantee SMTP transmission)
       try {
         let parsedAddress = {
           fullName: "",
@@ -104,14 +104,16 @@ export async function POST(req: NextRequest) {
           zipCode: "",
           country: "",
           phone: "",
+          email: "",
         };
         try {
           parsedAddress = JSON.parse(order.shippingAddress);
         } catch {}
 
-        const recipientEmail = order.user?.email;
+        const recipientEmail = order.user?.email || body.email || parsedAddress.email;
         if (recipientEmail) {
-          sendOrderConfirmationEmail({
+          console.log(`[PAYU CALLBACK] Dispatching confirmation email to ${recipientEmail} for Order #${order.id}...`);
+          const emailResult = await sendOrderConfirmationEmail({
             to: recipientEmail,
             orderId: order.id,
             customerName: order.user?.name || parsedAddress.fullName || "Valued Customer",
@@ -129,10 +131,13 @@ export async function POST(req: NextRequest) {
             total: order.total,
             shippingAddress: parsedAddress,
             orderDate: order.createdAt,
-          }).catch((err) => console.error("[PAYU CONFIRMATION EMAIL ERROR]", err));
+          });
+          console.log(`[PAYU CALLBACK] Order confirmation email delivery result:`, emailResult);
+        } else {
+          console.warn(`[PAYU CALLBACK] No recipient email found for Order #${order.id}`);
         }
       } catch (emailErr) {
-        console.error("[PAYU EMAIL PREP ERROR]", emailErr);
+        console.error("[PAYU EMAIL DISPATCH ERROR]", emailErr);
       }
 
       // Redirect to Order Details with success banner
