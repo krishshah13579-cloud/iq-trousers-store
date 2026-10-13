@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShoppingCart, Plus, Minus, Check, AlertCircle, Zap } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Check, AlertCircle, Zap, Heart } from "lucide-react";
 import { Product } from "@/types";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 
 interface AddToCartSectionProps {
   product: Product;
@@ -13,6 +14,8 @@ interface AddToCartSectionProps {
 export default function AddToCartSection({ product }: AddToCartSectionProps) {
   const router = useRouter();
   const { addItem } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const isWish = isInWishlist(product.id);
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -314,6 +317,25 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                 </>
               )}
             </button>
+
+            {/* Wishlist Button */}
+            <button
+              type="button"
+              onClick={() => toggleWishlist(product)}
+              aria-label={isWish ? "Remove from wishlist" : "Add to wishlist"}
+              title={isWish ? "Remove from Wishlist" : "Add to Wishlist"}
+              className={`p-3.5 rounded-full border transition-all duration-200 shadow-xs flex items-center justify-center cursor-pointer shrink-0 ${
+                isWish
+                  ? "bg-rose-50 border-rose-300 text-rose-600 hover:bg-rose-100 shadow-2xs"
+                  : "border-gray-200 bg-white text-gray-700 hover:text-rose-600 hover:border-gray-300 hover:bg-gray-50 active:scale-95"
+              }`}
+            >
+              <Heart
+                className={`w-5 h-5 transition-colors ${
+                  isWish ? "fill-rose-500 text-rose-500" : ""
+                }`}
+              />
+            </button>
           </div>
 
           {/* Buy Now Instant Checkout Button */}
@@ -330,9 +352,27 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
       )}
 
       {isOutOfStock && (
-        <div className="flex items-center gap-2 p-3.5 bg-gray-50 rounded-xl text-gray-500 text-xs">
-          <AlertCircle className="w-4 h-4 text-gray-400 flex-shrink-0" />
-          <span>This item is currently sold out. Check back soon for restocks.</span>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 p-3.5 bg-gray-50 rounded-xl text-gray-500 text-xs">
+            <AlertCircle className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <span>This item is currently sold out. Check back soon for restocks.</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => toggleWishlist(product)}
+            className={`w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full font-medium text-sm transition-all duration-200 border cursor-pointer ${
+              isWish
+                ? "bg-rose-50 border-rose-300 text-rose-600 hover:bg-rose-100"
+                : "border-gray-300 bg-white text-gray-800 hover:bg-gray-50 hover:text-black"
+            }`}
+          >
+            <Heart
+              className={`w-4 h-4 transition-colors ${
+                isWish ? "fill-rose-500 text-rose-500" : ""
+              }`}
+            />
+            <span>{isWish ? "Saved in Wishlist" : "Save to Wishlist"}</span>
+          </button>
         </div>
       )}
     </div>

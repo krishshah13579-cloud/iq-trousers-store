@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Star, ShoppingCart, Check } from "lucide-react";
+import { Star, ShoppingCart, Check, Heart } from "lucide-react";
 import { Product } from "@/types";
 import { formatPrice } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 
 interface ProductCardProps {
   product: Product;
@@ -13,7 +14,9 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
   const [added, setAdded] = useState(false);
+  const isWish = isInWishlist(product.id);
 
   // Parse product images
   let imageUrl = "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600";
@@ -100,6 +103,29 @@ export default function ProductCard({ product }: ProductCardProps) {
             </span>
           )}
         </div>
+
+        {/* Wishlist Toggle Button (Top-Right) */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleWishlist(product);
+          }}
+          aria-label={isWish ? "Remove from wishlist" : "Add to wishlist"}
+          title={isWish ? "In Wishlist" : "Add to Wishlist"}
+          className={`absolute top-3 right-3 z-20 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm cursor-pointer ${
+            isWish
+              ? "bg-white text-rose-500 shadow-md scale-105"
+              : "bg-white/90 text-gray-600 hover:text-rose-500 hover:bg-white hover:scale-105"
+          }`}
+        >
+          <Heart
+            className={`w-4 h-4 transition-colors ${
+              isWish ? "fill-rose-500 text-rose-500" : ""
+            }`}
+          />
+        </button>
 
         {product.stock <= 0 && (
           <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px] flex items-center justify-center">

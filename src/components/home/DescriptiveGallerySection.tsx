@@ -111,7 +111,7 @@ export default function DescriptiveGallerySection({
                       />
                     </Link>
 
-                    {/* Wishlist Button (Top-Right on Hover) */}
+                    {/* Wishlist Button (Top-Right) */}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -119,15 +119,19 @@ export default function DescriptiveGallerySection({
                         e.stopPropagation();
                         toggleWishlist(product);
                       }}
-                      className={`absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-xs transition-opacity duration-200 shadow-sm cursor-pointer ${
+                      className={`absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-xs transition-all duration-200 shadow-sm cursor-pointer ${
                         isWish
-                          ? "bg-rose-500 text-white opacity-100"
-                          : "bg-white/90 text-gray-700 hover:bg-white hover:text-black opacity-0 group-hover:opacity-100"
+                          ? "bg-white text-rose-500 opacity-100 shadow-md scale-105"
+                          : "bg-white/90 text-gray-700 hover:text-rose-500 hover:bg-white opacity-90 sm:opacity-0 sm:group-hover:opacity-100 hover:scale-105"
                       }`}
-                      title="Add to Wishlist"
-                      aria-label="Toggle Wishlist"
+                      title={isWish ? "Remove from Wishlist" : "Add to Wishlist"}
+                      aria-label={isWish ? "Remove from Wishlist" : "Add to Wishlist"}
                     >
-                      <Heart className={`w-4 h-4 ${isWish ? "fill-white" : ""}`} />
+                      <Heart
+                        className={`w-4 h-4 transition-colors ${
+                          isWish ? "fill-rose-500 text-rose-500" : ""
+                        }`}
+                      />
                     </button>
                   </div>
 
