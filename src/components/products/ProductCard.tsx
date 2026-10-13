@@ -95,15 +95,35 @@ export default function ProductCard({ product }: ProductCardProps) {
 
     if (status === "unauthenticated" || !session) {
       if (typeof window !== "undefined") {
-        localStorage.setItem(
-          "iq_pending_cart_item",
-          JSON.stringify({
-            product,
-            quantity: 1,
-            size: defaultSize,
-            color: defaultColor,
-          })
-        );
+        try {
+          let firstImage = "";
+          try {
+            const parsedImgs = JSON.parse(product.images);
+            if (Array.isArray(parsedImgs) && parsedImgs.length > 0) firstImage = parsedImgs[0];
+          } catch {
+            if (product.images?.startsWith("data:")) firstImage = product.images;
+          }
+
+          localStorage.setItem(
+            "iq_pending_cart_item",
+            JSON.stringify({
+              product: {
+                id: product.id,
+                name: product.name,
+                slug: product.slug,
+                price: product.price,
+                stock: product.stock,
+                images: firstImage ? JSON.stringify([firstImage]) : "[]",
+                categoryId: product.categoryId,
+              },
+              quantity: 1,
+              size: defaultSize,
+              color: defaultColor,
+            })
+          );
+        } catch (err) {
+          console.warn("Storage quota warning stashing pending item", err);
+        }
       }
       router.push("/login?callbackUrl=/cart");
       return;

@@ -199,15 +199,35 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
 
     if (status === "unauthenticated" || !session) {
       if (typeof window !== "undefined") {
-        localStorage.setItem(
-          "iq_pending_cart_item",
-          JSON.stringify({
-            product,
-            quantity,
-            size: selectedSize || undefined,
-            color: selectedColor || undefined,
-          })
-        );
+        try {
+          let firstImage = "";
+          try {
+            const parsedImgs = JSON.parse(product.images);
+            if (Array.isArray(parsedImgs) && parsedImgs.length > 0) firstImage = parsedImgs[0];
+          } catch {
+            if (product.images?.startsWith("data:")) firstImage = product.images;
+          }
+
+          localStorage.setItem(
+            "iq_pending_cart_item",
+            JSON.stringify({
+              product: {
+                id: product.id,
+                name: product.name,
+                slug: product.slug,
+                price: product.price,
+                stock: product.stock,
+                images: firstImage ? JSON.stringify([firstImage]) : "[]",
+                categoryId: product.categoryId,
+              },
+              quantity,
+              size: selectedSize || undefined,
+              color: selectedColor || undefined,
+            })
+          );
+        } catch (e) {
+          console.warn("Storage quota warning when stashing pending item", e);
+        }
       }
       router.push("/login?callbackUrl=/cart");
       return;
@@ -234,15 +254,35 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
 
     if (status === "unauthenticated" || !session) {
       if (typeof window !== "undefined") {
-        localStorage.setItem(
-          "iq_pending_cart_item",
-          JSON.stringify({
-            product,
-            quantity,
-            size: selectedSize || undefined,
-            color: selectedColor || undefined,
-          })
-        );
+        try {
+          let firstImage = "";
+          try {
+            const parsedImgs = JSON.parse(product.images);
+            if (Array.isArray(parsedImgs) && parsedImgs.length > 0) firstImage = parsedImgs[0];
+          } catch {
+            if (product.images?.startsWith("data:")) firstImage = product.images;
+          }
+
+          localStorage.setItem(
+            "iq_pending_cart_item",
+            JSON.stringify({
+              product: {
+                id: product.id,
+                name: product.name,
+                slug: product.slug,
+                price: product.price,
+                stock: product.stock,
+                images: firstImage ? JSON.stringify([firstImage]) : "[]",
+                categoryId: product.categoryId,
+              },
+              quantity,
+              size: selectedSize || undefined,
+              color: selectedColor || undefined,
+            })
+          );
+        } catch (e) {
+          console.warn("Storage quota warning when stashing pending item", e);
+        }
       }
       router.push("/login?callbackUrl=/checkout");
       return;

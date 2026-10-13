@@ -38,6 +38,56 @@ function getUserCartKey(session: Session | null | undefined): string | null {
   return null;
 }
 
+/**
+ * Compacts the product object for storage so that 10 full-resolution Base64
+ * photos (~4 MB) do not blow up the browser's 5 MB localStorage quota.
+ * Keeps only the primary thumbnail image needed for cart/checkout preview.
+ */
+function sanitizeCartProduct(product: CartItemType["product"]): CartItemType["product"] {
+  if (!product) return product;
+
+  let thumbnail = "";
+  try {
+    const parsed = JSON.parse(product.images);
+    if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]) {
+      thumbnail = String(parsed[0]).trim();
+    } else if (typeof parsed === "string" && parsed.trim()) {
+      thumbnail = parsed.trim();
+    }
+  } catch {
+    if (typeof product.images === "string" && product.images.trim()) {
+      if (product.images.startsWith("data:")) {
+        thumbnail = product.images.trim();
+      } else {
+        const split = product.images.split(",")[0]?.trim();
+        if (split) thumbnail = split;
+      }
+    }
+  }
+
+  return {
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    price: Number(product.price) || 0,
+    comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
+    stock: Number(product.stock) || 0,
+    images: thumbnail ? JSON.stringify([thumbnail]) : "[]",
+    categoryId: product.categoryId,
+  } as any;
+}
+
+function sanitizeCartItem(item: CartItemType): CartItemType {
+  return {
+    id: item.id,
+    productId: item.productId,
+    size: item.size,
+    color: item.color,
+    quantity: Number(item.quantity) || 1,
+    product: sanitizeCartProduct(item.product),
+  };
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const [items, setItems] = useState<CartItemType[]>([]);
@@ -67,9 +117,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (userSaved) {
           const parsed = JSON.parse(userSaved);
           if (Array.isArray(parsed)) {
-            loadedItems = parsed.filter(
-              (item) => item && item.product && typeof item.product === "object"
-            );
+            loadedItems = parsed
+              .filter((item) => item && item.product && typeof item.product === "object")
+              .map(sanitizeCartItem);
           }
         } else {
           // Migration from legacy "cart" key if user-specific key doesn't exist yet
@@ -77,13 +127,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
           if (legacySaved) {
             const parsed = JSON.parse(legacySaved);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              loadedItems = parsed.filter(
-                (item) => item && item.product && typeof item.product === "object"
-              );
+              loadedItems = parsed
+                .filter((item) => item && item.product && typeof item.product === "object")
+                .map(sanitizeCartItem);
               localStorage.setItem(userKey, JSON.stringify(loadedItems));
             }
           }
         }
+        // Free bloated legacy cart from storage
+        localStorage.removeItem("cart");
       } catch (e) {
         console.error("Error reading cart from localStorage", e);
       }
@@ -95,13 +147,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
           const pending = JSON.parse(pendingRaw);
           if (pending && pending.product && pending.product.id) {
             localStorage.removeItem("iq_pending_cart_item");
+            const cleanProduct = sanitizeCartProduct(pending.product);
             const quantity = Number(pending.quantity) || 1;
             const size = pending.size || undefined;
             const color = pending.color || undefined;
 
             const existingIndex = loadedItems.findIndex(
               (it) =>
-                it.productId === pending.product.id &&
+                it.productId === cleanProduct.id &&
                 it.size === size &&
                 it.color === color
             );
@@ -112,16 +165,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
               };
             } else {
               loadedItems.push({
-                id: `${pending.product.id}-${size || "nosize"}-${color || "nocolor"}-${Date.now()}`,
-                productId: pending.product.id,
+                id: `${cleanProduct.id}-${size || "nosize"}-${color || "nocolor"}-${Date.now()}`,
+                productId: cleanProduct.id,
                 size,
                 color,
                 quantity,
-                product: pending.product,
+                product: cleanProduct,
               });
             }
             localStorage.setItem(userKey, JSON.stringify(loadedItems));
-            localStorage.setItem("cart", JSON.stringify(loadedItems));
           }
         }
       } catch (e) {
@@ -139,10 +191,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const userKey = getUserCartKey(session);
     if (!userKey) return;
     try {
-      localStorage.setItem(userKey, JSON.stringify(items));
-      localStorage.setItem("cart", JSON.stringify(items));
+      const sanitized = items.map(sanitizeCartItem);
+      localStorage.setItem(userKey, JSON.stringify(sanitized));
+      // Remove unneeded legacy key to preserve storage quota
+      if (userKey !== "cart") {
+        localStorage.removeItem("cart");
+      }
     } catch (e) {
-      console.error("Failed to save cart to localStorage", e);
+      console.warn("Storage quota warning, pruning bloated keys and retrying", e);
+      try {
+        localStorage.removeItem("cart");
+        localStorage.removeItem("iq_pending_cart_item");
+        // Emergency compact payload without images to prevent UI failure
+        const ultraCompact = items.map((it) => ({
+          ...it,
+          product: {
+            id: it.product.id,
+            name: it.product.name,
+            slug: it.product.slug,
+            price: Number(it.product.price) || 0,
+            stock: Number(it.product.stock) || 0,
+            images: "[]",
+          },
+        }));
+        localStorage.setItem(userKey, JSON.stringify(ultraCompact));
+      } catch (err2) {
+        console.warn("LocalStorage quota strictly exceeded, keeping state in memory", err2);
+      }
     }
   }, [items, isLoaded, session, status]);
 
@@ -152,12 +227,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
     size?: string,
     color?: string
   ) => {
+    const cleanProduct = sanitizeCartProduct(product);
+
     if (status !== "authenticated") {
       if (typeof window !== "undefined") {
-        localStorage.setItem(
-          "iq_pending_cart_item",
-          JSON.stringify({ product, quantity, size, color })
-        );
+        try {
+          localStorage.setItem(
+            "iq_pending_cart_item",
+            JSON.stringify({ product: cleanProduct, quantity, size, color })
+          );
+        } catch (e) {
+          console.warn("Could not save pending cart item", e);
+        }
       }
       return;
     }
@@ -165,7 +246,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => {
       const existing = prev.find(
         (item) =>
-          item.productId === product.id &&
+          item.productId === cleanProduct.id &&
           item.size === size &&
           item.color === color
       );
@@ -179,12 +260,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return [
         ...prev,
         {
-          id: `${product.id}-${size || "nosize"}-${color || "nocolor"}-${Date.now()}`,
-          productId: product.id,
+          id: `${cleanProduct.id}-${size || "nosize"}-${color || "nocolor"}-${Date.now()}`,
+          productId: cleanProduct.id,
           size,
           color,
           quantity,
-          product,
+          product: cleanProduct,
         },
       ];
     });
