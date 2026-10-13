@@ -53,22 +53,53 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedEmail = String(email).trim().toLowerCase();
-    const discountCode = "WELCOME10";
 
-    // Ensure the discount code exists in the database
-    await prisma.discount.upsert({
-      where: { code: discountCode },
-      update: { active: true },
-      create: {
-        code: discountCode,
+    // Query database coupons to dynamically find any active 10% discount coupon
+    const now = new Date();
+    let coupon = await prisma.discount.findFirst({
+      where: {
         type: "PERCENTAGE",
         value: 10,
-        minOrder: 0,
-        maxUses: 1000,
         active: true,
-        expiresAt: new Date("2028-12-31"),
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: now } },
+        ],
       },
+      orderBy: [
+        { minOrder: "asc" },
+        { createdAt: "desc" },
+      ],
     });
+
+    // Fallback: If none unexpired, look for any active 10% coupon
+    if (!coupon) {
+      coupon = await prisma.discount.findFirst({
+        where: {
+          type: "PERCENTAGE",
+          value: 10,
+          active: true,
+        },
+        orderBy: { createdAt: "desc" },
+      });
+    }
+
+    // Safety fallback: If no 10% coupon currently exists in the database, create one dynamically
+    if (!coupon) {
+      coupon = await prisma.discount.create({
+        data: {
+          code: "WELCOME10",
+          type: "PERCENTAGE",
+          value: 10,
+          minOrder: 0,
+          maxUses: 1000,
+          active: true,
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        },
+      });
+    }
+
+    const discountCode = coupon.code;
 
     // Save or update subscriber
     await prisma.newsletterSubscriber.upsert({

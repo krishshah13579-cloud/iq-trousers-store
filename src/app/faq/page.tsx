@@ -17,7 +17,7 @@ const FAQS = [
   },
   {
     q: "How does the 10% Newsletter discount code work?",
-    a: "When you subscribe via the form in our footer with your First Name, Last Name, and Email, an exclusive promo code WELCOME10 is delivered straight to your email. Simply enter this code at checkout to receive 10% off your purchase.",
+    a: "When you subscribe via the form in our footer with your First Name, Last Name, and Email, an exclusive 10% discount promo code is delivered straight to your email. Simply enter the code from your email at checkout to receive 10% off your purchase.",
   },
   {
     q: "Where are IQ Trousers shipped from?",
