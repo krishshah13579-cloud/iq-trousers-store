@@ -246,12 +246,10 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
 
           <div>
             <span className="text-xs text-neutral-400 uppercase tracking-wider block">Payment</span>
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-neutral-100 text-neutral-800">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
               {order.paymentIntent?.startsWith("PAYU")
                 ? "PayU Online"
-                : order.paymentIntent === "COD"
-                ? "Cash on Delivery"
-                : "Online"}
+                : "PayU India"}
             </span>
           </div>
 
