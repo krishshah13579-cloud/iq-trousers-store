@@ -41,6 +41,16 @@ export default function ProductImageGallery({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   const modalImageRef = useRef<HTMLDivElement>(null);
+  const thumbnailStripRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (thumbnailStripRef.current) {
+      const activeBtn = thumbnailStripRef.current.children[selectedIndex] as HTMLElement;
+      if (activeBtn && typeof activeBtn.scrollIntoView === "function") {
+        activeBtn.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      }
+    }
+  }, [selectedIndex]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -169,6 +179,41 @@ export default function ProductImageGallery({
             <span>Hover to zoom details</span>
           </span>
 
+          {/* Active Photo Counter Badge */}
+          {validImages.length > 1 && (
+            <span className="absolute top-3.5 right-3.5 z-10 inline-flex items-center px-2.5 py-1 rounded-full bg-black/75 text-white text-xs font-medium font-mono backdrop-blur-md shadow-xs pointer-events-none">
+              {selectedIndex + 1} / {validImages.length}
+            </span>
+          )}
+
+          {/* Floating Navigation Arrows on Main Card */}
+          {validImages.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePrev();
+                }}
+                className="absolute left-3 top-1/2 -translate-y-1/2 z-10 p-2 sm:p-2.5 rounded-full bg-white/90 hover:bg-white text-gray-900 shadow-md border border-gray-200 transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 hover:scale-105 cursor-pointer"
+                title="Previous photo"
+              >
+                <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNext();
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 z-10 p-2 sm:p-2.5 rounded-full bg-white/90 hover:bg-white text-gray-900 shadow-md border border-gray-200 transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 hover:scale-105 cursor-pointer"
+                title="Next photo"
+              >
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            </>
+          )}
+
           {/* Click to Enlarge Button */}
           <button
             type="button"
@@ -177,7 +222,7 @@ export default function ProductImageGallery({
               setIsModalOpen(true);
               resetModalView();
             }}
-            className="absolute bottom-3.5 right-3.5 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-900/90 hover:bg-black text-white text-xs font-semibold backdrop-blur-md shadow-md transition-all duration-150 active:scale-95"
+            className="absolute bottom-3.5 right-3.5 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-900/90 hover:bg-black text-white text-xs font-semibold backdrop-blur-md shadow-md transition-all duration-150 active:scale-95 cursor-pointer"
           >
             <Maximize2 className="w-3.5 h-3.5 text-gray-200" />
             <span>Enlarge Fullscreen</span>
@@ -186,7 +231,10 @@ export default function ProductImageGallery({
 
         {/* Thumbnails Strip */}
         {validImages.length > 1 && (
-          <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-none">
+          <div
+            ref={thumbnailStripRef}
+            className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-thin scroll-smooth"
+          >
             {validImages.map((img, index) => {
               const isSelected = selectedIndex === index;
               return (
@@ -197,7 +245,7 @@ export default function ProductImageGallery({
                     setSelectedIndex(index);
                     resetModalView();
                   }}
-                  className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border-2 transition-all ${
+                  className={`group relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border-2 transition-all cursor-pointer ${
                     isSelected
                       ? "border-gray-900 shadow-xs scale-102 ring-2 ring-gray-900/20"
                       : "border-gray-200 opacity-70 hover:opacity-100 hover:border-gray-400"
@@ -208,6 +256,15 @@ export default function ProductImageGallery({
                     alt={`${name} thumbnail ${index + 1}`}
                     className="h-full w-full object-contain object-center p-1 bg-white"
                   />
+                  <span
+                    className={`absolute bottom-1 right-1 text-[9px] font-mono px-1 py-0.2 rounded-md ${
+                      isSelected
+                        ? "bg-black text-white font-bold"
+                        : "bg-black/60 text-white/90"
+                    }`}
+                  >
+                    #{index + 1}
+                  </span>
                 </button>
               );
             })}

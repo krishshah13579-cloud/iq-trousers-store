@@ -60,13 +60,20 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   try {
     const parsed = JSON.parse(product.images);
     if (Array.isArray(parsed)) {
-      images = parsed.filter(Boolean);
-    } else if (typeof parsed === "string" && parsed) {
-      images = [parsed];
+      images = parsed.map((img) => String(img).trim()).filter(Boolean);
+    } else if (typeof parsed === "string" && parsed.trim()) {
+      images = [parsed.trim()];
     }
   } catch {
-    if (product.images && product.images.startsWith("http")) {
-      images = [product.images];
+    if (typeof product.images === "string" && product.images.trim()) {
+      if (product.images.startsWith("data:")) {
+        images = [product.images.trim()];
+      } else {
+        images = product.images
+          .split(",")
+          .map((img: string) => img.trim())
+          .filter(Boolean);
+      }
     }
   }
 

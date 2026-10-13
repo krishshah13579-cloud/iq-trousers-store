@@ -28,8 +28,13 @@ export default function ProductCard({ product }: ProductCardProps) {
       imageUrl = parsed;
     }
   } catch {
-    if (product.images && product.images.startsWith("http")) {
-      imageUrl = product.images;
+    if (product.images) {
+      if (product.images.startsWith("data:")) {
+        imageUrl = product.images;
+      } else {
+        const split = product.images.split(",")[0]?.trim();
+        if (split) imageUrl = split;
+      }
     }
   }
 

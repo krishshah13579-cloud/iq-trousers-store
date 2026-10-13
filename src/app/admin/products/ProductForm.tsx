@@ -23,6 +23,8 @@ import {
   Menu,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   FileText,
   Shirt,
 } from "lucide-react";
@@ -119,7 +121,7 @@ async function safeParseResponse(res: Response): Promise<{ ok: boolean; data: an
 /**
  * Client-side image compression to ensure camera/phone uploads fit within serverless limits.
  */
-async function compressImageFile(file: File, maxDimension = 1600, quality = 0.85): Promise<File> {
+async function compressImageFile(file: File, maxDimension = 1200, quality = 0.82): Promise<File> {
   if (
     typeof window === "undefined" ||
     !file.type.startsWith("image/") ||
@@ -205,7 +207,9 @@ export default function ProductForm({
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const MAX_IMAGES = 10;
 
   // Collapsible Accordions (Description open by default, Care Instructions closed by default)
   const [isDescriptionOpen, setIsDescriptionOpen] = useState(true);
@@ -450,34 +454,57 @@ export default function ProductForm({
     loadCategories();
   }, [isEdit]);
 
-  // Handle image upload from computer
+  // Handle image upload from computer (up to 10 photos)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    const remainingSlots = MAX_IMAGES - imagesList.length;
+    if (remainingSlots <= 0) {
+      setError(`Maximum ${MAX_IMAGES} photos allowed per product. Please delete an existing photo to upload a new one.`);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    const filesToUpload = Array.from(files).slice(0, remainingSlots);
+    if (files.length > remainingSlots) {
+      setError(`You can only have up to ${MAX_IMAGES} photos in total. Uploading ${remainingSlots} photo(s).`);
+    } else {
+      setError(null);
+    }
+
     setUploadingImages(true);
-    setError(null);
+    setUploadProgress({ current: 0, total: filesToUpload.length });
 
     try {
-      const uploadFormData = new FormData();
-      for (let i = 0; i < files.length; i++) {
-        const compressed = await compressImageFile(files[i]);
-        uploadFormData.append("files", compressed);
+      const newUrls: string[] = [];
+
+      for (let i = 0; i < filesToUpload.length; i++) {
+        setUploadProgress({ current: i + 1, total: filesToUpload.length });
+        const compressed = await compressImageFile(filesToUpload[i], 1200, 0.82);
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", compressed);
+
+        const res = await fetch("/api/admin/upload", {
+          method: "POST",
+          body: uploadFormData,
+        });
+
+        const parsed = await safeParseResponse(res);
+        if (!parsed.ok) {
+          throw new Error(parsed.error || `Failed to upload ${filesToUpload[i].name}`);
+        }
+
+        const data = parsed.data;
+        if (data?.url) {
+          newUrls.push(data.url);
+        } else if (Array.isArray(data?.urls) && data.urls.length > 0) {
+          newUrls.push(...data.urls);
+        }
       }
 
-      const res = await fetch("/api/admin/upload", {
-        method: "POST",
-        body: uploadFormData,
-      });
-
-      const parsed = await safeParseResponse(res);
-      if (!parsed.ok) {
-        throw new Error(parsed.error || "Failed to upload image(s)");
-      }
-
-      const data = parsed.data;
-      if (data?.urls && Array.isArray(data.urls)) {
-        setImagesList((prev) => [...prev, ...data.urls]);
+      if (newUrls.length > 0) {
+        setImagesList((prev) => [...prev, ...newUrls].slice(0, MAX_IMAGES));
       }
     } catch (err: unknown) {
       const rawMsg = err instanceof Error ? err.message : "Error uploading image";
@@ -488,6 +515,7 @@ export default function ProductForm({
       setError(cleanMsg);
     } finally {
       setUploadingImages(false);
+      setUploadProgress(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -496,8 +524,13 @@ export default function ProductForm({
   const handleAddExternalUrl = () => {
     const trimmed = externalUrlInput.trim();
     if (!trimmed) return;
-    setImagesList((prev) => [...prev, trimmed]);
+    if (imagesList.length >= MAX_IMAGES) {
+      setError(`Maximum ${MAX_IMAGES} photos allowed per product.`);
+      return;
+    }
+    setImagesList((prev) => [...prev, trimmed].slice(0, MAX_IMAGES));
     setExternalUrlInput("");
+    setShowUrlInput(false);
   };
 
   // Remove image
@@ -512,6 +545,17 @@ export default function ProductForm({
       const copy = [...prev];
       const [item] = copy.splice(index, 1);
       return [item, ...copy];
+    });
+  };
+
+  // Reorder image position
+  const handleMoveImage = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= imagesList.length) return;
+    setImagesList((prev) => {
+      const copy = [...prev];
+      const [moved] = copy.splice(fromIndex, 1);
+      copy.splice(toIndex, 0, moved);
+      return copy;
     });
   };
 
@@ -880,101 +924,158 @@ export default function ProductForm({
         </div>
       </div>
 
-      {/* 2. Image Upload (Direct from computer + Drag/Drop) */}
+      {/* 2. Image Upload (Direct from computer + Drag/Drop — Up to 10 photos) */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
         <div className="flex items-center justify-between border-b border-gray-100 pb-3">
           <div>
             <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
               <ImageIcon className="w-5 h-5 text-gray-700" />
-              <span>Product Images</span>
+              <span>Product Photos (Up to 10)</span>
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              Upload photos from your computer. First image will be used as the primary cover photo.
+              Add up to 10 high-resolution photos. Photo #1 is the primary cover displayed on store cards.
             </p>
           </div>
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">
-            {imagesList.length} Image{imagesList.length === 1 ? "" : "s"}
+          <span
+            className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+              imagesList.length >= MAX_IMAGES
+                ? "bg-emerald-100 text-emerald-800"
+                : "bg-gray-100 text-gray-700"
+            }`}
+          >
+            {imagesList.length} / {MAX_IMAGES} {imagesList.length >= MAX_IMAGES ? "(Max)" : "Photos"}
           </span>
         </div>
 
         {/* Dropzone / Upload Button */}
-        <div
-          onClick={() => fileInputRef.current?.click()}
-          className="relative border-2 border-dashed border-gray-300 hover:border-gray-900 bg-gray-50/60 hover:bg-gray-50 rounded-2xl p-8 text-center cursor-pointer transition-all group"
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
+        {imagesList.length < MAX_IMAGES ? (
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="relative border-2 border-dashed border-gray-300 hover:border-gray-900 bg-gray-50/60 hover:bg-gray-50 rounded-2xl p-8 text-center cursor-pointer transition-all group"
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
 
-          <div className="flex flex-col items-center justify-center space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-gray-700 shadow-xs group-hover:scale-105 transition-transform">
-              {uploadingImages ? (
-                <Loader2 className="w-6 h-6 animate-spin text-gray-900" />
-              ) : (
-                <Upload className="w-6 h-6" />
-              )}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">
-                {uploadingImages
-                  ? "Uploading image files..."
-                  : "Click to upload product images from computer"}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                PNG, JPG, JPEG, WEBP or AVIF supported
-              </p>
+            <div className="flex flex-col items-center justify-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-gray-700 shadow-xs group-hover:scale-105 transition-transform">
+                {uploadingImages ? (
+                  <Loader2 className="w-6 h-6 animate-spin text-gray-900" />
+                ) : (
+                  <Upload className="w-6 h-6" />
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">
+                  {uploadingImages
+                    ? `Uploading photo ${uploadProgress?.current || 1} of ${uploadProgress?.total || 1}...`
+                    : `Click to upload photos from computer (Up to ${MAX_IMAGES - imagesList.length} more)`}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  JPG, JPEG, PNG, WEBP, AVIF supported • Up to 10 photos per garment
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="p-4 rounded-xl bg-emerald-50/80 border border-emerald-200 text-center text-xs text-emerald-800 font-medium">
+            Maximum 10 photos added. You can change cover, reorder, or delete any photo below.
+          </div>
+        )}
 
         {/* Image Grid Preview */}
         {imagesList.length > 0 && (
           <div className="space-y-3">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700">
-              Uploaded Gallery Preview
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700">
+                Uploaded Gallery ({imagesList.length} of {MAX_IMAGES})
+              </label>
+              <span className="text-[11px] text-gray-400">
+                Hover to reorder or set cover
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
               {imagesList.map((imgUrl, idx) => (
                 <div
                   key={idx}
-                  className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-xs"
+                  className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-xs flex flex-col justify-between"
                 >
                   <img
                     src={imgUrl}
-                    alt={`Product image ${idx + 1}`}
+                    alt={`Product photo ${idx + 1}`}
                     className="w-full h-full object-cover object-center"
                   />
 
-                  {/* Cover badge */}
-                  {idx === 0 ? (
-                    <div className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-black/80 text-white text-[10px] font-bold uppercase tracking-wider backdrop-blur-xs">
-                      <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                      <span>Cover Photo</span>
-                    </div>
-                  ) : (
+                  {/* Top Bar: Number badge & Delete */}
+                  <div className="absolute top-2 left-2 right-2 flex items-center justify-between z-10 pointer-events-none">
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider backdrop-blur-xs pointer-events-auto ${
+                        idx === 0
+                          ? "bg-black/90 text-white shadow-xs"
+                          : "bg-black/65 text-white"
+                      }`}
+                    >
+                      {idx === 0 ? (
+                        <>
+                          <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                          <span>Cover</span>
+                        </>
+                      ) : (
+                        <span>#{idx + 1}</span>
+                      )}
+                    </span>
+
                     <button
                       type="button"
-                      onClick={() => handleMakeCover(idx)}
-                      className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-0.5 rounded-md bg-white/90 text-black text-[10px] font-semibold hover:bg-white shadow-xs"
+                      onClick={() => handleRemoveImage(idx)}
+                      className="p-1.5 rounded-md bg-red-600/90 hover:bg-red-600 text-white shadow-xs pointer-events-auto transition-transform hover:scale-105 cursor-pointer"
+                      title="Delete photo"
                     >
-                      Set as Cover
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
-                  )}
+                  </div>
 
-                  {/* Remove button */}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveImage(idx)}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md bg-red-600 text-white hover:bg-red-700 shadow-xs"
-                    title="Remove image"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {/* Bottom Bar: Reorder arrows & Cover button on hover */}
+                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1">
+                      {idx > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleMoveImage(idx, idx - 1)}
+                          className="p-1 rounded-md bg-white/95 hover:bg-white text-gray-800 shadow-xs cursor-pointer"
+                          title="Move earlier"
+                        >
+                          <ChevronLeft className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {idx < imagesList.length - 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleMoveImage(idx, idx + 1)}
+                          className="p-1 rounded-md bg-white/95 hover:bg-white text-gray-800 shadow-xs cursor-pointer"
+                          title="Move later"
+                        >
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {idx !== 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleMakeCover(idx)}
+                        className="px-2 py-1 rounded-md bg-white/95 text-black text-[10px] font-semibold hover:bg-white shadow-xs cursor-pointer"
+                        title="Set as Cover Photo"
+                      >
+                        Set Cover
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

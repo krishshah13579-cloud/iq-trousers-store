@@ -90,6 +90,16 @@ export default function ProductTable({ products }: { products: ProductItem[] }) 
     return "";
   };
 
+  const getImageCount = (imagesStr?: string | null): number => {
+    if (!imagesStr) return 0;
+    try {
+      const parsed = JSON.parse(imagesStr);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean).length;
+    } catch {}
+    if (imagesStr.startsWith("data:")) return 1;
+    return imagesStr.split(",").map((s) => s.trim()).filter(Boolean).length;
+  };
+
   const isValidImageSrc = (src: string): boolean => {
     if (!src || typeof src !== "string") return false;
     const s = src.trim();
@@ -146,6 +156,7 @@ export default function ProductTable({ products }: { products: ProductItem[] }) 
               <tbody className="divide-y divide-gray-100">
                 {products.map((product) => {
                   const imageSrc = getFirstImage(product.images);
+                  const photoCount = getImageCount(product.images);
                   const hasValidImage = isValidImageSrc(imageSrc) && !imageErrors[product.id];
                   return (
                     <tr
@@ -154,21 +165,31 @@ export default function ProductTable({ products }: { products: ProductItem[] }) 
                     >
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-lg bg-gray-100 relative overflow-hidden shrink-0 border border-gray-200 flex items-center justify-center">
-                            {hasValidImage ? (
-                              <img
-                                src={imageSrc}
-                                alt={product.name}
-                                className="w-full h-full object-cover"
-                                loading="lazy"
-                                onError={() => {
-                                  setImageErrors((prev) => ({ ...prev, [product.id]: true }));
-                                }}
-                              />
-                            ) : (
-                              <div className="flex flex-col items-center justify-center text-gray-400">
-                                <Package className="w-5 h-5 text-gray-400" />
-                              </div>
+                          <div className="relative shrink-0">
+                            <div className="w-12 h-12 rounded-lg bg-gray-100 relative overflow-hidden border border-gray-200 flex items-center justify-center">
+                              {hasValidImage ? (
+                                <img
+                                  src={imageSrc}
+                                  alt={product.name}
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                  onError={() => {
+                                    setImageErrors((prev) => ({ ...prev, [product.id]: true }));
+                                  }}
+                                />
+                              ) : (
+                                <div className="flex flex-col items-center justify-center text-gray-400">
+                                  <Package className="w-5 h-5 text-gray-400" />
+                                </div>
+                              )}
+                            </div>
+                            {photoCount > 1 && (
+                              <span
+                                className="absolute -bottom-1 -right-1 bg-black text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full shadow-xs border border-white"
+                                title={`${photoCount} photos uploaded`}
+                              >
+                                {photoCount}
+                              </span>
                             )}
                           </div>
                           <div>
