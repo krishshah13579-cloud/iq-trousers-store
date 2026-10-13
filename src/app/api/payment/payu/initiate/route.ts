@@ -270,6 +270,7 @@ export async function POST(req: NextRequest) {
         furl,
         hash,
         service_provider: "payu_paisa",
+        drop_category: "EMI",
         udf1: order.id,
         udf2: userId,
         udf3: appliedDiscountCode || "",
