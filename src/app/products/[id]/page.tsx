@@ -22,7 +22,11 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   try {
     product = await prisma.product.findFirst({
       where: {
-        OR: [{ id }, { slug: id }],
+        OR: [
+          { id },
+          { slug: { equals: id, mode: "insensitive" } },
+          { name: { equals: id, mode: "insensitive" } },
+        ],
       },
       include: {
         category: true,

@@ -74,13 +74,22 @@ function CheckoutContent() {
     city: "",
     state: "",
     zipCode: "",
-    country: "United States",
+    country: "India",
     phone: "",
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof ShippingAddress, string>>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (session?.user?.name) {
+      setFormData((prev) => ({
+        ...prev,
+        fullName: prev.fullName || session.user?.name || "",
+      }));
+    }
+  }, [session]);
 
   // Discount state initialized from sessionStorage
   const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscount | null>(() => {
@@ -524,7 +533,7 @@ function CheckoutContent() {
                       type="text"
                       value={formData.country}
                       onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                      placeholder="United States"
+                      placeholder="India"
                       className={`w-full px-3.5 py-2.5 text-sm rounded-lg border ${
                         errors.country ? "border-red-400 bg-red-50/20" : "border-neutral-200"
                       } focus:outline-none focus:ring-2 focus:ring-neutral-900`}
@@ -544,7 +553,7 @@ function CheckoutContent() {
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="+1 (555) 012-3456"
+                    placeholder="98765 43210"
                     className={`w-full px-3.5 py-2.5 text-sm rounded-lg border ${
                       errors.phone ? "border-red-400 bg-red-50/20" : "border-neutral-200"
                     } focus:outline-none focus:ring-2 focus:ring-neutral-900`}

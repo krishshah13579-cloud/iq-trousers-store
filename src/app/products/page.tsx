@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import ProductCard from "@/components/products/ProductCard";
 import ProductFilters from "@/components/products/ProductFilters";
@@ -24,18 +25,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const { search, category, sort, minPrice, maxPrice, featured } = resolvedParams || {};
 
   // Build Prisma where query
-  const where: {
-    active: boolean;
-    OR?: Array<{ name: { contains: string } } | { description: { contains: string } }>;
-    category?: {
-      OR: Array<{ slug: string } | { id: string }>;
-    };
-    price?: {
-      gte?: number;
-      lte?: number;
-    };
-    featured?: boolean;
-  } = {
+  const where: Prisma.ProductWhereInput = {
     active: true,
   };
 
@@ -58,7 +48,8 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
     where.category = {
       OR: [
-        ...slugCandidates.map((s) => ({ slug: s })),
+        ...slugCandidates.map((s) => ({ slug: { equals: s, mode: "insensitive" as const } })),
+        { name: { equals: cat, mode: "insensitive" as const } },
         { id: cat },
       ],
     };
@@ -114,7 +105,11 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       category
         ? prisma.category.findFirst({
             where: {
-              OR: [{ slug: category }, { id: category }],
+              OR: [
+                { slug: { equals: category, mode: "insensitive" } },
+                { name: { equals: category, mode: "insensitive" } },
+                { id: category },
+              ],
             },
           })
         : null,

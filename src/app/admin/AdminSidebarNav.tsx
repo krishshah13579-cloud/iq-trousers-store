@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   LogOut,
   Sparkles,
+  ExternalLink,
 } from "lucide-react";
 
 interface AdminSidebarNavProps {
@@ -170,6 +171,17 @@ export default function AdminSidebarNav({ onItemClick }: AdminSidebarNavProps) {
             </span>
           </div>
         </div>
+
+        {/* View Storefront Link */}
+        <Link
+          href="/"
+          target="_blank"
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-zinc-700 hover:text-black hover:bg-zinc-100 transition-colors border border-gray-200 cursor-pointer shadow-2xs"
+          title="Open Customer Storefront in new tab"
+        >
+          <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
+          <span>View Storefront</span>
+        </Link>
 
         {/* Sign Out Button */}
         <button

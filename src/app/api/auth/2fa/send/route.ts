@@ -18,9 +18,9 @@ function maskEmailAddress(email: string): string {
 }
 
 export async function POST(req: NextRequest) {
-  // Rate Limiting: Max 5 code generation attempts per 10 minutes per IP
+  // Rate Limiting: Max 20 code generation attempts per 10 minutes per IP
   const ip = getClientIp(req);
-  const rl = checkRateLimit(`auth-2fa-send:${ip}`, { limit: 5, windowMs: 10 * 60 * 1000 });
+  const rl = checkRateLimit(`auth-2fa-send:${ip}`, { limit: 20, windowMs: 10 * 60 * 1000 });
   if (!rl.success) {
     return createRateLimitResponse(rl.resetMs);
   }
@@ -47,9 +47,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Rate Limiting by Target Email: Max 5 code requests per 10 minutes per account
+    // Rate Limiting by Target Email: Max 15 code requests per 10 minutes per account
     const emailRl = checkRateLimit(`auth-2fa-send:email:${trimmedEmail}`, {
-      limit: 5,
+      limit: 15,
       windowMs: 10 * 60 * 1000,
     });
     if (!emailRl.success) {

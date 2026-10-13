@@ -249,14 +249,15 @@ function CustomerLoginForm() {
         }
 
         const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
-        if (isAdmin) {
+        const hasSpecificDestination =
+          callbackUrl && callbackUrl !== "/" && callbackUrl !== "/login";
+
+        if (hasSpecificDestination) {
+          router.push(callbackUrl);
+        } else if (isAdmin) {
           router.push("/admin");
         } else {
-          const destination =
-            callbackUrl && !callbackUrl.startsWith("/admin") && callbackUrl !== "/login"
-              ? callbackUrl
-              : "/";
-          router.push(destination);
+          router.push("/");
         }
         router.refresh();
       } else {

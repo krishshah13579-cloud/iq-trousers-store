@@ -305,6 +305,22 @@ export default function Footer() {
             <ul className="space-y-2.5 text-sm">
               <li>
                 <Link
+                  href="/size-guide"
+                  className="text-neutral-300 hover:text-white transition-colors"
+                >
+                  Size Guide
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/shipping-policy"
+                  className="text-neutral-300 hover:text-white transition-colors"
+                >
+                  Shipping Policy
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/faq"
                   className="text-neutral-300 hover:text-white transition-colors"
                 >

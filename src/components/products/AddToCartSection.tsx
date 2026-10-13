@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ShoppingCart, Plus, Minus, Check, AlertCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ShoppingCart, Plus, Minus, Check, AlertCircle, Zap } from "lucide-react";
 import { Product } from "@/types";
 import { useCart } from "@/context/CartContext";
 
@@ -10,6 +11,7 @@ interface AddToCartSectionProps {
 }
 
 export default function AddToCartSection({ product }: AddToCartSectionProps) {
+  const router = useRouter();
   const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -128,6 +130,19 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
     addItem(product, quantity, selectedSize || undefined, activeColor || undefined);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
+  };
+
+  const handleBuyNow = () => {
+    if (isOutOfStock) return;
+    if (availableSizes.length > 0 && !selectedSize) {
+      setSizeError(true);
+      return;
+    }
+    if (currentVariantStock <= 0) {
+      return;
+    }
+    addItem(product, quantity, selectedSize || undefined, activeColor || undefined);
+    router.push("/checkout");
   };
 
   return (
@@ -300,6 +315,17 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
               )}
             </button>
           </div>
+
+          {/* Buy Now Instant Checkout Button */}
+          <button
+            type="button"
+            onClick={handleBuyNow}
+            disabled={isOutOfStock || currentVariantStock <= 0}
+            className="w-full inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full font-bold text-sm bg-amber-400 hover:bg-amber-300 text-zinc-950 transition-all duration-200 shadow-sm active:scale-[0.99] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Zap className="w-4 h-4 text-zinc-950 fill-zinc-950" />
+            <span>Buy Now (Instant Checkout)</span>
+          </button>
         </>
       )}
 
