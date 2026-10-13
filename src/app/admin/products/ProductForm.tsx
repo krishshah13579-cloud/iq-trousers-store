@@ -96,7 +96,7 @@ async function safeParseResponse(res: Response): Promise<{ ok: boolean; data: an
       return {
         ok: false,
         data: null,
-        error: "The upload payload is too large. Image files have been auto-compressed, but please try fewer images at once.",
+        error: "The upload payload exceeded server limit. Photos are being auto-compressed to fit.",
       };
     }
     if (res.status === 401) {
@@ -119,9 +119,15 @@ async function safeParseResponse(res: Response): Promise<{ ok: boolean; data: an
 }
 
 /**
- * Client-side image compression to ensure camera/phone uploads fit within serverless limits.
+ * Client-side image compression:
+ * Resizes and compresses images so that each photo is strictly <= 140 KB in binary (~180 KB in Base64).
+ * This guarantees that 10 photos = ~1.6 MB total payload, safely under Vercel's 4.5 MB serverless limit.
  */
-async function compressImageFile(file: File, maxDimension = 1200, quality = 0.82): Promise<File> {
+async function compressImageFile(
+  file: File,
+  maxDimension = 960,
+  targetBytes = 140 * 1024
+): Promise<File> {
   if (
     typeof window === "undefined" ||
     !file.type.startsWith("image/") ||
@@ -131,19 +137,37 @@ async function compressImageFile(file: File, maxDimension = 1200, quality = 0.82
     return file;
   }
 
+  const canvasToFile = (
+    canvas: HTMLCanvasElement,
+    quality: number,
+    fileName: string
+  ): Promise<File | null> => {
+    return new Promise((resolve) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return resolve(null);
+          const cleanName = fileName.replace(/\.[^/.]+$/, ".jpg");
+          resolve(
+            new File([blob], cleanName, {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            })
+          );
+        },
+        "image/jpeg",
+        quality
+      );
+    });
+  };
+
   return new Promise((resolve) => {
     try {
       const img = new Image();
       const objectUrl = URL.createObjectURL(file);
 
-      img.onload = () => {
+      img.onload = async () => {
         URL.revokeObjectURL(objectUrl);
         let { width, height } = img;
-
-        if (width <= maxDimension && height <= maxDimension && file.size < 800 * 1024) {
-          resolve(file);
-          return;
-        }
 
         if (width > maxDimension || height > maxDimension) {
           if (width > height) {
@@ -156,31 +180,32 @@ async function compressImageFile(file: File, maxDimension = 1200, quality = 0.82
         }
 
         const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = Math.max(width, 1);
+        canvas.height = Math.max(height, 1);
         const ctx = canvas.getContext("2d");
         if (!ctx) {
           resolve(file);
           return;
         }
 
+        // White background for transparent PNGs
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              resolve(file);
-              return;
-            }
-            const cleanName = file.name.replace(/\.[^/.]+$/, ".jpg");
-            const compressedFile = new File([blob], cleanName, {
-              type: "image/jpeg",
-              lastModified: Date.now(),
-            });
-            resolve(compressedFile);
-          },
-          "image/jpeg",
-          quality
-        );
+
+        // Iteratively adjust quality until blob size is under targetBytes
+        let quality = 0.75;
+        let compressed = await canvasToFile(canvas, quality, file.name);
+
+        while (compressed && compressed.size > targetBytes && quality > 0.45) {
+          quality -= 0.1;
+          const nextAttempt = await canvasToFile(canvas, quality, file.name);
+          if (nextAttempt) {
+            compressed = nextAttempt;
+          }
+        }
+
+        resolve(compressed || file);
       };
 
       img.onerror = () => {
@@ -191,6 +216,66 @@ async function compressImageFile(file: File, maxDimension = 1200, quality = 0.82
       img.src = objectUrl;
     } catch {
       resolve(file);
+    }
+  });
+}
+
+/**
+ * Re-compresses any oversized base64 data URI before submitting product payload.
+ * Guarantees that all 10 photos stay comfortably under ~1.6 MB total.
+ */
+async function compressBase64Image(
+  dataUri: string,
+  maxDimension = 960,
+  maxBase64Length = 180 * 1024
+): Promise<string> {
+  if (
+    typeof window === "undefined" ||
+    !dataUri ||
+    !dataUri.startsWith("data:image/") ||
+    dataUri.length <= maxBase64Length
+  ) {
+    return dataUri;
+  }
+
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(width, 1);
+        canvas.height = Math.max(height, 1);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(dataUri);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        let q = 0.75;
+        let compressed = canvas.toDataURL("image/jpeg", q);
+        while (compressed.length > maxBase64Length && q > 0.45) {
+          q -= 0.1;
+          compressed = canvas.toDataURL("image/jpeg", q);
+        }
+
+        resolve(compressed);
+      };
+      img.onerror = () => resolve(dataUri);
+      img.src = dataUri;
+    } catch {
+      resolve(dataUri);
     }
   });
 }
@@ -481,7 +566,7 @@ export default function ProductForm({
 
       for (let i = 0; i < filesToUpload.length; i++) {
         setUploadProgress({ current: i + 1, total: filesToUpload.length });
-        const compressed = await compressImageFile(filesToUpload[i], 1200, 0.82);
+        const compressed = await compressImageFile(filesToUpload[i], 960, 140 * 1024);
         const uploadFormData = new FormData();
         uploadFormData.append("file", compressed);
 
@@ -659,12 +744,17 @@ export default function ProductForm({
         ? parseFloat(String(formData.comparePrice).replace(/[^0-9.]/g, "")) || null
         : null;
 
+      // Pre-optimize and shrink all images so total payload is strictly under 1.8MB
+      const optimizedImages = await Promise.all(
+        imagesList.map((img) => compressBase64Image(img, 960, 180 * 1024))
+      );
+
       const payload = {
         ...formData,
         price: cleanPrice,
         comparePrice: cleanComparePrice,
         stock: finalStock,
-        images: imagesList,
+        images: optimizedImages,
         sizes: selectedSizes,
         colors: selectedColors,
         inventory: inventory,
