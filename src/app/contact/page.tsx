@@ -29,7 +29,7 @@ export default function ContactPage() {
             Get In Touch
           </span>
           <h1 className="text-3xl sm:text-5xl font-serif font-bold text-neutral-900 tracking-tight mt-2">
-            Contact IQ Trousers
+            Contact | IQ Trousers
           </h1>
           <p className="text-neutral-500 text-sm sm:text-base mt-3 leading-relaxed">
             Have questions about fit, fabric care, or wholesale bulk manufacturing? Our team at Krish Clothing Co. is here to assist you.
