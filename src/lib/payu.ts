@@ -10,8 +10,15 @@ export interface PayUConfig {
 }
 
 export function getPayUConfig(): PayUConfig {
-  const key = process.env.PAYU_MERCHANT_KEY?.trim() || "";
-  const salt = process.env.PAYU_MERCHANT_SALT?.trim() || "";
+  const key =
+    process.env.PAYU_MERCHANT_KEY?.trim() ||
+    process.env.PAYU_KEY?.trim() ||
+    process.env.PAYU_MERCHANT_ID?.trim() ||
+    "";
+  const salt =
+    process.env.PAYU_MERCHANT_SALT?.trim() ||
+    process.env.PAYU_SALT?.trim() ||
+    "";
   const rawMode = (process.env.PAYU_MODE || "TEST").toUpperCase();
   const mode: "TEST" | "LIVE" = rawMode === "LIVE" || rawMode === "PROD" ? "LIVE" : "TEST";
 
