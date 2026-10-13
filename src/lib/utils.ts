@@ -85,3 +85,7 @@ export function getStepIndex(status?: string | null): number {
       return 0;
   }
 }
+
+export function isAdminRole(role?: string | null): boolean {
+  return role === "ADMIN" || role === "SUPER_ADMIN";
+}

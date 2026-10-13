@@ -197,7 +197,7 @@ export default async function OrdersPage() {
                         <span className="font-semibold text-red-700">Order Cancelled</span>
                       ) : (
                         <span className="font-semibold text-gray-900">
-                          {TIMELINE_STAGES[stepIdx]}
+                          {TIMELINE_STAGES[stepIdx] || "Order Placed"}
                         </span>
                       )}
                     </div>
@@ -215,7 +215,7 @@ export default async function OrdersPage() {
                           ))}
                         </div>
                         <span className="text-[11px] font-semibold text-gray-400 ml-1">
-                          Step {stepIdx + 1} of 6
+                          Step {Math.min(6, Math.max(1, (stepIdx ?? 0) + 1))} of 6
                         </span>
                       </div>
                     )}

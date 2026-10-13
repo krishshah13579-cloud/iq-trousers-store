@@ -3,9 +3,8 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
-export function isAdminRole(role?: string | null): boolean {
-  return role === "ADMIN" || role === "SUPER_ADMIN";
-}
+import { isAdminRole } from "@/lib/utils";
+export { isAdminRole };
 
 export const authOptions: NextAuthOptions = {
   providers: [
