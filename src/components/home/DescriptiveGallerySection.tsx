@@ -24,6 +24,9 @@ export default function DescriptiveGallerySection({
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // Maximize cards displayed to 4
+  const displayProducts = (products || []).slice(0, 4);
+
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollBy({ left: -300, behavior: "smooth" });
@@ -46,7 +49,7 @@ export default function DescriptiveGallerySection({
           </h2>
 
           {/* Carousel Arrows (Visible when products exist) */}
-          {products.length > 0 && (
+          {displayProducts.length > 0 && (
             <div className="absolute right-0 hidden sm:flex items-center gap-2">
               <button
                 type="button"
@@ -69,7 +72,7 @@ export default function DescriptiveGallerySection({
         </div>
 
         {/* Product Cards Carousel / Grid */}
-        {products.length === 0 ? (
+        {displayProducts.length === 0 ? (
           <div className="py-12 px-4 text-center bg-gray-50/60 rounded-xl border border-dashed border-gray-200">
             <p className="text-gray-500 text-sm">
               New {title} arrivals coming soon. Check back shortly.
@@ -80,7 +83,7 @@ export default function DescriptiveGallerySection({
             ref={scrollContainerRef}
             className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7 overflow-x-auto sm:overflow-visible scroll-smooth pb-4 sm:pb-0 scrollbar-none snap-x snap-mandatory"
           >
-            {products.map((product) => {
+            {displayProducts.map((product) => {
               // Parse images
               let imageUrl = "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600";
               try {
