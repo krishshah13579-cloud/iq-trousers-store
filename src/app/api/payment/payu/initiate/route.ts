@@ -149,10 +149,9 @@ export async function POST(req: NextRequest) {
     );
     const shipping = shippingQuote.amount;
     const estimatedTax = Math.round(roundedSubtotal * 0.05 * 100) / 100;
-    const total = Math.max(
-      1,
-      Math.round((roundedSubtotal - discountAmount + shipping + estimatedTax) * 100) / 100
-    );
+    // Total with round off amount included (rounded to nearest rupee matching cart & checkout)
+    const rawTotal = Math.max(1, roundedSubtotal - discountAmount + shipping + estimatedTax);
+    const total = Math.round(rawTotal);
 
     const txnid = `PAYU_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 

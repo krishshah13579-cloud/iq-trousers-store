@@ -106,10 +106,9 @@ export default function CartPage() {
     }
   }
 
-  const finalTotal = Math.max(
-    0,
-    Math.round((subtotal - currentDiscountAmount + estimatedTax) * 100) / 100
-  );
+  // Total with round off amount included (rounded to nearest rupee without displaying a separate round-off line to user)
+  const rawTotal = Math.max(0, subtotal - currentDiscountAmount + estimatedTax);
+  const finalTotal = Math.round(rawTotal);
 
   // Fetch smart coupons available to this particular customer
   useEffect(() => {

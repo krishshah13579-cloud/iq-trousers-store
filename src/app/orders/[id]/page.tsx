@@ -9,6 +9,7 @@ import { ShippingAddress } from "@/types";
 import { CheckCircle2, Package, MapPin, ArrowRight, XCircle, Truck, Tag } from "lucide-react";
 import { CancelOrderButton } from "@/components/orders/CancelOrderButton";
 import { OrderTimeline } from "@/components/orders/OrderTimeline";
+import { calculateShippingFee } from "@/lib/shipping";
 
 interface OrderPageProps {
   params: Promise<{ id: string }>;
@@ -400,16 +401,11 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
                 {itemsSubtotal >= 1499
                   ? "Free"
                   : formatPrice(
-                      Math.max(
-                        0,
-                        Math.round(
-                          (order.total -
-                            (itemsSubtotal -
-                              order.discountAmount +
-                              Math.round(itemsSubtotal * 0.05 * 100) / 100)) *
-                            100
-                        ) / 100
-                      )
+                      calculateShippingFee(
+                        itemsSubtotal,
+                        shipping?.state,
+                        shipping?.zipCode
+                      ).amount
                     )}
               </span>
             </div>

@@ -148,10 +148,9 @@ function CheckoutContent() {
     }
   }
 
-  const finalTotal = Math.max(
-    0,
-    Math.round((subtotal - currentDiscountAmount + shipping + estimatedTax) * 100) / 100
-  );
+  // Total with round off amount included (rounded to nearest rupee without displaying a separate round-off line to user)
+  const rawTotal = Math.max(0, subtotal - currentDiscountAmount + shipping + estimatedTax);
+  const finalTotal = Math.round(rawTotal);
 
   const effectiveFullName = formData.fullName || session?.user?.name || "";
 
