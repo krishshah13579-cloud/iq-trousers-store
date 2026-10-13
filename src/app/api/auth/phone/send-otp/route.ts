@@ -93,10 +93,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `A 6-digit verification code has been sent to ${email.trim().toLowerCase()} to verify mobile number ${normalizedPhone}.`,
+      message: `A 6-digit verification code has been sent to ${email.trim().toLowerCase()}. Please check your email inbox to enter the code.`,
       normalizedPhone,
-      // Dev/Demo convenience: surface code so testing works immediately
-      devCode: code,
     });
   } catch (error) {
     console.error("Phone OTP error:", error);

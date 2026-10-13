@@ -31,7 +31,6 @@ export default function RegisterPage() {
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [otpMessage, setOtpMessage] = useState<string | null>(null);
-  const [devOtp, setDevOtp] = useState<string | null>(null);
   const [resendCountdown, setResendCountdown] = useState(0);
 
   const [loading, setLoading] = useState(false);
@@ -48,7 +47,6 @@ export default function RegisterPage() {
   const handleSendOtp = async () => {
     setError(null);
     setOtpMessage(null);
-    setDevOtp(null);
 
     if (!email.trim()) {
       setError("Please enter your email address first to receive your verification code.");
@@ -79,11 +77,8 @@ export default function RegisterPage() {
         setError(data.error || "Failed to send verification code");
       } else {
         setIsOtpSent(true);
-        setOtpMessage(data.message || `Code sent to ${data.normalizedPhone || cleanPhone}`);
-        if (data.devCode) {
-          setDevOtp(data.devCode);
-          setOtpCode(data.devCode); // Pre-fill convenience for quick testing
-        }
+        setOtpMessage(data.message || `A 6-digit verification code has been emailed to ${email.trim()}.`);
+        setOtpCode(""); // Keep input empty so user enters code from their email
         setResendCountdown(60);
       }
     } catch {
@@ -226,14 +221,7 @@ export default function RegisterPage() {
           {otpMessage && !error && (
             <div className="mb-6 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-2.5 text-emerald-800 text-xs">
               <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
-              <div>
-                <span>{otpMessage}</span>
-                {devOtp && (
-                  <div className="mt-1 font-mono font-bold text-emerald-900 bg-emerald-100/70 px-2 py-0.5 rounded inline-block">
-                    Demo OTP: {devOtp}
-                  </div>
-                )}
-              </div>
+              <span>{otpMessage}</span>
             </div>
           )}
 
