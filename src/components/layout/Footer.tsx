@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import {
   Check,
-  Copy,
   Mail,
   MapPin,
   Sparkles,
@@ -53,8 +52,7 @@ export default function Footer() {
   const [subscribeConsent, setSubscribeConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [discountCode, setDiscountCode] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [subscribedEmail, setSubscribedEmail] = useState<string | null>(null);
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,20 +94,12 @@ export default function Footer() {
       if (!res.ok) {
         setError(data.error || "Subscription failed. Please check your details.");
       } else {
-        setDiscountCode(data.discountCode || "IQTROUSERS10");
+        setSubscribedEmail(email.trim());
       }
     } catch {
       setError("Something went wrong. Please try again later.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleCopyCode = () => {
-    if (discountCode) {
-      navigator.clipboard.writeText(discountCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     }
   };
 
@@ -129,41 +119,26 @@ export default function Footer() {
               Subscribe to the IQ Trousers Newsletter
             </h2>
             <p className="text-sm text-neutral-400 mt-2 leading-relaxed">
-              Join our sartorial mailing list for new trouser arrivals, fabric insights, and styling edits. Enter your details below to receive an instant <strong className="text-white font-semibold">10% discount code</strong>.
+              Join our sartorial mailing list for new trouser arrivals, fabric insights, and styling edits. Enter your details below to receive an exclusive <strong className="text-white font-semibold">10% discount code delivered directly to your inbox</strong>.
             </p>
           </div>
 
-          {discountCode ? (
+          {subscribedEmail ? (
             <div className="mt-8 p-6 bg-neutral-800/90 border border-neutral-700 rounded-2xl max-w-xl animate-fadeIn">
-              <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm mb-1">
-                <Check className="w-4 h-4" />
-                <span>Subscription Confirmed! 10% Discount Code Emailed</span>
+              <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm mb-2">
+                <Check className="w-5 h-5 shrink-0" />
+                <span>Subscription Confirmed!</span>
               </div>
-              <p className="text-xs text-neutral-300 mb-4">
-                We&apos;ve sent a confirmation to <strong className="text-white">{email}</strong>. You can also use your code immediately:
+              <p className="text-sm text-neutral-200 mb-2">
+                Your exclusive <strong className="text-amber-400 font-semibold">10% discount code</strong> has been sent directly to:
               </p>
-              <div className="flex items-center gap-3">
-                <div className="px-4 py-2.5 bg-black border border-neutral-700 rounded-xl font-mono text-base font-bold tracking-wider text-amber-400 select-all">
-                  {discountCode}
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCopyCode}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white text-black text-xs font-semibold rounded-xl hover:bg-neutral-200 transition-colors shadow-sm"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copy Code</span>
-                    </>
-                  )}
-                </button>
+              <div className="inline-flex items-center gap-2 px-3.5 py-2 bg-black border border-neutral-700 rounded-xl font-mono text-sm text-white mb-3">
+                <Mail className="w-4 h-4 text-neutral-400" />
+                <span>{subscribedEmail}</span>
               </div>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Please check your email inbox (and spam/promotions folder) for your welcome discount code.
+              </p>
             </div>
           ) : (
             <form onSubmit={handleNewsletterSubmit} className="mt-8 space-y-4 max-w-xl">

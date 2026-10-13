@@ -196,3 +196,131 @@ If you did not request this code, please secure your account immediately.
 
   return { delivered: false, info: "Logged to server console (SMTP not configured in .env)" };
 }
+
+export interface SendNewsletterEmailParams {
+  to: string;
+  firstName: string;
+  discountCode: string;
+}
+
+export async function sendNewsletterWelcomeEmail({
+  to,
+  firstName,
+  discountCode,
+}: SendNewsletterEmailParams): Promise<{ delivered: boolean; info?: string }> {
+  const from =
+    process.env.EMAIL_FROM ||
+    (process.env.SMTP_USER
+      ? `"IQ Trousers" <${process.env.SMTP_USER}>`
+      : '"IQ Trousers" <hello@iqtrousers.com>');
+
+  const subject = `Your 10% Welcome Discount Code — IQ Trousers`;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Welcome to IQ Trousers</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f5; margin: 0; padding: 24px; color: #18181b; }
+    .container { max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e4e4e7; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .header { background: #09090b; padding: 32px; text-align: center; }
+    .logo-text { color: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: 2px; margin: 0; text-transform: uppercase; }
+    .sublogo { color: #a1a1aa; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 6px; }
+    .content { padding: 36px 32px; }
+    .greeting { font-size: 18px; font-weight: 700; color: #18181b; margin-bottom: 12px; }
+    .message { font-size: 14px; line-height: 1.6; color: #52525b; margin-bottom: 24px; }
+    .code-box { background: #fafafa; border: 2px dashed #18181b; border-radius: 14px; padding: 24px; text-align: center; margin-bottom: 28px; }
+    .code-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; color: #71717a; margin-bottom: 8px; }
+    .code { font-family: 'Courier New', Courier, monospace; font-size: 32px; font-weight: 800; letter-spacing: 4px; color: #09090b; margin: 0; }
+    .code-instruction { font-size: 12px; color: #71717a; margin-top: 10px; }
+    .btn-container { text-align: center; margin: 28px 0 16px; }
+    .btn { display: inline-block; background-color: #09090b; color: #ffffff !important; padding: 12px 32px; font-size: 14px; font-weight: 600; text-decoration: none; border-radius: 10px; }
+    .footer { padding: 24px 32px; background: #fafafa; border-top: 1px solid #f4f4f5; text-align: center; font-size: 11px; color: #a1a1aa; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-text">IQ TROUSERS</div>
+      <div class="sublogo">KRISH CLOTHING CO. • AHMEDABAD</div>
+    </div>
+    <div class="content">
+      <div class="greeting">Welcome to the Club, ${firstName}!</div>
+      <p class="message">
+        Thank you for subscribing to the IQ Trousers newsletter. As our welcome gift, we are delighted to offer you an exclusive <strong>10% discount</strong> on your order.
+      </p>
+      
+      <div class="code-box">
+        <div class="code-label">Your Exclusive Discount Code</div>
+        <div class="code">${discountCode}</div>
+        <div class="code-instruction">Enter this code at checkout to enjoy 10% off your entire purchase.</div>
+      </div>
+
+      <p class="message" style="margin-bottom: 0;">
+        Explore our curated everyday casual and formal collections tailored for precision, comfort, and enduring style.
+      </p>
+
+      <div class="btn-container">
+        <a href="https://iq-trousers-store-uge4.vercel.app/products" class="btn">Explore Products</a>
+      </div>
+    </div>
+    <div class="footer">
+      This email was sent to ${to} because you subscribed to updates from IQ Trousers.<br>
+      © ${new Date().getFullYear()} IQ Trousers by Krish Clothing Co. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  const textContent = `IQ TROUSERS - WELCOME TO OUR NEWSLETTER
+Hello ${firstName},
+
+Thank you for subscribing to IQ Trousers! Here is your exclusive 10% welcome discount code:
+
+>>> ${discountCode} <<<
+
+Use this code at checkout to receive 10% off your entire order:
+https://iq-trousers-store-uge4.vercel.app/products
+
+- The IQ Trousers Team
+Krish Clothing Co.`;
+
+  const transporter = getTransporter();
+
+  if (transporter) {
+    try {
+      const sendPromise = transporter.sendMail({
+        from,
+        to,
+        subject,
+        text: textContent,
+        html: htmlContent,
+      });
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("SMTP timeout after 7 seconds")), 7000)
+      );
+
+      await Promise.race([sendPromise, timeoutPromise]);
+
+      console.log(`[NEWSLETTER EMAIL] Transmitted successfully to ${to}`);
+      return { delivered: true, info: `Sent via SMTP to ${to}` };
+    } catch (err: unknown) {
+      console.error("[NEWSLETTER EMAIL] SMTP dispatch failed or timed out:", err);
+    }
+  }
+
+  console.log(
+    `\n======================================================\n` +
+    `[NEWSLETTER WELCOME EMAIL DISPATCH]\n` +
+    `To: ${to} (${firstName})\n` +
+    `Subject: ${subject}\n` +
+    `Discount Code: >>> ${discountCode} <<<\n` +
+    `======================================================\n`
+  );
+
+  return { delivered: false, info: "Logged to server console (SMTP not configured)" };
+}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getClientIp, checkRateLimit, createRateLimitResponse } from "@/lib/rateLimit";
+import { sendNewsletterWelcomeEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   // Rate Limiting: Max 5 newsletter subscriptions per 10 minutes per IP
@@ -85,10 +86,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Dispatch welcome email with discount code
+    await sendNewsletterWelcomeEmail({
+      to: normalizedEmail,
+      firstName: String(firstName).trim(),
+      discountCode,
+    });
+
     return NextResponse.json({
       success: true,
-      message: `Thank you for subscribing, ${String(firstName).trim()}! Your exclusive 10% welcome discount code is ready. An email confirmation has been dispatched to ${normalizedEmail}.`,
-      discountCode,
+      message: `Thank you for subscribing, ${String(firstName).trim()}! Your exclusive 10% discount code has been sent directly to ${normalizedEmail}.`,
     });
   } catch (error) {
     console.error("Newsletter subscription error:", error);
