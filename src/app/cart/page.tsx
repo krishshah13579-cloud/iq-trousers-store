@@ -6,11 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/utils";
-import {
-  calculateShippingFee,
-  FREE_SHIPPING_THRESHOLD,
-  INDIAN_STATES,
-} from "@/lib/shipping";
+import { FREE_SHIPPING_THRESHOLD } from "@/lib/shipping";
 import {
   Minus,
   Plus,
@@ -70,7 +66,6 @@ export default function CartPage() {
   const router = useRouter();
   const { items, updateQuantity, removeItem, totalPrice, totalItems } = useCart();
 
-  const [selectedState, setSelectedState] = useState<string>("Gujarat");
   const [discountCodeInput, setDiscountCodeInput] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscount | null>(() => {
     if (typeof window !== "undefined") {
@@ -93,10 +88,8 @@ export default function CartPage() {
 
   // Financial calculations
   const subtotal = totalPrice;
-  const shippingQuote = calculateShippingFee(subtotal, selectedState);
-  const shipping = items.length === 0 ? 0 : shippingQuote.amount;
-  const isFreeShipping = shippingQuote.isFree;
-  const shortfall = shippingQuote.shortfall;
+  const isFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
+  const shortfall = Math.max(0, Math.round((FREE_SHIPPING_THRESHOLD - subtotal) * 100) / 100);
   const progressPercent = Math.min(
     100,
     Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100)
@@ -115,7 +108,7 @@ export default function CartPage() {
 
   const finalTotal = Math.max(
     0,
-    Math.round((subtotal - currentDiscountAmount + shipping + estimatedTax) * 100) / 100
+    Math.round((subtotal - currentDiscountAmount + estimatedTax) * 100) / 100
   );
 
   // Fetch smart coupons available to this particular customer
@@ -586,47 +579,33 @@ export default function CartPage() {
                 </div>
               )}
 
-              {/* Shipping calculation with location selector */}
+              {/* Shipping overview without option selector */}
               <div className="space-y-1">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-1.5">
                     <Truck className="w-3.5 h-3.5 text-neutral-500" />
                     <span>Shipping</span>
-                    <select
-                      value={selectedState}
-                      onChange={(e) => setSelectedState(e.target.value)}
-                      className="ml-1 text-xs py-0.5 px-1.5 border border-neutral-200 rounded bg-white text-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-900 cursor-pointer"
-                      title="Select destination state to preview shipping rate"
-                    >
-                      <option value="Gujarat">Gujarat (₹50)</option>
-                      <option value="Maharashtra">Maharashtra (₹100)</option>
-                      <optgroup label="Other States (DTDC Courier)">
-                        {INDIAN_STATES.filter(
-                          (s) => s !== "Gujarat" && s !== "Maharashtra"
-                        ).map((st) => (
-                          <option key={st} value={st}>
-                            {st} (DTDC)
-                          </option>
-                        ))}
-                      </optgroup>
-                    </select>
                   </div>
                   <span className="font-medium text-neutral-900">
                     {isFreeShipping ? (
                       <span className="text-emerald-700 font-semibold">Free</span>
                     ) : (
-                      formatPrice(shipping)
+                      <span className="text-xs text-neutral-600 font-normal">Calculated at checkout</span>
                     )}
                   </span>
                 </div>
 
-                {!isFreeShipping && (
+                {!isFreeShipping ? (
                   <div className="flex justify-between items-center text-[11px] text-neutral-500 pl-5">
-                    <span>{shippingQuote.partner}</span>
+                    <span>Gujarat: ₹50 • Maharashtra: ₹100 • Rest of India: DTDC</span>
                     <span className="text-amber-700 font-medium">
                       Add {formatPrice(shortfall)} for FREE
                     </span>
                   </div>
+                ) : (
+                  <p className="text-[11px] text-emerald-700 pl-5">
+                    Pan-India Free Express Delivery unlocked
+                  </p>
                 )}
               </div>
 
@@ -636,7 +615,14 @@ export default function CartPage() {
               </div>
 
               <div className="border-t border-neutral-200 pt-4 flex justify-between items-baseline">
-                <span className="text-base font-bold text-neutral-900">Total</span>
+                <div>
+                  <span className="text-base font-bold text-neutral-900">Total</span>
+                  {!isFreeShipping && (
+                    <p className="text-[11px] text-neutral-400 font-normal">
+                      + Shipping added at checkout as per location
+                    </p>
+                  )}
+                </div>
                 <span className="text-xl font-bold text-neutral-900">
                   {formatPrice(finalTotal)}
                 </span>

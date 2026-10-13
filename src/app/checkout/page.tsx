@@ -23,7 +23,6 @@ import {
   ArrowLeft,
   Loader2,
   ShieldCheck,
-  Sparkles,
   Check,
 } from "lucide-react";
 
@@ -33,24 +32,7 @@ interface AppliedDiscount {
   type: string;
   value: number;
   amount: number;
-  minOrder: number;
-}
-
-interface AvailableCoupon {
-  id: string;
-  code: string;
-  type: string;
-  value: number;
-  minOrder: number;
-  description: string;
-  isPersonal: boolean;
-  isFirstOrderCoupon: boolean;
-  isEligible: boolean;
-  shortfall: number;
-  potentialSavings: number;
-  daysLeft: number | null;
-  salesPrompt: string;
-  badge: string;
+  minOrder?: number;
 }
 
 function getProductImage(images: string): string {
@@ -110,61 +92,6 @@ function CheckoutContent() {
     }
     return null;
   });
-  const [discountCodeInput, setDiscountCodeInput] = useState("");
-  const [discountError, setDiscountError] = useState<string | null>(null);
-  const [discountLoading, setDiscountLoading] = useState(false);
-  const [availableCoupons, setAvailableCoupons] = useState<AvailableCoupon[]>([]);
-  const [fetchingCoupons, setFetchingCoupons] = useState(false);
-
-  // Fetch smart sales-boosting coupons available to this user
-  useEffect(() => {
-    let isMounted = true;
-    queueMicrotask(() => {
-      if (isMounted) setFetchingCoupons(true);
-    });
-    fetch(`/api/discounts/available?cartTotal=${totalPrice}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (isMounted && data?.success && Array.isArray(data.coupons)) {
-          setAvailableCoupons(data.coupons);
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (isMounted) setFetchingCoupons(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [totalPrice]);
-
-  const handleApplySpecificCoupon = async (code: string) => {
-    setDiscountLoading(true);
-    setDiscountError(null);
-    setDiscountCodeInput(code);
-
-    try {
-      const res = await fetch("/api/discounts/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: code.trim().toUpperCase(), orderTotal: totalPrice }),
-      });
-      const data = await res.json();
-      if (res.ok && data.valid) {
-        setAppliedDiscount(data.discount);
-        sessionStorage.setItem("activeDiscount", JSON.stringify(data.discount));
-        setDiscountCodeInput("");
-      } else {
-        setDiscountError(data.message || "Failed to apply coupon");
-      }
-    } catch {
-      setDiscountError("Failed to apply discount code");
-    } finally {
-      setDiscountLoading(false);
-    }
-  };
-
   // Redirect if unauthenticated
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -198,45 +125,18 @@ function CheckoutContent() {
     };
   }, [queryDiscount, totalPrice]);
 
-  const handleApplyDiscount = async () => {
-    const cleanCode = discountCodeInput.trim().toUpperCase();
-    if (!cleanCode) return;
-    setDiscountLoading(true);
-    setDiscountError(null);
-
-    try {
-      const res = await fetch("/api/discounts/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: cleanCode, orderTotal: totalPrice }),
-      });
-      const data = await res.json();
-      if (res.ok && data.valid) {
-        setAppliedDiscount(data.discount);
-        sessionStorage.setItem("activeDiscount", JSON.stringify(data.discount));
-        setDiscountCodeInput("");
-      } else {
-        setDiscountError(data.message || "Invalid discount code");
-      }
-    } catch {
-      setDiscountError("Failed to apply discount code");
-    } finally {
-      setDiscountLoading(false);
-    }
-  };
-
   const handleRemoveDiscount = () => {
     setAppliedDiscount(null);
     sessionStorage.removeItem("activeDiscount");
-    setDiscountError(null);
   };
 
   // Financial calculations
   const subtotal = totalPrice;
+  const hasEnteredLocation = Boolean(formData.state.trim() || formData.zipCode.trim());
   const shippingQuote = calculateShippingFee(subtotal, formData.state, formData.zipCode);
-  const shipping = items.length === 0 ? 0 : shippingQuote.amount;
-  const isFreeShipping = shippingQuote.isFree;
-  const shortfall = shippingQuote.shortfall;
+  const isFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
+  const shipping = items.length === 0 ? 0 : isFreeShipping ? 0 : hasEnteredLocation ? shippingQuote.amount : 0;
+  const shortfall = Math.max(0, Math.round((FREE_SHIPPING_THRESHOLD - subtotal) * 100) / 100);
   const estimatedTax = Math.round(subtotal * 0.08 * 100) / 100;
 
   let currentDiscountAmount = 0;
@@ -713,118 +613,31 @@ function CheckoutContent() {
                 })}
               </div>
 
-              {/* Available Coupons & Offers Section */}
-              <div className="mb-5 pt-3 border-t border-neutral-200">
-                {availableCoupons.length > 0 && (
-                  <div className="mb-3.5">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-neutral-900 flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                        Available Offers For You ({availableCoupons.length})
-                      </span>
+              {/* Applied Coupon & Discount Given (No coupon selection/input on checkout) */}
+              {appliedDiscount && (
+                <div className="mb-5 pt-3 border-t border-neutral-200">
+                  <div className="flex items-center justify-between p-3 bg-emerald-50/90 border border-emerald-200 rounded-xl text-xs text-emerald-800">
+                    <div className="flex items-center gap-2">
+                      <Tag className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-emerald-950 font-mono tracking-wide">
+                            {appliedDiscount.code}
+                          </span>
+                          <span className="px-1.5 py-0.5 bg-emerald-200/60 text-emerald-800 rounded text-[10px] font-semibold">
+                            Applied
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-emerald-700 mt-0.5">
+                          {appliedDiscount.type === "PERCENTAGE"
+                            ? `${appliedDiscount.value}% off applied`
+                            : `${formatPrice(appliedDiscount.value)} off applied`}
+                          {currentDiscountAmount > 0
+                            ? ` • Saved ${formatPrice(currentDiscountAmount)}`
+                            : ""}
+                        </p>
+                      </div>
                     </div>
-
-                    <div className="space-y-2 max-h-56 overflow-y-auto pr-0.5">
-                      {availableCoupons.map((coupon) => {
-                        const isCurrentlyApplied = appliedDiscount?.code === coupon.code;
-
-                        return (
-                          <div
-                            key={coupon.id}
-                            className={`p-2.5 rounded-xl border text-xs transition-all ${
-                              isCurrentlyApplied
-                                ? "bg-emerald-50/80 border-emerald-300 ring-1 ring-emerald-300"
-                                : coupon.isFirstOrderCoupon
-                                ? "bg-amber-50/60 border-amber-200 hover:border-amber-300"
-                                : coupon.isEligible
-                                ? "bg-neutral-50/70 border-neutral-200 hover:border-neutral-300"
-                                : "bg-neutral-50/40 border-neutral-200/60 opacity-80"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono font-bold tracking-wider px-2 py-0.5 bg-neutral-900 text-white rounded text-[11px]">
-                                  {coupon.code}
-                                </span>
-                                <span className="font-semibold text-neutral-800 text-[11px]">
-                                  {coupon.badge}
-                                </span>
-                              </div>
-
-                              {isCurrentlyApplied ? (
-                                <span className="text-emerald-700 font-semibold text-[11px] flex items-center gap-1">
-                                  <Check className="w-3.5 h-3.5" />
-                                  Applied
-                                </span>
-                              ) : coupon.isEligible ? (
-                                <button
-                                  type="button"
-                                  onClick={() => handleApplySpecificCoupon(coupon.code)}
-                                  disabled={discountLoading}
-                                  className="px-2.5 py-1 bg-neutral-900 text-white font-medium text-[11px] rounded-lg hover:bg-neutral-800 active:scale-95 transition-all cursor-pointer"
-                                >
-                                  Apply
-                                </button>
-                              ) : (
-                                <span className="text-[10px] text-neutral-500 font-medium">
-                                  Min {formatPrice(coupon.minOrder)}
-                                </span>
-                              )}
-                            </div>
-
-                            <p className="text-[11px] text-neutral-600 mt-1.5 leading-snug">
-                              {coupon.description}
-                            </p>
-
-                            {coupon.salesPrompt && !coupon.isEligible && (
-                              <p className="text-[10px] font-medium text-amber-700 mt-1 flex items-center gap-1">
-                                <span>💡</span>
-                                <span>{coupon.salesPrompt}</span>
-                              </p>
-                            )}
-
-                            {coupon.daysLeft !== null && (
-                              <p className="text-[10px] text-neutral-400 mt-0.5">
-                                ⏳ Expires in {coupon.daysLeft} {coupon.daysLeft === 1 ? "day" : "days"}
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Manual Discount Code Input */}
-                {!appliedDiscount ? (
-                  <div>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={discountCodeInput}
-                        onChange={(e) => setDiscountCodeInput(e.target.value)}
-                        placeholder="Or enter coupon code"
-                        className="flex-1 px-3 py-1.5 text-xs bg-white border border-neutral-200 rounded-lg uppercase placeholder:normal-case focus:outline-none focus:ring-1 focus:ring-neutral-900"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleApplyDiscount}
-                        disabled={discountLoading || !discountCodeInput.trim()}
-                        className="px-3 py-1.5 text-xs bg-neutral-900 text-white rounded-lg font-medium hover:bg-neutral-800 disabled:opacity-50 cursor-pointer transition-colors"
-                      >
-                        {discountLoading ? "..." : "Apply"}
-                      </button>
-                    </div>
-                    {discountError && (
-                      <p className="text-[11px] text-red-600 mt-1">{discountError}</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800">
-                    <span className="font-semibold flex items-center gap-1">
-                      <Tag className="w-3.5 h-3.5" />
-                      {appliedDiscount.code} applied
-                    </span>
                     <button
                       type="button"
                       onClick={handleRemoveDiscount}
@@ -833,8 +646,8 @@ function CheckoutContent() {
                       Remove
                     </button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Price Calculation Breakdown */}
               <div className="space-y-3 text-sm text-neutral-600 border-t border-neutral-200 pt-4">
@@ -859,22 +672,35 @@ function CheckoutContent() {
                     <span className="font-medium text-neutral-900">
                       {isFreeShipping ? (
                         <span className="text-emerald-700 font-semibold">Free</span>
-                      ) : (
+                      ) : hasEnteredLocation ? (
                         formatPrice(shipping)
+                      ) : (
+                        <span className="text-xs text-neutral-500 font-normal">Calculated once address entered</span>
                       )}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center text-[11px] text-neutral-500 pl-5.5">
-                    <span>
-                      {shippingQuote.partner}
-                      {formData.state ? ` (${formData.state})` : ""}
-                    </span>
-                    {!isFreeShipping && (
-                      <span className="text-amber-700 font-medium">
-                        Add {formatPrice(shortfall)} for FREE
+                  {hasEnteredLocation ? (
+                    <div className="flex justify-between items-center text-[11px] text-neutral-500 pl-5.5">
+                      <span>
+                        {shippingQuote.partner}
+                        {formData.state ? ` (${formData.state})` : ""}
                       </span>
-                    )}
-                  </div>
+                      {!isFreeShipping && (
+                        <span className="text-amber-700 font-medium">
+                          Add {formatPrice(shortfall)} for FREE
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-center text-[11px] text-neutral-400 pl-5.5">
+                      <span>Gujarat: ₹50 • Maharashtra: ₹100 • Rest of India: DTDC</span>
+                      {!isFreeShipping && (
+                        <span className="text-amber-700 font-medium">
+                          Add {formatPrice(shortfall)} for FREE
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-between">
