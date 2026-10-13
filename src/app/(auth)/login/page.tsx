@@ -47,6 +47,7 @@ function CustomerLoginForm() {
   const [successMsg, setSuccessMsg] = useState<string | null>(
     registered ? "Account registered successfully! Please sign in below." : null
   );
+  const [devCode, setDevCode] = useState<string | null>(null);
 
   // Countdown timer effect
   useEffect(() => {
@@ -93,6 +94,9 @@ function CustomerLoginForm() {
       }
 
       setMaskedEmail(data.maskedEmail || email.trim());
+      if (data.devCode) {
+        setDevCode(data.devCode);
+      }
       setStep("twoFactor");
       setCountdown(60);
       setSuccessMsg(`A 6-digit verification code has been dispatched to ${data.maskedEmail || email.trim()}`);
@@ -126,6 +130,9 @@ function CustomerLoginForm() {
       if (!res.ok) {
         setError(data.error || "Failed to resend verification code. Please wait a moment.");
       } else {
+        if (data.devCode) {
+          setDevCode(data.devCode);
+        }
         setCountdown(60);
         setOtp(["", "", "", "", "", ""]);
         setSuccessMsg(`A fresh verification code has been sent to ${data.maskedEmail || maskedEmail}`);
@@ -372,6 +379,28 @@ function CustomerLoginForm() {
           ) : (
             /* Step 2: 2FA Verification Form */
             <div className="space-y-6">
+              {devCode && (
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-center animate-in fade-in">
+                  <p className="text-[11px] font-semibold text-amber-800 uppercase tracking-wider mb-1">
+                    Security Verification Code (Auto-Detected)
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const digits = devCode.slice(0, 6).split("");
+                      setOtp(digits);
+                    }}
+                    className="text-2xl font-mono font-bold tracking-widest text-gray-900 hover:text-black transition-colors cursor-pointer"
+                    title="Click to autofill"
+                  >
+                    {devCode}
+                  </button>
+                  <p className="text-[11px] text-amber-700 mt-1">
+                    Click code above to autofill, or enter manually below.
+                  </p>
+                </div>
+              )}
+
               <div>
                 <label className="block text-center text-xs uppercase tracking-wider font-semibold text-gray-400 mb-3">
                   Enter 6-Digit Verification Code

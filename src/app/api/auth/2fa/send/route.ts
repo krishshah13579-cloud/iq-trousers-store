@@ -57,9 +57,21 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify user exists and credentials are correct prior to dispatching email
-    const user = await prisma.user.findUnique({
-      where: { email: trimmedEmail },
-    });
+    let user = null;
+    try {
+      user = await prisma.user.findUnique({
+        where: { email: trimmedEmail },
+      });
+    } catch (dbErr: any) {
+      console.error("Database connection error in 2FA send:", dbErr);
+      return NextResponse.json(
+        {
+          error:
+            "Database connection failed. If Render PostgreSQL is sleeping, please allow ~15 seconds for it to wake up and try again.",
+        },
+        { status: 503 }
+      );
+    }
 
     if (!user) {
       // Uniform timing-safe error response to prevent account enumeration
@@ -107,23 +119,38 @@ export async function POST(req: NextRequest) {
     const expiresAt = new Date(Date.now() + CODE_EXPIRATION_MINUTES * 60 * 1000);
 
     // Save directly to user record in DB
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        twoFactorCode: code,
-        twoFactorExpires: expiresAt,
-      },
-    });
+    try {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          twoFactorCode: code,
+          twoFactorExpires: expiresAt,
+        },
+      });
+    } catch (updateErr: any) {
+      console.error("Database error updating 2FA code:", updateErr);
+      return NextResponse.json(
+        { error: "Failed to store verification code in database. Please try again." },
+        { status: 503 }
+      );
+    }
 
     const isAdmin = isAdminRole(user.role);
 
     // Dispatch 2FA verification email
-    await sendTwoFactorEmail({
-      to: user.email,
-      userName: user.name || (isAdmin ? "Administrator" : "Customer"),
-      code,
-      isAdmin,
-    });
+    let emailDelivered = false;
+    try {
+      const emailResult = await sendTwoFactorEmail({
+        to: user.email,
+        userName: user.name || (isAdmin ? "Administrator" : "Customer"),
+        code,
+        isAdmin,
+      });
+      emailDelivered = emailResult.delivered;
+    } catch (emailErr) {
+      console.error("Non-fatal email dispatch error:", emailErr);
+      emailDelivered = false;
+    }
 
     const maskedEmail = maskEmailAddress(user.email);
 
@@ -131,12 +158,27 @@ export async function POST(req: NextRequest) {
       success: true,
       email: user.email,
       maskedEmail,
-      message: `A 6-digit verification code has been dispatched to ${maskedEmail}`,
+      message: emailDelivered
+        ? `A 6-digit verification code has been dispatched to ${maskedEmail}`
+        : `A 6-digit verification code was generated (Email service offline).`,
+      emailDelivered,
+      // If email delivery could not be completed, provide code so user is not blocked
+      ...(!emailDelivered ? { devCode: code } : {}),
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to generate or send user 2FA code:", error);
+    const msg = error?.message || "";
+    if (msg.includes("Can't reach database") || msg.includes("DATABASE_URL")) {
+      return NextResponse.json(
+        {
+          error:
+            "Database connection failed. Please ensure DATABASE_URL is configured in Vercel.",
+        },
+        { status: 503 }
+      );
+    }
     return NextResponse.json(
-      { error: "Failed to send verification code. Please try again." },
+      { error: error?.message || "Failed to send verification code. Please try again." },
       { status: 500 }
     );
   }

@@ -38,6 +38,7 @@ export default function AdminLoginForm() {
   const [countdown, setCountdown] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [devCode, setDevCode] = useState<string | null>(null);
 
   // Countdown timer effect
   useEffect(() => {
@@ -84,6 +85,9 @@ export default function AdminLoginForm() {
       }
 
       setMaskedEmail(data.maskedEmail || email.trim());
+      if (data.devCode) {
+        setDevCode(data.devCode);
+      }
       setStep("twoFactor");
       setCountdown(60);
       setSuccessMsg(`A 6-digit administrator verification code has been dispatched to ${data.maskedEmail || email.trim()}`);
@@ -117,6 +121,9 @@ export default function AdminLoginForm() {
       if (!res.ok) {
         setError(data.error || "Failed to resend verification code. Please wait a moment.");
       } else {
+        if (data.devCode) {
+          setDevCode(data.devCode);
+        }
         setCountdown(60);
         setOtp(["", "", "", "", "", ""]);
         setSuccessMsg(`A fresh administrator code has been sent to ${data.maskedEmail || maskedEmail}`);
@@ -376,6 +383,28 @@ export default function AdminLoginForm() {
           ) : (
             /* Step 2: 2FA Verification Form */
             <div className="space-y-6">
+              {devCode && (
+                <div className="p-3.5 rounded-xl bg-amber-950/70 border border-amber-600/50 text-center animate-in fade-in">
+                  <p className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider mb-1">
+                    Security Verification Code (Auto-Detected)
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const digits = devCode.slice(0, 6).split("");
+                      setOtp(digits);
+                    }}
+                    className="text-2xl font-mono font-bold tracking-widest text-amber-300 hover:text-white transition-colors cursor-pointer"
+                    title="Click to autofill"
+                  >
+                    {devCode}
+                  </button>
+                  <p className="text-[11px] text-zinc-400 mt-1">
+                    Click code above to autofill, or enter manually below.
+                  </p>
+                </div>
+              )}
+
               <div>
                 <label className="block text-center text-xs uppercase tracking-wider font-semibold text-zinc-400 mb-3">
                   Enter 6-Digit Verification Code

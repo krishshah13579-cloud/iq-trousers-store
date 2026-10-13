@@ -22,7 +22,25 @@ function getTransporter() {
   const secure =
     process.env.SMTP_SECURE === "true" || port === 465;
 
-  if (!host || !user || !pass) {
+  if (!user || !pass) {
+    return null;
+  }
+
+  // Optimized Gmail service transport (fastest & most reliable on Vercel/serverless)
+  if (host?.includes("gmail") || user?.includes("@gmail.com")) {
+    return nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user,
+        pass,
+      },
+      connectionTimeout: 6000,
+      greetingTimeout: 6000,
+      socketTimeout: 6000,
+    });
+  }
+
+  if (!host) {
     return null;
   }
 
@@ -34,6 +52,9 @@ function getTransporter() {
       user,
       pass,
     },
+    connectionTimeout: 6000,
+    greetingTimeout: 6000,
+    socketTimeout: 6000,
   });
 }
 
@@ -140,7 +161,7 @@ If you did not request this code, please secure your account immediately.
 
   if (transporter) {
     try {
-      await transporter.sendMail({
+      const sendPromise = transporter.sendMail({
         from,
         to,
         subject,
@@ -148,10 +169,16 @@ If you did not request this code, please secure your account immediately.
         html: htmlContent,
       });
 
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("SMTP timeout after 7 seconds")), 7000)
+      );
+
+      await Promise.race([sendPromise, timeoutPromise]);
+
       console.log(`[2FA EMAIL] Transmitted successfully to ${to}`);
       return { delivered: true, info: `Sent via SMTP to ${to}` };
     } catch (err: unknown) {
-      console.error("[2FA EMAIL] SMTP dispatch failed:", err);
+      console.error("[2FA EMAIL] SMTP dispatch failed or timed out:", err);
       // Fall through to server log
     }
   }
