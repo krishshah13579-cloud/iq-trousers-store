@@ -7,38 +7,47 @@ import DescriptiveGallerySection from "@/components/home/DescriptiveGallerySecti
 export const revalidate = 0; // Ensure fresh product data
 
 export default async function HomePage() {
-  const [casualCategory, formalCategory] = await Promise.all([
-    prisma.category.findFirst({
-      where: {
-        OR: [{ slug: "everyday-casual" }, { slug: "casual-everyday" }],
-      },
-      include: {
-        products: {
-          where: { active: true },
-          include: {
-            category: true,
-            reviews: true,
-          },
-          orderBy: { createdAt: "desc" },
+  let casualCategory = null;
+  let formalCategory = null;
+
+  try {
+    const results = await Promise.all([
+      prisma.category.findFirst({
+        where: {
+          OR: [{ slug: "everyday-casual" }, { slug: "casual-everyday" }],
         },
-      },
-    }),
-    prisma.category.findFirst({
-      where: {
-        OR: [{ slug: "formal-wear" }, { slug: "formal" }],
-      },
-      include: {
-        products: {
-          where: { active: true },
-          include: {
-            category: true,
-            reviews: true,
+        include: {
+          products: {
+            where: { active: true },
+            include: {
+              category: true,
+              reviews: true,
+            },
+            orderBy: { createdAt: "desc" },
           },
-          orderBy: { createdAt: "desc" },
         },
-      },
-    }),
-  ]);
+      }),
+      prisma.category.findFirst({
+        where: {
+          OR: [{ slug: "formal-wear" }, { slug: "formal" }],
+        },
+        include: {
+          products: {
+            where: { active: true },
+            include: {
+              category: true,
+              reviews: true,
+            },
+            orderBy: { createdAt: "desc" },
+          },
+        },
+      }),
+    ]);
+    casualCategory = results[0];
+    formalCategory = results[1];
+  } catch (error) {
+    console.error("Failed to query categories on HomePage:", error);
+  }
 
   const casualProducts = (casualCategory?.products || []).slice(0, 4);
   const formalProducts = (formalCategory?.products || []).slice(0, 4);

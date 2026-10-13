@@ -9,7 +9,13 @@ export default async function AdminLayout({
 }: {
   children: ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
+  let session = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch (error) {
+    console.error("Failed to get session in AdminLayout:", error);
+    session = null;
+  }
 
   if (!session || !isAdminRole((session.user as { role?: string })?.role)) {
     return <AdminLoginForm />;
