@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { formatPrice, getOrderStatusColor } from "@/lib/utils";
 import { Package, Calendar, ChevronRight, ArrowRight, ShoppingBag, Tag } from "lucide-react";
 import { CancelOrderButton } from "@/components/orders/CancelOrderButton";
+import { getStepIndex } from "@/components/orders/OrderTimeline";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,15 @@ export const metadata = {
   title: "My Orders — Store",
   description: "View and manage your previous orders.",
 };
+
+const TIMELINE_STAGES = [
+  "Order Placed",
+  "Confirmed",
+  "Dispatched",
+  "In Transit",
+  "Out For Delivery",
+  "Delivered",
+];
 
 export default async function OrdersPage() {
   let session = null;
@@ -101,6 +111,8 @@ export default async function OrdersPage() {
                 0
               );
 
+              const stepIdx = getStepIndex(order.status);
+
               return (
                 <div
                   key={order.id}
@@ -171,6 +183,38 @@ export default async function OrdersPage() {
                         <ChevronRight className="w-4 h-4" />
                       </Link>
                     </div>
+                  </div>
+
+                  {/* Timeline Tracker Strip */}
+                  <div className="px-5 sm:px-6 py-2.5 bg-neutral-50/70 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-400 font-medium">Tracking Status:</span>
+                      {order.status === "CANCELLED" ? (
+                        <span className="font-semibold text-red-700">Order Cancelled</span>
+                      ) : (
+                        <span className="font-semibold text-gray-900">
+                          {TIMELINE_STAGES[stepIdx]}
+                        </span>
+                      )}
+                    </div>
+
+                    {order.status !== "CANCELLED" && (
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1">
+                          {[0, 1, 2, 3, 4, 5].map((s) => (
+                            <span
+                              key={s}
+                              className={`h-1.5 rounded-full transition-all ${
+                                s <= stepIdx ? "w-4 sm:w-5 bg-emerald-500" : "w-2 bg-gray-200"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[11px] font-semibold text-gray-400 ml-1">
+                          Step {stepIdx + 1} of 6
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Order Items Preview */}

@@ -61,7 +61,10 @@ export async function PUT(req: NextRequest) {
       "PENDING",
       "CONFIRMED",
       "PROCESSING",
+      "DISPATCHED",
       "SHIPPED",
+      "IN_TRANSIT",
+      "OUT_FOR_DELIVERY",
       "DELIVERED",
       "CANCELLED",
     ];

@@ -8,6 +8,7 @@ import { formatPrice, getOrderStatusColor } from "@/lib/utils";
 import { ShippingAddress } from "@/types";
 import { CheckCircle2, Package, MapPin, ArrowRight, XCircle, Truck, Tag } from "lucide-react";
 import { CancelOrderButton } from "@/components/orders/CancelOrderButton";
+import { OrderTimeline } from "@/components/orders/OrderTimeline";
 
 interface OrderPageProps {
   params: Promise<{ id: string }>;
@@ -114,18 +115,6 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
               </div>
             )}
           </div>
-        ) : order.status === "SHIPPED" ? (
-          <div>
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 text-purple-600 mb-4">
-              <Truck className="w-8 h-8" />
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
-              Order Shipped!
-            </h1>
-            <p className="text-neutral-500 text-sm mt-1">
-              Your package is on its way. Track your shipment below.
-            </p>
-          </div>
         ) : order.status === "DELIVERED" ? (
           <div>
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mb-4">
@@ -138,16 +127,64 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
               Your order has arrived. We hope you enjoy your new IQ Trousers!
             </p>
           </div>
-        ) : (
+        ) : order.status === "OUT_FOR_DELIVERY" ? (
           <div>
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-teal-100 text-teal-600 mb-4">
+              <Truck className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
+              Out For Delivery!
+            </h1>
+            <p className="text-neutral-500 text-sm mt-1">
+              Your package is out with the delivery executive and will be delivered today.
+            </p>
+          </div>
+        ) : order.status === "IN_TRANSIT" || order.status === "SHIPPED" ? (
+          <div>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 text-purple-600 mb-4">
+              <Truck className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
+              Order In Transit!
+            </h1>
+            <p className="text-neutral-500 text-sm mt-1">
+              Your package is on its way to your local delivery hub. Track shipment below.
+            </p>
+          </div>
+        ) : order.status === "DISPATCHED" || order.status === "PROCESSING" ? (
+          <div>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 mb-4">
+              <Package className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
+              Order Dispatched!
+            </h1>
+            <p className="text-neutral-500 text-sm mt-1">
+              Your order has been packed and handed over to our logistics partner.
+            </p>
+          </div>
+        ) : order.status === "CONFIRMED" ? (
+          <div>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 text-blue-600 mb-4">
               <CheckCircle2 className="w-8 h-8" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
               Order Confirmed!
             </h1>
             <p className="text-neutral-500 text-sm mt-1">
-              Thank you for your purchase. We&apos;ve received your order and are getting it ready.
+              Thank you for your purchase. We&apos;ve verified your payment and are getting your trousers ready.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 text-amber-600 mb-4">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
+              Order Placed!
+            </h1>
+            <p className="text-neutral-500 text-sm mt-1">
+              Thank you for your order. We&apos;ve received your request and will confirm it shortly.
             </p>
           </div>
         )}
@@ -177,6 +214,16 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
           </div>
         </div>
       )}
+
+      {/* Modern E-Commerce Live Order Timeline */}
+      <div className="mb-8">
+        <OrderTimeline
+          status={order.status}
+          createdAt={order.createdAt}
+          updatedAt={order.updatedAt}
+          trackingNumber={order.trackingNumber}
+        />
+      </div>
 
       <div className="bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-xs divide-y divide-neutral-200">
         {/* Order Header Meta */}

@@ -28,15 +28,21 @@ export function truncate(str: string, length: number): string {
 }
 
 export function getOrderStatusColor(status: string): string {
-  switch (status) {
+  switch (status?.toUpperCase()) {
     case "PENDING":
-      return "bg-yellow-100 text-yellow-800";
+      return "bg-amber-100 text-amber-800";
     case "CONFIRMED":
       return "bg-blue-100 text-blue-800";
+    case "PROCESSING":
+    case "DISPATCHED":
+      return "bg-indigo-100 text-indigo-800";
     case "SHIPPED":
+    case "IN_TRANSIT":
       return "bg-purple-100 text-purple-800";
+    case "OUT_FOR_DELIVERY":
+      return "bg-teal-100 text-teal-800";
     case "DELIVERED":
-      return "bg-green-100 text-green-800";
+      return "bg-emerald-100 text-emerald-800";
     case "CANCELLED":
       return "bg-red-100 text-red-800";
     default:

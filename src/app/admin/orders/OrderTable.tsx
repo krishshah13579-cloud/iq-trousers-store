@@ -43,13 +43,14 @@ interface OrderData {
   items: OrderItem[];
 }
 
-const statusOptions = [
-  "PENDING",
-  "CONFIRMED",
-  "PROCESSING",
-  "SHIPPED",
-  "DELIVERED",
-  "CANCELLED",
+const statusOptions: { value: string; label: string }[] = [
+  { value: "PENDING", label: "1. Order Placed (Pending)" },
+  { value: "CONFIRMED", label: "2. Confirmed" },
+  { value: "DISPATCHED", label: "3. Dispatched" },
+  { value: "IN_TRANSIT", label: "4. In Transit" },
+  { value: "OUT_FOR_DELIVERY", label: "5. Out For Delivery" },
+  { value: "DELIVERED", label: "6. Delivered" },
+  { value: "CANCELLED", label: "✕ Cancelled" },
 ];
 
 export default function OrderTable({ initialOrders }: { initialOrders: OrderData[] }) {
@@ -254,11 +255,14 @@ export default function OrderTable({ initialOrders }: { initialOrders: OrderData
                                 order.status
                               )}`}
                             >
-                              {statusOptions.map((st) => (
-                                <option key={st} value={st}>
-                                  {st}
+                              {statusOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
                                 </option>
                               ))}
+                              {!statusOptions.some((opt) => opt.value === order.status) && (
+                                <option value={order.status}>{order.status}</option>
+                              )}
                             </select>
                           </div>
 
