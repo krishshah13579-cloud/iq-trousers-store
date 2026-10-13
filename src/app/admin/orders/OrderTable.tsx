@@ -166,12 +166,15 @@ export default function OrderTable({ initialOrders }: { initialOrders: OrderData
   };
 
   const getProductImage = (imagesStr?: string) => {
-    if (!imagesStr) return "/placeholder.png";
+    if (!imagesStr) return "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400";
     try {
       const parsed = JSON.parse(imagesStr);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]) return parsed[0];
+      if (typeof parsed === "string" && parsed) return parsed;
     } catch {}
-    return imagesStr.split(",")[0]?.trim() || "/placeholder.png";
+    if (imagesStr.startsWith("data:")) return imagesStr;
+    const split = imagesStr.split(",")[0]?.trim();
+    return split || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400";
   };
 
   return (

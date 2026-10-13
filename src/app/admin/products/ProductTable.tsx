@@ -65,20 +65,41 @@ export default function ProductTable({ products }: { products: ProductItem[] }) 
     }
   };
 
-  const getFirstImage = (imagesStr: string) => {
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
+  const getFirstImage = (imagesStr?: string | null): string => {
+    if (!imagesStr) return "";
     try {
       const parsed = JSON.parse(imagesStr);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed[0];
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]) {
+        return String(parsed[0]).trim();
+      }
+      if (typeof parsed === "string" && parsed.trim()) {
+        return parsed.trim();
       }
     } catch {
       // not JSON array
     }
-    if (imagesStr && typeof imagesStr === "string") {
+    if (typeof imagesStr === "string" && imagesStr.trim()) {
+      if (imagesStr.startsWith("data:")) {
+        return imagesStr.trim();
+      }
       const split = imagesStr.split(",")[0]?.trim();
       if (split) return split;
     }
-    return "/placeholder.png";
+    return "";
+  };
+
+  const isValidImageSrc = (src: string): boolean => {
+    if (!src || typeof src !== "string") return false;
+    const s = src.trim();
+    return (
+      s.startsWith("http://") ||
+      s.startsWith("https://") ||
+      s.startsWith("/") ||
+      s.startsWith("data:image/") ||
+      s.startsWith("blob:")
+    );
   };
 
   return (
@@ -125,6 +146,7 @@ export default function ProductTable({ products }: { products: ProductItem[] }) 
               <tbody className="divide-y divide-gray-100">
                 {products.map((product) => {
                   const imageSrc = getFirstImage(product.images);
+                  const hasValidImage = isValidImageSrc(imageSrc) && !imageErrors[product.id];
                   return (
                     <tr
                       key={product.id}
@@ -133,14 +155,20 @@ export default function ProductTable({ products }: { products: ProductItem[] }) 
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 rounded-lg bg-gray-100 relative overflow-hidden shrink-0 border border-gray-200 flex items-center justify-center">
-                            {imageSrc.startsWith("http") || imageSrc.startsWith("/") ? (
+                            {hasValidImage ? (
                               <img
                                 src={imageSrc}
                                 alt={product.name}
                                 className="w-full h-full object-cover"
+                                loading="lazy"
+                                onError={() => {
+                                  setImageErrors((prev) => ({ ...prev, [product.id]: true }));
+                                }}
                               />
                             ) : (
-                              <span className="text-xs text-gray-400">No img</span>
+                              <div className="flex flex-col items-center justify-center text-gray-400">
+                                <Package className="w-5 h-5 text-gray-400" />
+                              </div>
                             )}
                           </div>
                           <div>
