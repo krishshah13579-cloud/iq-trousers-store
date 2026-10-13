@@ -25,6 +25,7 @@ function CustomerLoginForm() {
   const urlError = searchParams.get("error");
   const registered = searchParams.get("registered");
   const welcomeCode = searchParams.get("welcomeCode");
+  const reset = searchParams.get("reset");
   const initialEmail = searchParams.get("email") || "";
 
   // Step state
@@ -46,7 +47,9 @@ function CustomerLoginForm() {
     urlError ? "Invalid credentials or session expired. Please sign in again." : null
   );
   const [successMsg, setSuccessMsg] = useState<string | null>(
-    registered
+    reset
+      ? "Your password has been successfully reset! Please sign in with your new password."
+      : registered
       ? welcomeCode
         ? `Account created! Your 10% welcome coupon (${welcomeCode}) has been emailed to you and is valid for 7 days. Sign in below to use it!`
         : "Account registered successfully! Please sign in below."
@@ -349,12 +352,20 @@ function CustomerLoginForm() {
               </div>
 
               <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium mb-1.5 text-gray-700"
-                >
-                  Password
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Password
+                  </label>
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs font-semibold text-gray-600 hover:text-black hover:underline transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                     <Lock className="w-4 h-4" />

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Mail,
   Lock,
@@ -340,12 +341,20 @@ export default function AdminLoginForm() {
               </div>
 
               <div>
-                <label
-                  htmlFor="admin-password"
-                  className="block text-sm font-medium mb-1.5 text-zinc-300"
-                >
-                  Password
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label
+                    htmlFor="admin-password"
+                    className="block text-sm font-medium text-zinc-300"
+                  >
+                    Password
+                  </label>
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs font-semibold text-amber-400 hover:text-amber-300 hover:underline transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500">
                     <Lock className="w-4 h-4" />

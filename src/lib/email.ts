@@ -574,3 +574,120 @@ Valid for 10 minutes.`;
 
   return { delivered: false, info: "Logged to server console" };
 }
+
+export interface SendPasswordResetEmailParams {
+  to: string;
+  name?: string;
+  code: string;
+}
+
+export async function sendPasswordResetEmail({
+  to,
+  name,
+  code,
+}: SendPasswordResetEmailParams): Promise<{ delivered: boolean; info?: string }> {
+  const displayName = name || "Valued Customer";
+  const from =
+    process.env.EMAIL_FROM ||
+    (process.env.SMTP_USER
+      ? `"IQ Trousers Security" <${process.env.SMTP_USER}>`
+      : '"IQ Trousers Security" <security@iqtrousers.com>');
+
+  const subject = `Your IQ Trousers Password Reset Code: ${code}`;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Password Reset Code</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f5; margin: 0; padding: 24px; color: #18181b; }
+    .container { max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e4e4e7; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .header { background: #09090b; padding: 28px 32px; text-align: center; }
+    .logo-text { color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: 2px; margin: 0; text-transform: uppercase; }
+    .sublogo { color: #a1a1aa; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 4px; }
+    .content { padding: 32px; }
+    .greeting { font-size: 16px; font-weight: 600; color: #18181b; margin-bottom: 8px; }
+    .message { font-size: 14px; line-height: 1.6; color: #52525b; margin-bottom: 24px; }
+    .code-box { background: #fafafa; border: 2px dashed #18181b; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 24px; }
+    .code { font-family: 'Courier New', Courier, monospace; font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #09090b; margin: 0; }
+    .expires { font-size: 12px; color: #71717a; margin-top: 8px; }
+    .security-notice { background: #fef2f2; border: 1px solid #fee2e2; border-radius: 8px; padding: 12px 16px; font-size: 12px; color: #991b1b; line-height: 1.5; }
+    .footer { padding: 20px 32px; background: #fafafa; border-top: 1px solid #f4f4f5; text-align: center; font-size: 11px; color: #a1a1aa; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-text">IQ TROUSERS</div>
+      <div class="sublogo">ACCOUNT SECURITY • PASSWORD RESET</div>
+    </div>
+    <div class="content">
+      <div class="greeting">Hello, ${displayName}</div>
+      <p class="message">
+        We received a request to reset the password for your IQ Trousers account. Enter the 6-digit verification code below to reset your password:
+      </p>
+      
+      <div class="code-box">
+        <div class="code">${code}</div>
+        <div class="expires">⏱️ This code will expire in 15 minutes</div>
+      </div>
+
+      <div class="security-notice">
+        <strong>Security Notice:</strong> If you did not make this request, you can safely ignore this email. Your password will remain unchanged.
+      </div>
+    </div>
+    <div class="footer">
+      © ${new Date().getFullYear()} IQ Trousers by Krish Clothing Co. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  const textContent = `IQ TROUSERS - PASSWORD RESET
+Hello ${displayName},
+
+Your one-time password reset verification code is:
+>>> ${code} <<<
+
+This code is valid for 15 minutes.
+If you did not request a password reset, please ignore this email.
+
+- IQ Trousers Security Team`;
+
+  const transporter = getTransporter();
+
+  if (transporter) {
+    try {
+      const sendPromise = transporter.sendMail({
+        from,
+        to,
+        subject,
+        text: textContent,
+        html: htmlContent,
+      });
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("SMTP timeout after 7 seconds")), 7000)
+      );
+
+      await Promise.race([sendPromise, timeoutPromise]);
+      console.log(`[PASSWORD RESET EMAIL] Dispatched to ${to}`);
+      return { delivered: true, info: `Sent via SMTP to ${to}` };
+    } catch (err: unknown) {
+      console.error("[PASSWORD RESET EMAIL] SMTP dispatch failed:", err);
+    }
+  }
+
+  console.log(
+    `\n======================================================\n` +
+    `[PASSWORD RESET CODE]\n` +
+    `To: ${to}\n` +
+    `Reset Code: >>> ${code} <<<\n` +
+    `======================================================\n`
+  );
+
+  return { delivered: false, info: "Logged to server console" };
+}
