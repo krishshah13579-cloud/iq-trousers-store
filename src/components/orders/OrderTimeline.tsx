@@ -86,27 +86,8 @@ const TIMELINE_STEPS: StepConfig[] = [
  * 4: Out For Delivery
  * 5: Delivered
  */
-export function getStepIndex(status: string): number {
-  const norm = (status || "").toUpperCase();
-  switch (norm) {
-    case "PENDING":
-      return 0;
-    case "CONFIRMED":
-      return 1;
-    case "PROCESSING":
-    case "DISPATCHED":
-      return 2;
-    case "SHIPPED":
-    case "IN_TRANSIT":
-      return 3;
-    case "OUT_FOR_DELIVERY":
-      return 4;
-    case "DELIVERED":
-      return 5;
-    default:
-      return 0;
-  }
-}
+import { getStepIndex } from "@/lib/utils";
+export { getStepIndex };
 
 export function OrderTimeline({
   status,

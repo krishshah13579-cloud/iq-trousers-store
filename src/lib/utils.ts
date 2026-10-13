@@ -63,3 +63,25 @@ export function normalizePhone(raw: string): string {
   }
   return cleaned;
 }
+
+export function getStepIndex(status?: string | null): number {
+  const norm = (status || "").toUpperCase();
+  switch (norm) {
+    case "PENDING":
+      return 0;
+    case "CONFIRMED":
+      return 1;
+    case "PROCESSING":
+    case "DISPATCHED":
+      return 2;
+    case "SHIPPED":
+    case "IN_TRANSIT":
+      return 3;
+    case "OUT_FOR_DELIVERY":
+      return 4;
+    case "DELIVERED":
+      return 5;
+    default:
+      return 0;
+  }
+}

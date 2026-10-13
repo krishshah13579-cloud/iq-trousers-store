@@ -3,10 +3,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
-import { formatPrice, getOrderStatusColor } from "@/lib/utils";
+import { formatPrice, getOrderStatusColor, getStepIndex } from "@/lib/utils";
 import { Package, Calendar, ChevronRight, ArrowRight, ShoppingBag, Tag } from "lucide-react";
 import { CancelOrderButton } from "@/components/orders/CancelOrderButton";
-import { getStepIndex } from "@/components/orders/OrderTimeline";
 
 export const dynamic = "force-dynamic";
 
@@ -67,10 +66,6 @@ export default async function OrdersPage() {
     }
   } catch (error) {
     console.error("Failed to query user orders:", error);
-  }
-
-  if (!user && !orders.length && session?.user?.email) {
-    redirect("/login?callbackUrl=/orders");
   }
 
   return (
