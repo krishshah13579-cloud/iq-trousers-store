@@ -15,6 +15,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { phone, email } = body;
 
+    if (!email || typeof email !== "string" || !email.trim()) {
+      return NextResponse.json(
+        { error: "Email address is required to receive your verification code." },
+        { status: 400 }
+      );
+    }
+
     if (!phone || typeof phone !== "string" || !phone.trim()) {
       return NextResponse.json(
         { error: "Mobile phone number is mandatory." },
@@ -86,9 +93,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Verification code sent to ${normalizedPhone}. Check your phone or registered email.`,
+      message: `A 6-digit verification code has been sent to ${email.trim().toLowerCase()} to verify mobile number ${normalizedPhone}.`,
       normalizedPhone,
-      // Dev/Demo convenience: surface code so testing works immediately even without physical SMS
+      // Dev/Demo convenience: surface code so testing works immediately
       devCode: code,
     });
   } catch (error) {

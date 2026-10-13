@@ -50,6 +50,11 @@ export default function RegisterPage() {
     setOtpMessage(null);
     setDevOtp(null);
 
+    if (!email.trim()) {
+      setError("Please enter your email address first to receive your verification code.");
+      return;
+    }
+
     const cleanPhone = phone.trim().replace(/[\s\-\(\)]/g, "");
     if (!cleanPhone || cleanPhone.length < 10) {
       setError("Please enter a valid 10-digit mobile phone number first.");
@@ -316,7 +321,7 @@ export default function RegisterPage() {
                     ) : isOtpSent ? (
                       "Resend Code"
                     ) : (
-                      "Send OTP"
+                      "Send Code"
                     )}
                   </button>
                 )}
@@ -328,8 +333,8 @@ export default function RegisterPage() {
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-gray-400 mt-1">
-                One account per verified mobile number to prevent duplicate coupon claims.
+              <p className="text-[11px] text-gray-500 mt-1">
+                A 6-digit verification code will be sent to your email to verify this mobile number and issue your 10% coupon.
               </p>
             </div>
 
@@ -337,7 +342,7 @@ export default function RegisterPage() {
             {isOtpSent && !isPhoneVerified && (
               <div className="p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl animate-fadeIn">
                 <label htmlFor="otp" className="block text-xs font-medium text-gray-700 mb-1">
-                  Enter 6-Digit Phone Verification Code <span className="text-red-500">*</span>
+                  Enter 6-Digit Code Sent to Your Email <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
