@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import HeroCarousel from "@/components/home/HeroCarousel";
 import BrandValueProps from "@/components/home/BrandValueProps";
-import TrouserCraftsmanship from "@/components/home/TrouserCraftsmanship";
 import DescriptiveGallerySection from "@/components/home/DescriptiveGallerySection";
 
 export const dynamic = "force-dynamic";
@@ -60,9 +59,6 @@ export default async function HomePage() {
 
       {/* 2. Brand Value Props Ribbon */}
       <BrandValueProps />
-
-      {/* 3. The Anatomy of Perfect Trousers (Craftsmanship Feature) */}
-      <TrouserCraftsmanship />
 
       {/* 4. Product Gallery (Everyday Casual) */}
       <DescriptiveGallerySection
