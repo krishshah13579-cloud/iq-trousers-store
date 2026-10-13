@@ -125,7 +125,7 @@ export async function GET(req: NextRequest) {
           ? `You qualify! Save ₹${potentialSavings.toFixed(2)} right now.`
           : `Add ₹${shortfall.toFixed(2)} more to your cart to unlock this deal!`;
       } else {
-        headline = `${c.type === "PERCENTAGE" ? `${c.value}% OFF` : `$${c.value} OFF`} Everything`;
+        headline = `${c.type === "PERCENTAGE" ? `${c.value}% OFF` : `₹${c.value} OFF`} Everything`;
         salesPrompt = "Storewide discount applicable immediately!";
       }
 
@@ -147,7 +147,7 @@ export async function GET(req: NextRequest) {
           ? "🎉 First Order Special"
           : c.type === "PERCENTAGE"
           ? `${c.value}% OFF`
-          : `$${c.value} OFF`,
+          : `₹${c.value} OFF`,
       };
     });
 
