@@ -10,7 +10,7 @@ import { CancelOrderButton } from "@/components/orders/CancelOrderButton";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "My Orders — Store",
+  title: "My Orders — IQ TROUSERS",
   description: "View and manage your previous orders.",
 };
 
