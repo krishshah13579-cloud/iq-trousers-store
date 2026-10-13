@@ -50,6 +50,9 @@ export default function Navbar() {
             <img
               src="/iq-trousers-logo-transparent.png"
               alt="IQ Trousers"
+              width={40}
+              height={48}
+              loading="eager"
               className="h-12 w-auto object-contain transition-transform group-hover:scale-105"
             />
             <div className="flex flex-col">
