@@ -11,6 +11,7 @@ import { CancelOrderButton } from "@/components/orders/CancelOrderButton";
 
 interface OrderPageProps {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 function parseAddress(shippingAddress: string): ShippingAddress | null {
@@ -37,8 +38,10 @@ function getProductImage(images: string): string {
 
 export const dynamic = "force-dynamic";
 
-export default async function OrderDetailsPage({ params }: OrderPageProps) {
+export default async function OrderDetailsPage({ params, searchParams }: OrderPageProps) {
   const { id } = await params;
+  const query = searchParams ? await searchParams : {};
+  const paymentStatus = typeof query.payment === "string" ? query.payment : undefined;
   let session = null;
   try {
     session = await getServerSession(authOptions);
@@ -150,6 +153,31 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
         )}
       </div>
 
+      {/* PayU Payment Status Alert */}
+      {paymentStatus === "success" && (
+        <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 text-emerald-800 text-sm shadow-xs">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          <div className="flex-1">
+            <p className="font-semibold text-emerald-900">PayU Payment Completed Successfully!</p>
+            <p className="text-xs text-emerald-700 mt-0.5">
+              Your transaction has been securely authorized and verified. A confirmation email has been dispatched.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {paymentStatus === "failed" && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-3 text-red-800 text-sm shadow-xs">
+          <XCircle className="w-5 h-5 text-red-600 shrink-0" />
+          <div className="flex-1">
+            <p className="font-semibold text-red-900">PayU Payment Cancelled or Unsuccessful</p>
+            <p className="text-xs text-red-700 mt-0.5">
+              The payment was not completed. Reserved items have been automatically restocked, and your coupon (if any) is available again.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-xs divide-y divide-neutral-200">
         {/* Order Header Meta */}
         <div className="p-6 bg-neutral-50/50 flex flex-wrap items-center justify-between gap-4">
@@ -166,6 +194,17 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                 day: "numeric",
                 year: "numeric",
               })}
+            </span>
+          </div>
+
+          <div>
+            <span className="text-xs text-neutral-400 uppercase tracking-wider block">Payment</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-neutral-100 text-neutral-800">
+              {order.paymentIntent?.startsWith("PAYU")
+                ? "PayU Online"
+                : order.paymentIntent === "COD"
+                ? "Cash on Delivery"
+                : "Online"}
             </span>
           </div>
 

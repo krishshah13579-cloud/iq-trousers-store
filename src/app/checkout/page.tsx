@@ -81,6 +81,7 @@ function CheckoutContent() {
   const [errors, setErrors] = useState<Partial<Record<keyof ShippingAddress, string>>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"PAYU" | "COD">("PAYU");
 
   // Discount state initialized from sessionStorage
   const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscount | null>(() => {
@@ -289,6 +290,66 @@ function CheckoutContent() {
       ...formData,
       fullName: effectiveFullName,
     };
+
+    if (paymentMethod === "PAYU") {
+      try {
+        const res = await fetch("/api/payment/payu/initiate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: items.map((i) => ({
+              productId: i.productId,
+              quantity: i.quantity,
+              size: i.size,
+            })),
+            shippingAddress: submissionAddress,
+            discountCode: appliedDiscount?.code,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          setSubmitError(data.error || "Failed to initiate PayU payment. Please try again.");
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Clear cart and stored discount
+        clearCart();
+        sessionStorage.removeItem("activeDiscount");
+
+        if (data.isConfigured) {
+          // Real/Sandbox PayU hosted checkout: Auto-submit form
+          const form = document.createElement("form");
+          form.method = "POST";
+          form.action = data.action;
+
+          Object.entries(data.params || {}).forEach(([k, v]) => {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = k;
+            input.value = String(v);
+            form.appendChild(input);
+          });
+
+          document.body.appendChild(form);
+          form.submit();
+        } else {
+          // Route to our PayU Sandbox test page
+          const search = new URLSearchParams();
+          Object.entries(data.params || {}).forEach(([k, v]) => {
+            search.set(k, String(v));
+          });
+          router.push(`/payu-sandbox?${search.toString()}`);
+        }
+      } catch (err) {
+        console.error("PayU checkout initiation error:", err);
+        setSubmitError("Failed to connect to PayU payment gateway. Please try again.");
+        setIsSubmitting(false);
+      }
+      return;
+    }
 
     try {
       const res = await fetch("/api/orders", {
@@ -534,20 +595,82 @@ function CheckoutContent() {
               </div>
             </div>
 
-            {/* Payment Method Notice */}
+            {/* Payment Method Selector */}
             <div className="bg-white border border-neutral-200 rounded-2xl p-6 shadow-xs">
               <div className="flex items-center gap-2 mb-4">
                 <CreditCard className="w-5 h-5 text-neutral-700" />
-                <h2 className="text-lg font-semibold text-neutral-900">Payment Information</h2>
+                <h2 className="text-lg font-semibold text-neutral-900">Payment Method</h2>
               </div>
-              <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-200 text-sm text-neutral-600 flex items-start gap-3">
-                <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-neutral-900">Standard Test / Cash on Delivery</p>
-                  <p className="text-xs text-neutral-500 mt-0.5">
-                    No payment details required at this step. Your order will be confirmed and processed immediately upon placement.
-                  </p>
-                </div>
+
+              <div className="space-y-3">
+                {/* PayU Option */}
+                <label
+                  className={`block p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                    paymentMethod === "PAYU"
+                      ? "border-emerald-600 bg-emerald-50/20 ring-1 ring-emerald-600/30"
+                      : "border-neutral-200 hover:border-neutral-300 bg-white"
+                  }`}
+                >
+                  <div className="flex items-start gap-3.5">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="PAYU"
+                      checked={paymentMethod === "PAYU"}
+                      onChange={() => setPaymentMethod("PAYU")}
+                      className="mt-1 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-neutral-900">
+                            PayU Payment Gateway
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#183b56] text-white">
+                            Pay<span className="text-[#00a852]">U</span> India
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                          <span>Instant Confirmation</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-neutral-500 mt-1">
+                        Pay securely using UPI (Google Pay, PhonePe, Paytm, BHIM), Credit/Debit Cards (Visa, Mastercard, RuPay), Net Banking & Wallets.
+                      </p>
+                    </div>
+                  </div>
+                </label>
+
+                {/* Cash on Delivery Option */}
+                <label
+                  className={`block p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                    paymentMethod === "COD"
+                      ? "border-neutral-900 bg-neutral-50/60 ring-1 ring-neutral-900/20"
+                      : "border-neutral-200 hover:border-neutral-300 bg-white"
+                  }`}
+                >
+                  <div className="flex items-start gap-3.5">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="COD"
+                      checked={paymentMethod === "COD"}
+                      onChange={() => setPaymentMethod("COD")}
+                      className="mt-1 text-neutral-900 focus:ring-neutral-900 cursor-pointer"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-neutral-900">
+                          Cash on Delivery (COD)
+                        </span>
+                      </div>
+                      <p className="text-xs text-neutral-500 mt-1">
+                        Pay cash directly upon doorstep delivery.
+                      </p>
+                    </div>
+                  </div>
+                </label>
               </div>
             </div>
           </div>
@@ -764,17 +887,26 @@ function CheckoutContent() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full mt-6 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-neutral-900 text-white font-medium hover:bg-neutral-800 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`w-full mt-6 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-white font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${
+                  paymentMethod === "PAYU"
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-neutral-900 hover:bg-neutral-800"
+                }`}
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Placing Order...</span>
+                    <span>{paymentMethod === "PAYU" ? "Connecting to PayU..." : "Placing Order..."}</span>
+                  </>
+                ) : paymentMethod === "PAYU" ? (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Pay via PayU ({formatPrice(finalTotal)})</span>
                   </>
                 ) : (
                   <>
                     <CheckCircle className="w-4 h-4" />
-                    <span>Place Order ({formatPrice(finalTotal)})</span>
+                    <span>Place Order - Cash on Delivery ({formatPrice(finalTotal)})</span>
                   </>
                 )}
               </button>
