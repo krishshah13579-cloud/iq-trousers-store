@@ -324,3 +324,253 @@ Krish Clothing Co.`;
 
   return { delivered: false, info: "Logged to server console (SMTP not configured)" };
 }
+
+export interface SendWelcomeRegistrationEmailParams {
+  to: string;
+  name: string;
+  phone: string;
+  discountCode: string;
+  expiresAt: Date;
+}
+
+export async function sendWelcomeRegistrationEmail({
+  to,
+  name,
+  phone,
+  discountCode,
+  expiresAt,
+}: SendWelcomeRegistrationEmailParams): Promise<{ delivered: boolean; info?: string }> {
+  const from =
+    process.env.EMAIL_FROM ||
+    (process.env.SMTP_USER
+      ? `"IQ Trousers" <${process.env.SMTP_USER}>`
+      : '"IQ Trousers" <welcome@iqtrousers.com>');
+
+  const subject = `Welcome to IQ Trousers! Your 10% First-Order Coupon: ${discountCode}`;
+  const expiryFormatted = new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(expiresAt);
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Welcome to IQ Trousers</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f5; margin: 0; padding: 24px; color: #18181b; }
+    .container { max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e4e4e7; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .header { background: #09090b; padding: 32px; text-align: center; }
+    .logo-text { color: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: 2px; margin: 0; text-transform: uppercase; }
+    .sublogo { color: #a1a1aa; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 6px; }
+    .content { padding: 36px 32px; }
+    .greeting { font-size: 18px; font-weight: 700; color: #18181b; margin-bottom: 12px; }
+    .message { font-size: 14px; line-height: 1.6; color: #52525b; margin-bottom: 24px; }
+    .code-box { background: #fafafa; border: 2px dashed #18181b; border-radius: 14px; padding: 24px; text-align: center; margin-bottom: 28px; }
+    .code-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; color: #71717a; margin-bottom: 8px; }
+    .code { font-family: 'Courier New', Courier, monospace; font-size: 32px; font-weight: 800; letter-spacing: 4px; color: #09090b; margin: 0; }
+    .code-instruction { font-size: 12px; color: #71717a; margin-top: 10px; }
+    .badge { display: inline-block; background-color: #fef3c7; color: #92400e; font-size: 11px; font-weight: 700; padding: 4px 12px; rounded: 9999px; margin-top: 10px; border-radius: 20px; }
+    .info-list { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; font-size: 13px; color: #475569; }
+    .info-list p { margin: 4px 0; }
+    .btn-container { text-align: center; margin: 28px 0 16px; }
+    .btn { display: inline-block; background-color: #09090b; color: #ffffff !important; padding: 12px 32px; font-size: 14px; font-weight: 600; text-decoration: none; border-radius: 10px; }
+    .footer { padding: 24px 32px; background: #fafafa; border-top: 1px solid #f4f4f5; text-align: center; font-size: 11px; color: #a1a1aa; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-text">IQ TROUSERS</div>
+      <div class="sublogo">KRISH CLOTHING CO. • MEMBERSHIP</div>
+    </div>
+    <div class="content">
+      <div class="greeting">Welcome to IQ Trousers, ${name}!</div>
+      <p class="message">
+        Thank you for joining our community and verifying your mobile number (<strong>${phone}</strong>). As a special welcome gift, here is your exclusive, one-time <strong>10% registration discount coupon</strong>:
+      </p>
+      
+      <div class="code-box">
+        <div class="code-label">Your Unique First-Order Coupon</div>
+        <div class="code">${discountCode}</div>
+        <div class="badge">⏰ Valid for 7 Days • Expires on ${expiryFormatted}</div>
+        <div class="code-instruction">Apply this code on the Checkout page to receive 10% off your purchase.</div>
+      </div>
+
+      <div class="info-list">
+        <p>🔒 <strong>Account Security:</strong> This coupon is linked to your verified phone number (<code>${phone}</code>) and your account email.</p>
+        <p>⚡ <strong>One-Click Redeem:</strong> This coupon will also appear automatically in your checkout page under &quot;Available Offers&quot; when you are signed in!</p>
+      </div>
+
+      <div class="btn-container">
+        <a href="https://iq-trousers-store-uge4.vercel.app/products" class="btn">Shop New Arrivals</a>
+      </div>
+    </div>
+    <div class="footer">
+      This welcome email was sent to ${to} upon account registration.<br>
+      © ${new Date().getFullYear()} IQ Trousers by Krish Clothing Co. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  const textContent = `WELCOME TO IQ TROUSERS!
+Hello ${name},
+
+Thank you for registering your account and verifying your mobile number (${phone}).
+Here is your unique 10% first-order discount code:
+
+>>> ${discountCode} <<<
+
+• Valid for: 7 Days (Expires: ${expiryFormatted})
+• Usage: 1-time redemption exclusively for your account.
+
+Shop our collections and redeem at checkout:
+https://iq-trousers-store-uge4.vercel.app/products
+
+- The IQ Trousers Team
+Krish Clothing Co.`;
+
+  const transporter = getTransporter();
+
+  if (transporter) {
+    try {
+      const sendPromise = transporter.sendMail({
+        from,
+        to,
+        subject,
+        text: textContent,
+        html: htmlContent,
+      });
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("SMTP timeout after 7 seconds")), 7000)
+      );
+
+      await Promise.race([sendPromise, timeoutPromise]);
+
+      console.log(`[WELCOME REGISTRATION EMAIL] Sent to ${to}`);
+      return { delivered: true, info: `Sent via SMTP to ${to}` };
+    } catch (err: unknown) {
+      console.error("[WELCOME REGISTRATION EMAIL] SMTP dispatch failed or timed out:", err);
+    }
+  }
+
+  console.log(
+    `\n======================================================\n` +
+    `[WELCOME REGISTRATION COUPON DISPATCH]\n` +
+    `To: ${to} (${name})\n` +
+    `Phone: ${phone}\n` +
+    `Unique Coupon: >>> ${discountCode} <<<\n` +
+    `Expires: ${expiryFormatted}\n` +
+    `======================================================\n`
+  );
+
+  return { delivered: false, info: "Logged to server console" };
+}
+
+export interface SendPhoneVerificationEmailParams {
+  to: string;
+  phone: string;
+  code: string;
+}
+
+export async function sendPhoneVerificationEmail({
+  to,
+  phone,
+  code,
+}: SendPhoneVerificationEmailParams): Promise<{ delivered: boolean; info?: string }> {
+  const from =
+    process.env.EMAIL_FROM ||
+    (process.env.SMTP_USER
+      ? `"IQ Trousers Security" <${process.env.SMTP_USER}>`
+      : '"IQ Trousers Security" <security@iqtrousers.com>');
+
+  const subject = `Your IQ Trousers Phone Verification Code: ${code}`;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Phone Verification Code</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f5; margin: 0; padding: 24px; color: #18181b; }
+    .container { max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e4e4e7; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .header { background: #09090b; padding: 28px 32px; text-align: center; }
+    .logo-text { color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: 2px; margin: 0; text-transform: uppercase; }
+    .content { padding: 32px; text-align: center; }
+    .greeting { font-size: 16px; font-weight: 600; color: #18181b; margin-bottom: 8px; }
+    .message { font-size: 14px; line-height: 1.6; color: #52525b; margin-bottom: 24px; }
+    .code-box { background: #fafafa; border: 2px dashed #18181b; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 24px; }
+    .code { font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #09090b; margin: 0; }
+    .expires { font-size: 12px; color: #71717a; margin-top: 8px; }
+    .footer { padding: 20px 32px; background: #fafafa; border-top: 1px solid #f4f4f5; text-align: center; font-size: 11px; color: #a1a1aa; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-text">IQ TROUSERS</div>
+    </div>
+    <div class="content">
+      <div class="greeting">Verify Your Phone Number</div>
+      <p class="message">
+        You requested a phone verification code for mobile number <strong>${phone}</strong> during registration. Use the one-time code below to verify your phone and claim your 10% welcome coupon:
+      </p>
+      
+      <div class="code-box">
+        <div class="code">${code}</div>
+        <div class="expires">⏱️ This verification code is valid for 10 minutes</div>
+      </div>
+    </div>
+    <div class="footer">
+      IQ Trousers by Krish Clothing Co.
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  const textContent = `IQ TROUSERS - PHONE VERIFICATION
+Your one-time phone verification code for ${phone} is:
+>>> ${code} <<<
+Valid for 10 minutes.`;
+
+  const transporter = getTransporter();
+
+  if (transporter) {
+    try {
+      const sendPromise = transporter.sendMail({
+        from,
+        to,
+        subject,
+        text: textContent,
+        html: htmlContent,
+      });
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("SMTP timeout after 7 seconds")), 7000)
+      );
+
+      await Promise.race([sendPromise, timeoutPromise]);
+      return { delivered: true, info: `Sent via SMTP to ${to}` };
+    } catch (err: unknown) {
+      console.error("[PHONE VERIFY EMAIL] SMTP dispatch failed:", err);
+    }
+  }
+
+  console.log(
+    `\n======================================================\n` +
+    `[PHONE VERIFICATION OTP]\n` +
+    `Phone: ${phone}\n` +
+    `Email: ${to}\n` +
+    `Verification Code: >>> ${code} <<<\n` +
+    `======================================================\n`
+  );
+
+  return { delivered: false, info: "Logged to server console" };
+}

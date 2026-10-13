@@ -24,6 +24,7 @@ function CustomerLoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const urlError = searchParams.get("error");
   const registered = searchParams.get("registered");
+  const welcomeCode = searchParams.get("welcomeCode");
   const initialEmail = searchParams.get("email") || "";
 
   // Step state
@@ -45,7 +46,11 @@ function CustomerLoginForm() {
     urlError ? "Invalid credentials or session expired. Please sign in again." : null
   );
   const [successMsg, setSuccessMsg] = useState<string | null>(
-    registered ? "Account registered successfully! Please sign in below." : null
+    registered
+      ? welcomeCode
+        ? `Account created! Your 10% welcome coupon (${welcomeCode}) has been emailed to you and is valid for 7 days. Sign in below to use it!`
+        : "Account registered successfully! Please sign in below."
+      : null
   );
   const [devCode, setDevCode] = useState<string | null>(null);
   const [detectedRole, setDetectedRole] = useState<string | null>(null);

@@ -132,6 +132,22 @@ export async function POST(req: NextRequest) {
         (discount.maxUses === null || discount.usedCount < discount.maxUses) &&
         roundedSubtotal >= discount.minOrder
       ) {
+        // Enforce user / phone ownership for personal coupons
+        if (discount.userId || discount.userPhone) {
+          const orderingUser = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, phone: true },
+          });
+          const userMatches = discount.userId && discount.userId === orderingUser?.id;
+          const phoneMatches = discount.userPhone && discount.userPhone === orderingUser?.phone;
+          if (!userMatches && !phoneMatches) {
+            return NextResponse.json(
+              { error: "This coupon is exclusively linked to another customer account or phone number." },
+              { status: 403 }
+            );
+          }
+        }
+
         if (discount.type === "PERCENTAGE") {
           discountAmount = (roundedSubtotal * discount.value) / 100;
         } else if (discount.type === "FIXED") {

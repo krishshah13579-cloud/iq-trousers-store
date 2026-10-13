@@ -18,6 +18,8 @@ import {
   ArrowLeft,
   Loader2,
   ShieldCheck,
+  Sparkles,
+  Check,
 } from "lucide-react";
 
 interface AppliedDiscount {
@@ -27,6 +29,23 @@ interface AppliedDiscount {
   value: number;
   amount: number;
   minOrder: number;
+}
+
+interface AvailableCoupon {
+  id: string;
+  code: string;
+  type: string;
+  value: number;
+  minOrder: number;
+  description: string;
+  isPersonal: boolean;
+  isFirstOrderCoupon: boolean;
+  isEligible: boolean;
+  shortfall: number;
+  potentialSavings: number;
+  daysLeft: number | null;
+  salesPrompt: string;
+  badge: string;
 }
 
 function getProductImage(images: string): string {
@@ -80,6 +99,55 @@ function CheckoutContent() {
   const [discountCodeInput, setDiscountCodeInput] = useState("");
   const [discountError, setDiscountError] = useState<string | null>(null);
   const [discountLoading, setDiscountLoading] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState<AvailableCoupon[]>([]);
+  const [fetchingCoupons, setFetchingCoupons] = useState(false);
+
+  // Fetch smart sales-boosting coupons available to this user
+  useEffect(() => {
+    let isMounted = true;
+    setFetchingCoupons(true);
+    fetch(`/api/discounts/available?cartTotal=${totalPrice}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data.success && Array.isArray(data.coupons)) {
+          setAvailableCoupons(data.coupons);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (isMounted) setFetchingCoupons(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [totalPrice]);
+
+  const handleApplySpecificCoupon = async (code: string) => {
+    setDiscountLoading(true);
+    setDiscountError(null);
+    setDiscountCodeInput(code);
+
+    try {
+      const res = await fetch("/api/discounts/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code.trim().toUpperCase(), orderTotal: totalPrice }),
+      });
+      const data = await res.json();
+      if (res.ok && data.valid) {
+        setAppliedDiscount(data.discount);
+        sessionStorage.setItem("activeDiscount", JSON.stringify(data.discount));
+        setDiscountCodeInput("");
+      } else {
+        setDiscountError(data.message || "Failed to apply coupon");
+      }
+    } catch {
+      setDiscountError("Failed to apply discount code");
+    } finally {
+      setDiscountLoading(false);
+    }
+  };
 
   // Redirect if unauthenticated
   useEffect(() => {
@@ -526,8 +594,89 @@ function CheckoutContent() {
                 })}
               </div>
 
-              {/* Discount Code Input */}
+              {/* Available Coupons & Offers Section */}
               <div className="mb-5 pt-3 border-t border-neutral-200">
+                {availableCoupons.length > 0 && (
+                  <div className="mb-3.5">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-neutral-900 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        Available Offers For You ({availableCoupons.length})
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 max-h-56 overflow-y-auto pr-0.5">
+                      {availableCoupons.map((coupon) => {
+                        const isCurrentlyApplied = appliedDiscount?.code === coupon.code;
+
+                        return (
+                          <div
+                            key={coupon.id}
+                            className={`p-2.5 rounded-xl border text-xs transition-all ${
+                              isCurrentlyApplied
+                                ? "bg-emerald-50/80 border-emerald-300 ring-1 ring-emerald-300"
+                                : coupon.isFirstOrderCoupon
+                                ? "bg-amber-50/60 border-amber-200 hover:border-amber-300"
+                                : coupon.isEligible
+                                ? "bg-neutral-50/70 border-neutral-200 hover:border-neutral-300"
+                                : "bg-neutral-50/40 border-neutral-200/60 opacity-80"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-bold tracking-wider px-2 py-0.5 bg-neutral-900 text-white rounded text-[11px]">
+                                  {coupon.code}
+                                </span>
+                                <span className="font-semibold text-neutral-800 text-[11px]">
+                                  {coupon.badge}
+                                </span>
+                              </div>
+
+                              {isCurrentlyApplied ? (
+                                <span className="text-emerald-700 font-semibold text-[11px] flex items-center gap-1">
+                                  <Check className="w-3.5 h-3.5" />
+                                  Applied
+                                </span>
+                              ) : coupon.isEligible ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleApplySpecificCoupon(coupon.code)}
+                                  disabled={discountLoading}
+                                  className="px-2.5 py-1 bg-neutral-900 text-white font-medium text-[11px] rounded-lg hover:bg-neutral-800 active:scale-95 transition-all cursor-pointer"
+                                >
+                                  Apply
+                                </button>
+                              ) : (
+                                <span className="text-[10px] text-neutral-500 font-medium">
+                                  Min ${coupon.minOrder.toFixed(0)}
+                                </span>
+                              )}
+                            </div>
+
+                            <p className="text-[11px] text-neutral-600 mt-1.5 leading-snug">
+                              {coupon.description}
+                            </p>
+
+                            {coupon.salesPrompt && !coupon.isEligible && (
+                              <p className="text-[10px] font-medium text-amber-700 mt-1 flex items-center gap-1">
+                                <span>💡</span>
+                                <span>{coupon.salesPrompt}</span>
+                              </p>
+                            )}
+
+                            {coupon.daysLeft !== null && (
+                              <p className="text-[10px] text-neutral-400 mt-0.5">
+                                ⏳ Expires in {coupon.daysLeft} {coupon.daysLeft === 1 ? "day" : "days"}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Manual Discount Code Input */}
                 {!appliedDiscount ? (
                   <div>
                     <div className="flex gap-2">
@@ -535,14 +684,14 @@ function CheckoutContent() {
                         type="text"
                         value={discountCodeInput}
                         onChange={(e) => setDiscountCodeInput(e.target.value)}
-                        placeholder="Discount code"
+                        placeholder="Or enter coupon code"
                         className="flex-1 px-3 py-1.5 text-xs bg-white border border-neutral-200 rounded-lg uppercase placeholder:normal-case focus:outline-none focus:ring-1 focus:ring-neutral-900"
                       />
                       <button
                         type="button"
                         onClick={handleApplyDiscount}
                         disabled={discountLoading || !discountCodeInput.trim()}
-                        className="px-3 py-1.5 text-xs bg-neutral-900 text-white rounded-lg font-medium hover:bg-neutral-800 disabled:opacity-50"
+                        className="px-3 py-1.5 text-xs bg-neutral-900 text-white rounded-lg font-medium hover:bg-neutral-800 disabled:opacity-50 cursor-pointer transition-colors"
                       >
                         {discountLoading ? "..." : "Apply"}
                       </button>
@@ -560,7 +709,7 @@ function CheckoutContent() {
                     <button
                       type="button"
                       onClick={handleRemoveDiscount}
-                      className="text-neutral-500 hover:text-neutral-800 font-medium text-[11px]"
+                      className="text-neutral-500 hover:text-neutral-800 font-medium text-[11px] cursor-pointer"
                     >
                       Remove
                     </button>

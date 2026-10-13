@@ -8,18 +8,22 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  password      String
-  role          String    @default("USER") // USER or ADMIN
-  twoFactorCode String?
-  twoFactorExpires DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  orders        Order[]
-  reviews       Review[]
-  cartItems     CartItem[]
+  id                String    @id @default(cuid())
+  name              String?
+  email             String    @unique
+  phone             String?   @unique
+  phoneVerified     Boolean   @default(false)
+  firstDiscountCode String?
+  password          String
+  role              String    @default("USER") // USER or ADMIN
+  twoFactorCode     String?
+  twoFactorExpires  DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  orders            Order[]
+  reviews           Review[]
+  cartItems         CartItem[]
+  discounts         Discount[]
 }
 
 model Category {
@@ -109,16 +113,20 @@ model CartItem {
 }
 
 model Discount {
-  id          String   @id @default(cuid())
-  code        String   @unique
-  type        String   // PERCENTAGE or FIXED
+  id          String    @id @default(cuid())
+  code        String    @unique
+  type        String    // PERCENTAGE or FIXED
   value       Float
-  minOrder    Float    @default(0)
+  minOrder    Float     @default(0)
   maxUses     Int?
-  usedCount   Int      @default(0)
-  active      Boolean  @default(true)
+  usedCount   Int       @default(0)
+  active      Boolean   @default(true)
   expiresAt   DateTime?
-  createdAt   DateTime @default(now())
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userPhone   String?
+  description String?
+  createdAt   DateTime  @default(now())
 }
 
 model NewsletterSubscriber {
@@ -128,4 +136,14 @@ model NewsletterSubscriber {
   email        String   @unique
   discountCode String?
   createdAt    DateTime @default(now())
+}
+
+model PhoneVerification {
+  id        String   @id @default(cuid())
+  phone     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([phone])
 }

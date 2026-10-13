@@ -43,3 +43,17 @@ export function getOrderStatusColor(status: string): string {
       return "bg-gray-100 text-gray-800";
   }
 }
+
+export function normalizePhone(raw: string): string {
+  // Strip spaces, dashes, brackets, dots
+  let cleaned = raw.trim().replace(/[\s\-\(\)\.]/g, "");
+  // Standardize 10-digit numbers without prefix or with 0
+  if (/^\d{10}$/.test(cleaned)) {
+    cleaned = `+91${cleaned}`;
+  } else if (/^0\d{10}$/.test(cleaned)) {
+    cleaned = `+91${cleaned.slice(1)}`;
+  } else if (!cleaned.startsWith("+") && /^\d{11,13}$/.test(cleaned)) {
+    cleaned = `+${cleaned}`;
+  }
+  return cleaned;
+}
