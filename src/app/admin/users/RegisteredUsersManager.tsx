@@ -12,6 +12,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Loader2,
+  Phone,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 
@@ -19,6 +20,7 @@ interface UserWithStats {
   id: string;
   name: string | null;
   email: string;
+  phone?: string | null;
   role: string;
   createdAt: string;
   ordersCount: number;
@@ -126,7 +128,8 @@ export default function RegisteredUsersManager({
     const query = search.toLowerCase();
     return (
       (u.name && u.name.toLowerCase().includes(query)) ||
-      u.email.toLowerCase().includes(query)
+      u.email.toLowerCase().includes(query) ||
+      (u.phone && u.phone.toLowerCase().includes(query))
     );
   });
 
@@ -222,7 +225,7 @@ export default function RegisteredUsersManager({
           <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search registered customers by name or email..."
+            placeholder="Search registered customers by name, email, or phone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-hidden focus:bg-white focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
@@ -244,6 +247,7 @@ export default function RegisteredUsersManager({
               <thead className="bg-gray-50 text-xs uppercase font-semibold text-gray-700 border-b border-gray-200">
                 <tr>
                   <th scope="col" className="px-6 py-3.5">User</th>
+                  <th scope="col" className="px-6 py-3.5">Phone Number</th>
                   <th scope="col" className="px-6 py-3.5">Registered Date</th>
                   <th scope="col" className="px-6 py-3.5">Orders</th>
                   <th scope="col" className="px-6 py-3.5">Total Spent</th>
@@ -275,6 +279,16 @@ export default function RegisteredUsersManager({
                             </p>
                           </div>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 text-xs font-mono text-gray-700 whitespace-nowrap">
+                        {u.phone ? (
+                          <div className="flex items-center gap-1.5">
+                            <Phone className="w-3.5 h-3.5 text-gray-400" />
+                            <span>{u.phone}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 italic">Not provided</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-xs text-gray-500">
                         {new Date(u.createdAt).toLocaleDateString("en-IN", {

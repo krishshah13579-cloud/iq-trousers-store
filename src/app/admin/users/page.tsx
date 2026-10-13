@@ -20,6 +20,7 @@ export default async function AdminUsersPage() {
         id: true,
         name: true,
         email: true,
+        phone: true,
         role: true,
         createdAt: true,
         _count: {
@@ -50,6 +51,7 @@ export default async function AdminUsersPage() {
       id: u.id,
       name: u.name,
       email: u.email,
+      phone: u.phone || null,
       role: u.role,
       createdAt: u.createdAt.toISOString(),
       ordersCount: u._count.orders,

@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
           OR: [
             { name: { contains: search } },
             { email: { contains: search } },
+            { phone: { contains: search } },
           ],
         }),
       },
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest) {
         id: true,
         name: true,
         email: true,
+        phone: true,
         role: true,
         createdAt: true,
         _count: {
@@ -56,6 +58,7 @@ export async function GET(req: NextRequest) {
         id: u.id,
         name: u.name,
         email: u.email,
+        phone: u.phone || null,
         role: u.role,
         createdAt: u.createdAt,
         ordersCount: u._count.orders,
