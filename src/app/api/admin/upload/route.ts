@@ -112,18 +112,19 @@ export async function POST(req: NextRequest) {
       const fileName = `${sanitizedBase}-${uniqueSuffix}${ext}`;
       const filePath = path.join(uploadsDir, fileName);
 
-      try {
-        await fs.writeFile(filePath, buffer);
-        uploadedUrls.push(`/uploads/${fileName}`);
-      } catch (fsErr: unknown) {
-        const isReadOnly =
-          (fsErr as { code?: string })?.code === "EROFS" ||
-          (fsErr as Error)?.message?.toLowerCase().includes("read-only");
-        if (isReadOnly) {
-          const mime = file.type || "image/jpeg";
-          uploadedUrls.push(`data:${mime};base64,${buffer.toString("base64")}`);
-        } else {
-          throw fsErr;
+      const mime = file.type || "image/jpeg";
+      const dataUrl = `data:${mime};base64,${buffer.toString("base64")}`;
+
+      // In serverless environments (e.g. Vercel), always return Data URLs
+      // because local files are not persisted or served via edge CDN
+      if (process.env.VERCEL) {
+        uploadedUrls.push(dataUrl);
+      } else {
+        try {
+          await fs.writeFile(filePath, buffer);
+          uploadedUrls.push(`/uploads/${fileName}`);
+        } catch {
+          uploadedUrls.push(dataUrl);
         }
       }
     }

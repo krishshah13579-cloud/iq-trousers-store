@@ -5,10 +5,10 @@ import { getToken } from "next-auth/jwt";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Skip static assets, Next.js internal files, public images, and api auth routes
+  // Skip static assets, Next.js internal files, public images, and api routes (which have their own session auth)
   if (
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api") ||
     pathname.includes(".") ||
     pathname === "/favicon.ico"
   ) {
