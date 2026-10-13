@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ShippingAddress } from "@/types";
 import { getClientIp, checkRateLimit, createRateLimitResponse } from "@/lib/rateLimit";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   // Rate Limiting: Max 10 order creation attempts per 10 minutes per IP
@@ -230,6 +231,36 @@ export async function POST(req: NextRequest) {
         },
       });
     });
+
+    // Dispatch confirmation email to customer asynchronously (non-blocking)
+    try {
+      const recipientEmail = order.user?.email || session.user?.email;
+      if (recipientEmail) {
+        sendOrderConfirmationEmail({
+          to: recipientEmail,
+          orderId: order.id,
+          customerName: order.user?.name || shippingAddress.fullName || "Customer",
+          items: order.items.map((i) => ({
+            name: i.product.name,
+            quantity: i.quantity,
+            price: i.price,
+            size: i.size,
+          })),
+          subtotal: roundedSubtotal,
+          discountAmount,
+          discountCode: appliedDiscountCode,
+          shipping,
+          tax: estimatedTax,
+          total: order.total,
+          shippingAddress,
+          orderDate: order.createdAt,
+        }).catch((emailErr) => {
+          console.error("[ORDER CONFIRMATION EMAIL ERROR]", emailErr);
+        });
+      }
+    } catch (emailPrepErr) {
+      console.error("[ORDER EMAIL PREP ERROR]", emailPrepErr);
+    }
 
     return NextResponse.json(order, { status: 201 });
   } catch (error) {

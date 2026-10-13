@@ -4,7 +4,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { formatPrice, getOrderStatusColor } from "@/lib/utils";
-import { Package, Calendar, ChevronRight, ArrowRight, ShoppingBag } from "lucide-react";
+import { Package, Calendar, ChevronRight, ArrowRight, ShoppingBag, Tag } from "lucide-react";
+import { CancelOrderButton } from "@/components/orders/CancelOrderButton";
 
 export const dynamic = "force-dynamic";
 
@@ -137,7 +138,7 @@ export default async function OrdersPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2.5">
                       <span
                         className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${getOrderStatusColor(
                           order.status
@@ -146,9 +147,25 @@ export default async function OrdersPage() {
                         {order.status}
                       </span>
 
+                      {order.status === "CANCELLED" && order.discountCode && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <Tag className="w-3 h-3 text-emerald-600" />
+                          <span>Coupon Restored</span>
+                        </span>
+                      )}
+
+                      {["PENDING", "CONFIRMED", "PROCESSING"].includes(order.status) && (
+                        <CancelOrderButton
+                          orderId={order.id}
+                          currentStatus={order.status}
+                          discountCode={order.discountCode}
+                          variant="compact"
+                        />
+                      )}
+
                       <Link
                         href={`/orders/${order.id}`}
-                        className="inline-flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors"
+                        className="inline-flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors ml-1"
                       >
                         <span>Details</span>
                         <ChevronRight className="w-4 h-4" />

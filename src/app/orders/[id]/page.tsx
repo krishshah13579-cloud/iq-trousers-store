@@ -6,7 +6,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatPrice, getOrderStatusColor } from "@/lib/utils";
 import { ShippingAddress } from "@/types";
-import { CheckCircle2, Package, MapPin, ArrowRight } from "lucide-react";
+import { CheckCircle2, Package, MapPin, ArrowRight, XCircle, Truck, Tag } from "lucide-react";
+import { CancelOrderButton } from "@/components/orders/CancelOrderButton";
 
 interface OrderPageProps {
   params: Promise<{ id: string }>;
@@ -88,17 +89,65 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
-      {/* Success banner */}
-      <div className="text-center mb-10">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mb-4">
-          <CheckCircle2 className="w-8 h-8" />
-        </div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
-          Order Confirmed!
-        </h1>
-        <p className="text-neutral-500 text-sm mt-1">
-          Thank you for your purchase. We&apos;ve received your order and are getting it ready.
-        </p>
+      {/* Dynamic Status Banner */}
+      <div className="text-center mb-8">
+        {order.status === "CANCELLED" ? (
+          <div>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 text-red-600 mb-4">
+              <XCircle className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
+              Order Cancelled
+            </h1>
+            <p className="text-neutral-500 text-sm mt-1 max-w-md mx-auto">
+              This order has been cancelled and all reserved items have been restocked.
+            </p>
+            {order.discountCode && (
+              <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs sm:text-sm font-medium shadow-2xs">
+                <Tag className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  Coupon <strong className="font-mono">{order.discountCode}</strong> has been restored and is active for your next purchase!
+                </span>
+              </div>
+            )}
+          </div>
+        ) : order.status === "SHIPPED" ? (
+          <div>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 text-purple-600 mb-4">
+              <Truck className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
+              Order Shipped!
+            </h1>
+            <p className="text-neutral-500 text-sm mt-1">
+              Your package is on its way. Track your shipment below.
+            </p>
+          </div>
+        ) : order.status === "DELIVERED" ? (
+          <div>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mb-4">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
+              Order Delivered!
+            </h1>
+            <p className="text-neutral-500 text-sm mt-1">
+              Your order has arrived. We hope you enjoy your new IQ Trousers!
+            </p>
+          </div>
+        ) : (
+          <div>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mb-4">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
+              Order Confirmed!
+            </h1>
+            <p className="text-neutral-500 text-sm mt-1">
+              Thank you for your purchase. We&apos;ve received your order and are getting it ready.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-xs divide-y divide-neutral-200">
@@ -139,7 +188,37 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
               </span>
             </div>
           )}
+
+          {/* Cancellation Button for Pre-Fulfillment Orders */}
+          {["PENDING", "CONFIRMED", "PROCESSING"].includes(order.status) && (
+            <div className="ml-auto">
+              <CancelOrderButton
+                orderId={order.id}
+                currentStatus={order.status}
+                discountCode={order.discountCode}
+                variant="button"
+              />
+            </div>
+          )}
         </div>
+
+        {/* Cancellation Notice Banner */}
+        {["PENDING", "CONFIRMED", "PROCESSING"].includes(order.status) && (
+          <div className="px-6 py-3 bg-amber-50/60 border-b border-amber-100 flex items-center justify-between gap-3 text-xs text-amber-900">
+            <span>
+              ⚡ <strong>Cancellation Eligible:</strong> You can cancel this order anytime before it is processed or shipped. Any applied coupon will be restored immediately.
+            </span>
+          </div>
+        )}
+
+        {order.status === "CANCELLED" && (
+          <div className="px-6 py-3.5 bg-red-50/60 border-b border-red-100 text-xs text-red-800 flex items-center gap-2">
+            <XCircle className="w-4 h-4 text-red-600 shrink-0" />
+            <span>
+              This order was cancelled. {order.discountCode ? `Your coupon code "${order.discountCode}" was restored to your account.` : "All items have been restocked."}
+            </span>
+          </div>
+        )}
 
         {/* Items List */}
         <div className="p-6">

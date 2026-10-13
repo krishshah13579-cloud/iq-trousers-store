@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       });
       userPhone = user?.phone || null;
       orderCount = await prisma.order.count({
-        where: { userId },
+        where: { userId, status: { not: "CANCELLED" } },
       });
     }
 
@@ -120,10 +120,10 @@ export async function GET(req: NextRequest) {
           ? "Special welcome offer for your first order!"
           : "Add items to your cart to use your welcome discount!";
       } else if (c.minOrder > 0) {
-        headline = `${c.type === "PERCENTAGE" ? `${c.value}% OFF` : `$${c.value} OFF`} (Orders over $${c.minOrder.toFixed(0)})`;
+        headline = `${c.type === "PERCENTAGE" ? `${c.value}% OFF` : `₹${c.value} OFF`} (Orders over ₹${c.minOrder.toFixed(0)})`;
         salesPrompt = isEligible
-          ? `You qualify! Save $${potentialSavings.toFixed(2)} right now.`
-          : `Add $${shortfall.toFixed(2)} more to your cart to unlock this deal!`;
+          ? `You qualify! Save ₹${potentialSavings.toFixed(2)} right now.`
+          : `Add ₹${shortfall.toFixed(2)} more to your cart to unlock this deal!`;
       } else {
         headline = `${c.type === "PERCENTAGE" ? `${c.value}% OFF` : `$${c.value} OFF`} Everything`;
         salesPrompt = "Storewide discount applicable immediately!";

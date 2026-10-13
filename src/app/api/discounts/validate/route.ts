@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           valid: false,
-          message: `Minimum order amount of $${discount.minOrder.toFixed(2)} required for this code`,
+          message: `Minimum order amount of ₹${discount.minOrder.toFixed(0)} required for this code`,
         },
         { status: 400 }
       );
