@@ -23,7 +23,8 @@ function parseAddress(shippingAddress: string): ShippingAddress | null {
   }
 }
 
-function getProductImage(images: string): string {
+function getProductImage(images?: string | null): string {
+  if (!images) return "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400";
   try {
     const parsed = JSON.parse(images);
     if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
@@ -31,7 +32,7 @@ function getProductImage(images: string): string {
   } catch {
     // string fallback
   }
-  if (images && typeof images === "string") {
+  if (typeof images === "string") {
     return images.split(",")[0].trim();
   }
   return "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400";
@@ -322,14 +323,14 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
           </h2>
           <div className="divide-y divide-neutral-100">
             {order.items.map((item) => {
-              const imageUrl = getProductImage(item.product.images);
+              const imageUrl = getProductImage(item.product?.images);
               return (
                 <div key={item.id} className="py-3 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="relative w-14 h-14 rounded-lg bg-neutral-100 overflow-hidden shrink-0 border border-neutral-200">
                       <Image
                         src={imageUrl}
-                        alt={item.product.name}
+                        alt={item.product?.name || "Product"}
                         fill
                         sizes="56px"
                         className="object-cover"
@@ -338,7 +339,7 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-neutral-900 truncate">
-                        {item.product.name}
+                        {item.product?.name || "Product"}
                       </p>
                       <div className="flex items-center gap-2 text-xs text-neutral-500 mt-0.5">
                         <span>Qty: {item.quantity} × {formatPrice(item.price)}</span>

@@ -39,13 +39,22 @@ export default async function OrdersPage() {
   let user = null;
   let orders: any[] = [];
   try {
-    user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
+    const email = session.user.email?.toLowerCase().trim();
+    const sessionUserId = (session.user as { id?: string })?.id;
 
-    if (user) {
+    if (email) {
+      user = await prisma.user.findFirst({
+        where: {
+          email: { equals: email, mode: "insensitive" },
+        },
+      });
+    }
+
+    const targetUserId = user?.id || sessionUserId;
+
+    if (targetUserId) {
       orders = await prisma.order.findMany({
-        where: { userId: user.id },
+        where: { userId: targetUserId },
         include: {
           items: {
             include: {
@@ -60,7 +69,7 @@ export default async function OrdersPage() {
     console.error("Failed to query user orders:", error);
   }
 
-  if (!user && session?.user?.email) {
+  if (!user && !orders.length && session?.user?.email) {
     redirect("/login?callbackUrl=/orders");
   }
 
@@ -225,12 +234,12 @@ export default async function OrdersPage() {
                           {(order.items || []).slice(0, 4).map((item: any) => {
                             let imageUrl = "/placeholder.png";
                             try {
-                              const parsed = JSON.parse(item.product.images);
+                              const parsed = JSON.parse(item.product?.images || "[]");
                               if (Array.isArray(parsed) && parsed.length > 0) {
                                 imageUrl = parsed[0];
                               }
                             } catch {
-                              if (item.product.images) {
+                              if (item.product?.images) {
                                 imageUrl = item.product.images;
                               }
                             }
@@ -242,7 +251,7 @@ export default async function OrdersPage() {
                               >
                                 <img
                                   src={imageUrl}
-                                  alt={item.product.name}
+                                  alt={item.product?.name || "Product"}
                                   className="w-full h-full object-cover object-center"
                                 />
                               </div>
@@ -252,7 +261,7 @@ export default async function OrdersPage() {
 
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">
-                            {order.items[0]?.product.name}
+                            {order.items[0]?.product?.name || "Product"}
                             {order.items.length > 1 && (
                               <span className="text-gray-500 font-normal ml-1">
                                 + {order.items.length - 1} more
