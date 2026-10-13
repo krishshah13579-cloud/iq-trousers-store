@@ -122,12 +122,12 @@ export default function Navbar() {
 
             {/* Cart */}
             <Link
-              href="/cart"
+              href={session ? "/cart" : "/login?callbackUrl=/cart"}
               className="relative p-2 text-gray-700 hover:text-black transition-colors flex items-center gap-1.5 text-sm font-medium"
               title="Cart"
             >
               <ShoppingCart className="w-5 h-5" />
-              {totalItems > 0 && (
+              {session && totalItems > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-black text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                   {totalItems}
                 </span>
@@ -225,9 +225,12 @@ export default function Navbar() {
                 </span>
               )}
             </Link>
-            <Link href="/cart" className="relative p-2 text-gray-700">
+            <Link
+              href={session ? "/cart" : "/login?callbackUrl=/cart"}
+              className="relative p-2 text-gray-700"
+            >
               <ShoppingCart className="w-5 h-5" />
-              {totalItems > 0 && (
+              {session && totalItems > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-black text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                   {totalItems}
                 </span>

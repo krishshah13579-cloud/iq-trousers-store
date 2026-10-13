@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/utils";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/shipping";
@@ -64,7 +65,14 @@ function getProductImage(images: string): string {
 
 export default function CartPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const { items, updateQuantity, removeItem, totalPrice, totalItems } = useCart();
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login?callbackUrl=/cart");
+    }
+  }, [status, router]);
 
   const [discountCodeInput, setDiscountCodeInput] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscount | null>(() => {
@@ -225,6 +233,10 @@ export default function CartPage() {
       router.push("/checkout");
     }
   };
+
+  if (status === "unauthenticated") {
+    return null;
+  }
 
   if (items.length === 0) {
     return (
