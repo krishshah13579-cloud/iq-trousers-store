@@ -35,22 +35,28 @@ export default function EditProductPage() {
           throw new Error("Could not parse product data. Please refresh and try again.");
         }
 
-        // Convert images JSON to comma separated if needed
-        let imagesStr = "";
+        // Parse images properly into an array of image strings
+        let imagesArray: string[] = [];
         try {
           const parsed = JSON.parse(data.images);
           if (Array.isArray(parsed)) {
-            imagesStr = parsed.join(", ");
-          } else {
-            imagesStr = data.images;
+            imagesArray = parsed.map((img: any) => String(img).trim()).filter(Boolean);
+          } else if (typeof parsed === "string" && parsed.trim()) {
+            imagesArray = [parsed.trim()];
           }
         } catch {
-          imagesStr = data.images || "";
+          if (typeof data.images === "string" && data.images.trim()) {
+            if (data.images.startsWith("data:")) {
+              imagesArray = [data.images.trim()];
+            } else {
+              imagesArray = data.images.split(",").map((s: string) => s.trim()).filter(Boolean);
+            }
+          }
         }
 
         setProduct({
           ...data,
-          images: imagesStr,
+          images: imagesArray,
         });
       } catch (err: unknown) {
         const rawMsg = err instanceof Error ? err.message : "Failed to load product";

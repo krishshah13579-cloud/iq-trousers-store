@@ -486,20 +486,46 @@ export default function ProductForm({
   // Images state
   const parseInitialImages = (): string[] => {
     if (!initialData?.images) return [];
-    if (Array.isArray(initialData.images)) return initialData.images;
-    try {
-      const parsed = JSON.parse(initialData.images);
-      if (Array.isArray(parsed)) return parsed;
-    } catch {
-      // fallback
+    if (Array.isArray(initialData.images)) {
+      return initialData.images.map((img) => String(img).trim()).filter(Boolean);
     }
-    return typeof initialData.images === "string"
-      ? initialData.images.split(",").map((img) => img.trim()).filter(Boolean)
-      : [];
+    if (typeof initialData.images === "string") {
+      const raw = initialData.images.trim();
+      if (!raw) return [];
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.map((img) => String(img).trim()).filter(Boolean);
+        }
+        if (typeof parsed === "string" && parsed.trim()) {
+          return [parsed.trim()];
+        }
+      } catch {
+        // fallback
+      }
+      if (raw.startsWith("data:")) {
+        return [raw];
+      }
+      return raw
+        .split(",")
+        .map((img) => img.trim())
+        .filter(Boolean);
+    }
+    return [];
   };
   const [imagesList, setImagesList] = useState<string[]>(parseInitialImages);
   const [externalUrlInput, setExternalUrlInput] = useState("");
   const [showUrlInput, setShowUrlInput] = useState(false);
+
+  // Sync images whenever initialData is loaded or changes
+  useEffect(() => {
+    if (initialData?.images) {
+      const parsed = parseInitialImages();
+      if (parsed.length > 0) {
+        setImagesList(parsed);
+      }
+    }
+  }, [initialData?.images]);
 
   // Fetch categories
   useEffect(() => {
@@ -1064,7 +1090,7 @@ export default function ProductForm({
                     className="w-full h-full object-cover object-center"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src =
-                        "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=600";
+                        "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'><rect width='200' height='200' fill='%23f3f4f6'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12' fill='%239ca3af'>Photo Unavailable</text></svg>";
                     }}
                   />
 
