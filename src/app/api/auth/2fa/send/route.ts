@@ -56,18 +56,43 @@ export async function POST(req: NextRequest) {
       return createRateLimitResponse(emailRl.resetMs);
     }
 
-    // Verify user exists and credentials are correct prior to dispatching email
-    let user = null;
-    try {
-      user = await prisma.user.findUnique({
-        where: { email: trimmedEmail },
-      });
-    } catch (dbErr: any) {
-      console.error("Database connection error in 2FA send:", dbErr);
+    // Critical environment sanity check
+    if (!process.env.DATABASE_URL) {
+      console.error("[CRITICAL AUTH ERROR] DATABASE_URL is not set in environment variables!");
       return NextResponse.json(
         {
           error:
-            "Database connection failed. If Render PostgreSQL is sleeping, please allow ~15 seconds for it to wake up and try again.",
+            "DATABASE_URL is missing in Vercel Environment Variables. Please add DATABASE_URL in Vercel Settings -> Environment Variables and redeploy.",
+        },
+        { status: 503 }
+      );
+    }
+
+    // Verify user exists and credentials are correct with auto-retry for cold database waking
+    let user = null;
+    let lastDbError: any = null;
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        user = await prisma.user.findUnique({
+          where: { email: trimmedEmail },
+        });
+        lastDbError = null;
+        break;
+      } catch (dbErr: any) {
+        lastDbError = dbErr;
+        console.warn(`[2FA DB ATTEMPT ${attempt} FAILED]:`, dbErr?.message);
+        if (attempt < 3) {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+      }
+    }
+
+    if (lastDbError) {
+      console.error("Database connection error after retries in 2FA send:", lastDbError);
+      return NextResponse.json(
+        {
+          error: `Database connection failed. Render PostgreSQL may be waking up from sleep or DATABASE_URL needs verification. (${lastDbError.message ? lastDbError.message.slice(0, 80) : "Connection timeout"})`,
         },
         { status: 503 }
       );

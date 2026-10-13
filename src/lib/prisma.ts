@@ -5,18 +5,44 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient(): PrismaClient {
-  const dbUrl = process.env.DATABASE_URL;
-  if (dbUrl && dbUrl.startsWith("postgres") && !dbUrl.includes("sslmode=")) {
-    const separator = dbUrl.includes("?") ? "&" : "?";
-    return new PrismaClient({
-      datasources: {
-        db: { url: `${dbUrl}${separator}sslmode=require` },
-      },
-    });
+  let dbUrl = process.env.DATABASE_URL?.trim();
+  if (!dbUrl) {
+    console.warn("[PRISMA WARNING] DATABASE_URL is not defined in environment variables");
+    return new PrismaClient();
   }
-  return new PrismaClient();
+
+  // Remove surrounding single or double quotes if present
+  if (
+    (dbUrl.startsWith('"') && dbUrl.endsWith('"')) ||
+    (dbUrl.startsWith("'") && dbUrl.endsWith("'"))
+  ) {
+    dbUrl = dbUrl.slice(1, -1).trim();
+  }
+
+  // Clean and ensure sslmode=require and connect_timeout=30
+  try {
+    const urlObj = new URL(dbUrl);
+    if (!urlObj.searchParams.has("sslmode")) {
+      urlObj.searchParams.set("sslmode", "require");
+    }
+    if (!urlObj.searchParams.has("connect_timeout")) {
+      urlObj.searchParams.set("connect_timeout", "30");
+    }
+    dbUrl = urlObj.toString();
+  } catch {
+    if (!dbUrl.includes("sslmode=")) {
+      const sep = dbUrl.includes("?") ? "&" : "?";
+      dbUrl = `${dbUrl}${sep}sslmode=require&connect_timeout=30`;
+    }
+  }
+
+  return new PrismaClient({
+    datasources: {
+      db: { url: dbUrl },
+    },
+  });
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+globalForPrisma.prisma = prisma;
