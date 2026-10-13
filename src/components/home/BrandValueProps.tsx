@@ -4,12 +4,12 @@ const valueProps = [
   {
     icon: Sparkles,
     title: "Adaptive Flex Waistband",
-    description: "2\" concealed micro-stretch for all-day sitting & travel ease.",
+    description: "0.5\" concealed micro-stretch for all-day sitting & travel ease.",
   },
   {
     icon: Shirt,
     title: "Premium Long-Staple Fabrics",
-    description: "High-twist twills, French linens & heavyweight flannels.",
+    description: "High-twist , linens & Lachako.",
   },
   {
     icon: Truck,
