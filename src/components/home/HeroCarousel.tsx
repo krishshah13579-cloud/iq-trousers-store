@@ -185,17 +185,22 @@ export default function HeroCarousel() {
               {/* Poster Foreground Content */}
               <div className="relative h-full max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 flex items-center">
                 <div className="max-w-xl lg:max-w-2xl py-6 sm:py-8 space-y-2.5 sm:space-y-3">
-                  {/* 1. Official Company Branding Lockup (Levi's / Lewis Style) */}
+                  {/* 1. Official Company Branding Lockup (Trouser & Formal Pant Manufacturer) */}
                   <div className="flex items-center gap-2.5">
                     <div className="bg-[#b91c1c] text-white font-black text-xs px-2.5 py-1 tracking-widest uppercase rounded-xs shadow-md font-sans">
                       IQ
                     </div>
                     <div className="flex flex-col text-left">
-                      <span className="text-xs sm:text-sm font-black tracking-widest text-white uppercase font-sans">
-                        IQ TROUSERS
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs sm:text-sm font-black tracking-widest text-white uppercase font-sans">
+                          IQ TROUSERS
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded-xs bg-amber-400/20 text-amber-300 border border-amber-400/40 text-[9px] font-black tracking-wider uppercase">
+                          MANUFACTURER DIRECT
+                        </span>
+                      </div>
                       <span className="text-[9px] sm:text-[10px] tracking-widest text-neutral-400 uppercase font-medium">
-                        EST. AHMEDABAD • THE ORIGINAL FIT
+                        AHMEDABAD TEXTILE MILLS • TROUSERS &amp; FORMAL PANTS
                       </span>
                     </div>
                   </div>
@@ -205,21 +210,21 @@ export default function HeroCarousel() {
                     {slide.type === "festival" && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-amber-400/20 text-amber-300 border border-amber-400/40 shadow-xs">
                         <Flame className="w-3.5 h-3.5 text-amber-400" />
-                        <span>BLACK-TIE BESPOKE • FORMAL WEAR</span>
+                        <span>IN-HOUSE TROUSER MILL • BESPOKE FORMAL PANTS</span>
                       </span>
                     )}
 
                     {slide.type === "discount" && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-xs">
                         <Tag className="w-3.5 h-3.5 text-rose-400" />
-                        <span>VIP PRIVILEGE • 25% OFF STOREWIDE + VOUCHER</span>
+                        <span>FACTORY-DIRECT PRIVILEGE • 25% OFF HONEST MAKER PRICING</span>
                       </span>
                     )}
 
                     {slide.type === "new-arrival" && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-xs">
                         <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-                        <span>SIGNATURE CASUALS • 4-WAY ADAPTIVE FLEX</span>
+                        <span>100% DEDICATED TROUSER &amp; PANT SPECIALISTS</span>
                       </span>
                     )}
                   </div>
@@ -228,8 +233,8 @@ export default function HeroCarousel() {
                   <div>
                     {slide.type === "festival" && (
                       <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[42px] font-black tracking-tighter text-white uppercase leading-[0.95] font-sans drop-shadow-2xl">
-                        SHARP ENOUGH TO <br />
-                        <span className="text-amber-400">CUT THE TENSION.</span>
+                        MASTER-CRAFTED FORMAL PANTS. <br />
+                        <span className="text-amber-400">DIRECT FROM OUR MILL.</span>
                       </h2>
                     )}
 
@@ -242,8 +247,8 @@ export default function HeroCarousel() {
 
                     {slide.type === "new-arrival" && (
                       <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[42px] font-black tracking-tighter text-white uppercase leading-[0.95] font-sans drop-shadow-2xl">
-                        TOO COMFORTABLE <br />
-                        <span className="text-sky-400">TO BE THIS SHARP.</span>
+                        WE DON&apos;T MAKE EVERYTHING. <br />
+                        <span className="text-sky-400">WE PERFECT TROUSERS.</span>
                       </h2>
                     )}
                   </div>
@@ -251,13 +256,13 @@ export default function HeroCarousel() {
                   {/* 4. Subtitle */}
                   <p className="text-xs sm:text-[13px] md:text-sm font-bold text-amber-100/90 tracking-tight leading-snug drop-shadow-sm max-w-md sm:max-w-lg line-clamp-2">
                     {slide.type === "festival" && (
-                      <>When your trousers drape this flawlessly, walking in isn&apos;t an arrival — it&apos;s a statement.</>
+                      <>Every pair of formal pants is precision-patterned, mill-woven, and hand-creased in our Ahmedabad workshop. True maker craftsmanship—no retail markup.</>
                     )}
                     {slide.type === "discount" && (
-                      <>25% off every pair storewide + instant ₹{activeCoupon.value} voucher at checkout. Direct from Ahmedabad, with zero luxury markup.</>
+                      <>By manufacturing in-house, we eliminate showroom commissions. Get ₹3,500+ luxury-grade formal pants direct from the workshop with 25% off + ₹{activeCoupon.value} voucher.</>
                     )}
                     {slide.type === "new-arrival" && (
-                      <>Engineered with 360° adaptive stretch. Moves with you all day, never wrinkles, and holds its razor-sharp fit.</>
+                      <>We manufacture only trousers and formal pants. Decades of dedicated pattern engineering deliver an immaculate silhouette and all-day 360° adaptive flex.</>
                     )}
                   </p>
 
@@ -265,13 +270,13 @@ export default function HeroCarousel() {
                   {slide.type === "festival" && (
                     <div className="pt-0.5 flex flex-wrap gap-1.5">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide">
-                        ✦ 100% Worsted Weave
+                        ✦ In-House Worsted Weave
                       </span>
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide">
-                        ★ Hand-Tailored Ahmedabad Cut
+                        ★ Ahmedabad Master Tailoring
                       </span>
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide">
-                        ⚡ Razor-Creased Finish
+                        ⚡ Permanent Razor-Creased Drape
                       </span>
                     </div>
                   )}
@@ -282,7 +287,7 @@ export default function HeroCarousel() {
                       <div className="inline-flex flex-wrap items-center gap-2.5 p-2 rounded-lg bg-black/60 backdrop-blur-md border border-dashed border-rose-500/80 shadow-md">
                         <div className="flex flex-col text-left pr-2 border-r border-white/15">
                           <span className="text-[8px] font-black uppercase tracking-widest text-neutral-400">
-                            INSTANT VOUCHER
+                            DIRECT MAKER VOUCHER
                           </span>
                           <span className="text-sm sm:text-base font-black tracking-widest text-amber-300 font-mono">
                             {activeCoupon.code}
@@ -313,7 +318,7 @@ export default function HeroCarousel() {
                       </div>
 
                       <p className="text-[11px] text-neutral-300 font-medium">
-                        ⚡ Applied at checkout on orders over ₹{activeCoupon.minOrder.toLocaleString("en-IN")}.
+                        ⚡ Direct manufacturer discount applied at checkout on orders over ₹{activeCoupon.minOrder.toLocaleString("en-IN")}.
                       </p>
                     </div>
                   )}
@@ -322,13 +327,13 @@ export default function HeroCarousel() {
                   {slide.type === "new-arrival" && (
                     <div className="flex flex-wrap gap-1.5 pt-0.5">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide shadow-xs">
-                        ⚡ 360° Flex Mobility
+                        ✦ Specialized Trouser Mills
                       </span>
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide shadow-xs">
-                        ✦ Zero-Iron Memory Crease
+                        ★ High-Density Safety Seams
                       </span>
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide shadow-xs">
-                        ★ Tailored Ankle Break
+                        ⚡ 360° Adaptive Formal Stretch
                       </span>
                     </div>
                   )}
@@ -340,16 +345,16 @@ export default function HeroCarousel() {
                       className="inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-2.5 sm:py-3 rounded-full bg-white text-neutral-950 font-black text-xs uppercase tracking-widest hover:bg-neutral-200 active:scale-95 transition-all shadow-xl cursor-pointer"
                     >
                       <span>
-                        {slide.type === "festival" && "COMMAND THE ROOM"}
-                        {slide.type === "discount" && "SNAG YOUR FIT"}
-                        {slide.type === "new-arrival" && "EXPLORE SIGNATURE FITS"}
+                        {slide.type === "festival" && "EXPLORE FORMAL PANTS"}
+                        {slide.type === "discount" && "CLAIM FACTORY PRICING"}
+                        {slide.type === "new-arrival" && "SHOP OUR TROUSERS"}
                       </span>
                       <ArrowRight className="w-4 h-4" />
                     </Link>
 
                     <span className="text-xs font-bold tracking-widest text-neutral-400 uppercase hidden sm:inline-flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Pan-India DTDC Express</span>
+                      <span>Direct From Mill • Pan-India DTDC Express</span>
                     </span>
                   </div>
                 </div>

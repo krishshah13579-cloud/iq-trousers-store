@@ -594,7 +594,7 @@ export function getMonthlyPosters(monthIndex?: number, activeCouponCode?: string
     {
       id: `festival-${config.monthName.toLowerCase()}`,
       type: "festival",
-      tabTitle: "Festive Gala",
+      tabTitle: "Formal Pants",
       badge: config.festival.badge,
       tagline: config.festival.tagline,
       title: config.festival.title,
@@ -610,7 +610,7 @@ export function getMonthlyPosters(monthIndex?: number, activeCouponCode?: string
     {
       id: `discount-${config.monthName.toLowerCase()}`,
       type: "discount",
-      tabTitle: "Mega Sale",
+      tabTitle: "Factory Direct",
       badge: config.discount.badge,
       tagline: config.discount.tagline,
       title: config.discount.title,
@@ -628,7 +628,7 @@ export function getMonthlyPosters(monthIndex?: number, activeCouponCode?: string
     {
       id: `new-arrival-${config.monthName.toLowerCase()}`,
       type: "new-arrival",
-      tabTitle: "New Arrivals",
+      tabTitle: "Trouser Specialists",
       badge: config.newArrival.badge,
       tagline: config.newArrival.tagline,
       title: config.newArrival.title,
