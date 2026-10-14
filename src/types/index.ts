@@ -108,6 +108,13 @@ export interface Discount {
   usedCount: number;
   active: boolean;
   expiresAt: Date | null;
+  userId?: string | null;
+  userPhone?: string | null;
+  description?: string | null;
+  targetAudience?: string | null;
+  minOrders?: number | null;
+  maxOrders?: number | null;
+  minSpend?: number | null;
   createdAt: Date;
 }
 

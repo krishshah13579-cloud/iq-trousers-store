@@ -12,6 +12,15 @@ export async function GET() {
   try {
     const discounts = await prisma.discount.findMany({
       orderBy: { createdAt: "desc" },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
     });
 
     return NextResponse.json(discounts);
@@ -32,7 +41,22 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { code, type, value, minOrder, maxDiscount, maxUses, expiresAt } = body;
+    const {
+      code,
+      type,
+      value,
+      minOrder,
+      maxDiscount,
+      maxUses,
+      expiresAt,
+      description,
+      targetAudience,
+      minOrders,
+      maxOrders,
+      minSpend,
+      userId,
+      userPhone,
+    } = body;
 
     if (!code || !type || value === undefined) {
       return NextResponse.json(
@@ -66,6 +90,13 @@ export async function POST(req: NextRequest) {
             : null,
         maxUses: maxUses ? parseInt(maxUses, 10) : null,
         expiresAt: expiresAt && String(expiresAt).trim() ? new Date(expiresAt) : null,
+        description: description ? String(description).trim() : null,
+        targetAudience: targetAudience || "ALL",
+        minOrders: minOrders !== undefined && minOrders !== null && String(minOrders).trim() !== "" ? parseInt(minOrders, 10) : 0,
+        maxOrders: maxOrders !== undefined && maxOrders !== null && String(maxOrders).trim() !== "" ? parseInt(maxOrders, 10) : null,
+        minSpend: minSpend !== undefined && minSpend !== null && String(minSpend).trim() !== "" ? parseFloat(minSpend) : 0,
+        userId: userId || null,
+        userPhone: userPhone || null,
         active: true,
       },
     });
@@ -88,7 +119,24 @@ export async function PUT(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { id, active, code, type, value, minOrder, maxDiscount, maxUses, expiresAt } = body;
+    const {
+      id,
+      active,
+      code,
+      type,
+      value,
+      minOrder,
+      maxDiscount,
+      maxUses,
+      expiresAt,
+      description,
+      targetAudience,
+      minOrders,
+      maxOrders,
+      minSpend,
+      userId,
+      userPhone,
+    } = body;
 
     if (!id) {
       return NextResponse.json({ error: "Discount ID is required" }, { status: 400 });
@@ -114,6 +162,21 @@ export async function PUT(req: NextRequest) {
         ...(expiresAt !== undefined && {
           expiresAt: expiresAt && String(expiresAt).trim() ? new Date(expiresAt) : null,
         }),
+        ...(description !== undefined && {
+          description: description && String(description).trim() ? String(description).trim() : null,
+        }),
+        ...(targetAudience !== undefined && { targetAudience }),
+        ...(minOrders !== undefined && {
+          minOrders: minOrders !== null && String(minOrders).trim() !== "" ? parseInt(minOrders, 10) : 0,
+        }),
+        ...(maxOrders !== undefined && {
+          maxOrders: maxOrders !== null && String(maxOrders).trim() !== "" ? parseInt(maxOrders, 10) : null,
+        }),
+        ...(minSpend !== undefined && {
+          minSpend: minSpend !== null && String(minSpend).trim() !== "" ? parseFloat(minSpend) : 0,
+        }),
+        ...(userId !== undefined && { userId: userId || null }),
+        ...(userPhone !== undefined && { userPhone: userPhone || null }),
       },
     });
 

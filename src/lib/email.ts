@@ -1392,4 +1392,183 @@ Thank you for choosing IQ Trousers!`;
   return { delivered: false, info: "Logged to server console" };
 }
 
+export interface SendExpiredCouponReengagementEmailParams {
+  to: string;
+  name?: string;
+  oldCouponCode?: string;
+  newCouponCode: string;
+  discountValue: number;
+  discountType: "PERCENTAGE" | "FIXED";
+  minOrder?: number;
+  maxDiscount?: number | null;
+  expiresAt: Date;
+}
+
+/**
+ * Dispatches an automated email campaign to registered customers whose previous welcome coupon expired.
+ * Grants a renewed exclusive coupon code to grab attention and increase conversion sales.
+ */
+export async function sendExpiredCouponReengagementEmail({
+  to,
+  name,
+  oldCouponCode,
+  newCouponCode,
+  discountValue,
+  discountType,
+  minOrder = 0,
+  maxDiscount,
+  expiresAt,
+}: SendExpiredCouponReengagementEmailParams): Promise<{ delivered: boolean; info?: string }> {
+  const displayName = name || to.split("@")[0] || "Valued Customer";
+  const from =
+    process.env.EMAIL_FROM ||
+    (process.env.SMTP_USER
+      ? `"IQ Trousers" <${process.env.SMTP_USER}>`
+      : '"IQ Trousers" <vip@iqtrousers.com>');
+
+  const discountFormatted =
+    discountType === "PERCENTAGE" ? `${discountValue}% OFF` : `₹${discountValue} OFF`;
+
+  const subject = `✨ We Renewed Your Discount: Take ${discountFormatted} — IQ Trousers`;
+
+  const expiryFormatted = new Intl.DateTimeFormat("en-IN", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(expiresAt);
+
+  const baseUrl = process.env.NEXTAUTH_URL || "https://iq-trousers-store-uge4.vercel.app";
+  const shopUrl = `${baseUrl}/products`;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Your Exclusive Discount Has Been Renewed</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #09090b; margin: 0; padding: 24px; color: #18181b; }
+    .container { max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e4e4e7; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+    .header { background: #000000; padding: 36px 32px; text-align: center; border-bottom: 2px solid #e11d48; }
+    .logo-text { color: #ffffff; font-size: 24px; font-weight: 900; letter-spacing: 3px; margin: 0; text-transform: uppercase; }
+    .sublogo { color: #f43f5e; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; font-weight: 700; }
+    .content { padding: 36px 32px; }
+    .greeting { font-size: 18px; font-weight: 700; color: #09090b; margin-bottom: 12px; }
+    .message { font-size: 14px; line-height: 1.6; color: #52525b; margin-bottom: 24px; }
+    .quote-box { background: #fdf2f4; border-left: 4px solid #f43f5e; padding: 14px 18px; border-radius: 0 8px 8px 0; margin-bottom: 24px; font-size: 13px; font-style: italic; color: #881337; font-weight: 600; }
+    .code-box { background: #fafafa; border: 2px dashed #09090b; border-radius: 14px; padding: 24px; text-align: center; margin-bottom: 24px; position: relative; }
+    .code-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800; color: #71717a; margin-bottom: 8px; }
+    .code { font-family: 'Courier New', Courier, monospace; font-size: 32px; font-weight: 900; letter-spacing: 5px; color: #e11d48; margin: 0; }
+    .badge { display: inline-block; background-color: #fee2e2; color: #991b1b; font-size: 11px; font-weight: 700; padding: 5px 14px; border-radius: 20px; margin-top: 10px; }
+    .code-instruction { font-size: 12px; color: #52525b; margin-top: 10px; font-weight: 500; }
+    .info-list { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; font-size: 13px; color: #475569; }
+    .info-list p { margin: 6px 0; }
+    .btn-container { text-align: center; margin: 28px 0 16px; }
+    .btn { display: inline-block; background-color: #09090b; color: #ffffff !important; padding: 14px 36px; font-size: 14px; font-weight: 700; text-decoration: none; border-radius: 10px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .footer { padding: 24px 32px; background: #fafafa; border-top: 1px solid #f4f4f5; text-align: center; font-size: 11px; color: #a1a1aa; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-text">IQ TROUSERS</div>
+      <div class="sublogo">VIP COURTESY • WELCOME RENEWAL</div>
+    </div>
+    <div class="content">
+      <div class="greeting">Hello, ${displayName}!</div>
+      <p class="message">
+        We noticed that your initial registration discount coupon ${oldCouponCode ? `(<code>${oldCouponCode}</code>)` : ""} expired before you had the chance to pick out your perfect pair of trousers.
+      </p>
+
+      <div class="quote-box">
+        &ldquo;PREMIUM DESIGN SHOULDN&apos;T REQUIRE A PREMIUM MARKUP.&rdquo;
+      </div>
+
+      <p class="message">
+        We believe everyone deserves impeccably tailored trousers with razor-sharp drape and 360° stretch. To welcome you back, we have renewed your privilege with a brand new account-bound discount:
+      </p>
+      
+      <div class="code-box">
+        <div class="code-label">Your Fresh Exclusive Coupon</div>
+        <div class="code">${newCouponCode}</div>
+        <div class="badge">⏰ Valid for 7 Days • Expires on ${expiryFormatted}</div>
+        <div class="code-instruction">
+          Enjoy <strong>${discountFormatted}</strong> ${minOrder > 0 ? `on orders over ₹${minOrder.toLocaleString("en-IN")}` : "on your order"}${maxDiscount ? ` (capped up to ₹${maxDiscount.toLocaleString("en-IN")})` : ""}.
+        </div>
+      </div>
+
+      <div class="info-list">
+        <p>🔒 <strong>Account-Bound:</strong> This code is already connected to your registered email account.</p>
+        <p>⚡ <strong>Seamless Checkout:</strong> Sign in and your discount will be ready under available offers or applied automatically!</p>
+      </div>
+
+      <div class="btn-container">
+        <a href="${shopUrl}" class="btn">Explore Trousers &amp; Redeem</a>
+      </div>
+    </div>
+    <div class="footer">
+      This special reactivation email was sent to ${to} because your registration discount expired.<br>
+      © ${new Date().getFullYear()} IQ Trousers by Krish Clothing Co. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  const textContent = `IQ TROUSERS - YOUR DISCOUNT HAS BEEN RENEWED!
+Hello ${displayName},
+
+We noticed your previous coupon ${oldCouponCode ? `(${oldCouponCode}) ` : ""}expired before you had a chance to complete your order.
+
+"PREMIUM DESIGN SHOULDN'T REQUIRE A PREMIUM MARKUP."
+
+Here is your renewed exclusive discount coupon:
+>>> ${newCouponCode} <<<
+Discount: ${discountFormatted} ${minOrder > 0 ? `(Orders above ₹${minOrder})` : ""}
+Valid until: ${expiryFormatted}
+
+This coupon is linked exclusively to your account.
+Redeem here: ${shopUrl}
+
+- The IQ Trousers Team
+Krish Clothing Co.`;
+
+  const transporter = getTransporter();
+
+  if (transporter) {
+    try {
+      const sendPromise = transporter.sendMail({
+        from,
+        to,
+        subject,
+        text: textContent,
+        html: htmlContent,
+      });
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("SMTP timeout after 7 seconds")), 7000)
+      );
+
+      await Promise.race([sendPromise, timeoutPromise]);
+      console.log(`[EXPIRED COUPON RE-ENGAGEMENT EMAIL] Sent to ${to} with code ${newCouponCode}`);
+      return { delivered: true, info: `Sent via SMTP to ${to}` };
+    } catch (err: unknown) {
+      console.error("[EXPIRED COUPON RE-ENGAGEMENT EMAIL] SMTP dispatch failed:", err);
+    }
+  }
+
+  console.log(
+    `\n======================================================\n` +
+    `[EXPIRED COUPON RE-ENGAGEMENT EMAIL DISPATCH]\n` +
+    `To: ${to} (${displayName})\n` +
+    `Old Code: ${oldCouponCode || "N/A"} -> New Code: >>> ${newCouponCode} <<<\n` +
+    `Discount: ${discountFormatted}\n` +
+    `Expires: ${expiryFormatted}\n` +
+    `======================================================\n`
+  );
+
+  return { delivered: false, info: "Logged to server console" };
+}
+
+
 

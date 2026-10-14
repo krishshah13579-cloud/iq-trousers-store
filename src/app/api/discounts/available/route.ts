@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateUserPurchaseDiscount } from "@/lib/discounts";
+import {
+  getUserAssociatedDiscount,
+  filterDiscountsForUser,
+  UserShoppingContext,
+} from "@/lib/discounts";
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,41 +18,73 @@ export async function GET(req: NextRequest) {
 
     let userPhone: string | null = null;
     let orderCount = 0;
-    let userPurchaseReward = null;
+    let totalSpend = 0;
+    let visitCount = 1;
+    let userDiscount = null;
+    const usedDiscountCodes = new Set<string>();
+
+    // Parse guest visit count from cookie if not logged in
+    const cookieHeader = req.headers.get("cookie") || "";
+    const guestVisitMatch = cookieHeader.match(/iq_visit_count=(\d+)/);
+    if (guestVisitMatch) {
+      visitCount = parseInt(guestVisitMatch[1], 10) || 1;
+    }
 
     if (userId) {
-      // Dynamically evaluate and grant/ensure user discount based on purchases & usage
-      userPurchaseReward = await getOrCreateUserPurchaseDiscount(userId);
+      // 1. FOR THE DISCOUNT POSTER & ACCOUNT:
+      // "FOR THE DISCOUNT POSTER USE THE DISCOUNT ASSOCIATED TO THAT ACCOUNT DO NOT CREATE ANY NEW COUPONS."
+      userDiscount = await getUserAssociatedDiscount(userId);
 
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { phone: true },
+        select: {
+          phone: true,
+          firstDiscountCode: true,
+          visitCount: true,
+        },
       });
+
       userPhone = user?.phone || null;
-      orderCount = await prisma.order.count({
-        where: { userId, status: { not: "CANCELLED" } },
+      visitCount = (user?.visitCount || 1) + 1;
+
+      // Update visit count asynchronously
+      prisma.user
+        .update({
+          where: { id: userId },
+          data: {
+            visitCount,
+            lastVisitedAt: new Date(),
+          },
+        })
+        .catch(() => {});
+
+      // Calculate past non-cancelled orders & lifetime spend
+      const userOrders = await prisma.order.findMany({
+        where: {
+          userId,
+          status: { not: "CANCELLED" },
+        },
+        select: {
+          total: true,
+          discountCode: true,
+        },
       });
+
+      orderCount = userOrders.length;
+      totalSpend = userOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+
+      // Track codes already redeemed by this customer
+      for (const o of userOrders) {
+        if (o.discountCode) {
+          usedDiscountCodes.add(o.discountCode.toUpperCase());
+        }
+      }
     }
 
     const now = new Date();
 
-    // 1. Fetch personal coupons for this user
-    let personalCoupons: Array<{
-      id: string;
-      code: string;
-      type: string;
-      value: number;
-      minOrder: number;
-      maxDiscount: number | null;
-      maxUses: number | null;
-      usedCount: number;
-      active: boolean;
-      expiresAt: Date | null;
-      userId: string | null;
-      userPhone: string | null;
-      description: string | null;
-    }> = [];
-
+    // 2. Fetch personal coupons strictly associated with this user
+    let personalCoupons: any[] = [];
     if (userId || userPhone) {
       personalCoupons = await prisma.discount.findMany({
         where: {
@@ -59,50 +95,66 @@ export async function GET(req: NextRequest) {
           ],
           AND: [
             {
-              OR: [
-                { expiresAt: null },
-                { expiresAt: { gt: now } },
-              ],
+              OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
             },
           ],
         },
       });
+
+      // Filter out coupons user has exceeded max uses on
+      personalCoupons = personalCoupons.filter(
+        (c) => c.maxUses === null || c.usedCount < c.maxUses
+      );
     }
 
-    // 2. Fetch active public coupons
-    const publicCoupons = await prisma.discount.findMany({
+    // 3. Fetch public coupons
+    // REQUIREMENT:
+    // "ON ADMIN PANEL IN DISCOUNT PAGE THERE MAY BE 5 DISCOUNTS DONT SHOW ALL THE DISCOUNTS AVAILABLE TO USERS.
+    // SHOW THEM THE DISCOUNTS BASED ON THEIR USAGES/PURCHASES OR VISITS."
+    const rawPublicCoupons = await prisma.discount.findMany({
       where: {
         userId: null,
         active: true,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: now } },
-        ],
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
       },
       orderBy: { minOrder: "asc" },
     });
 
-    // Combine and deduplicate by code
-    const rawCoupons = [...personalCoupons, ...publicCoupons];
+    // Apply strict usage, purchase history, and visit-based filtering
+    const userContext: UserShoppingContext = {
+      userId,
+      phone: userPhone,
+      orderCount,
+      totalSpend,
+      visitCount,
+      usedDiscountCodes,
+    };
+
+    const eligiblePublicCoupons = filterDiscountsForUser(
+      rawPublicCoupons,
+      userContext
+    );
+
+    // Combine personal coupons and filtered public coupons
+    const combinedCoupons = [...personalCoupons, ...eligiblePublicCoupons];
+
+    // Deduplicate by code
     const seenCodes = new Set<string>();
-    const uniqueCoupons = rawCoupons.filter((c) => {
-      if (seenCodes.has(c.code)) return false;
-      seenCodes.add(c.code);
+    const uniqueCoupons = combinedCoupons.filter((c) => {
+      const codeUpper = c.code.toUpperCase();
+      if (seenCodes.has(codeUpper)) return false;
+      seenCodes.add(codeUpper);
       return true;
     });
 
-    // Filter out coupons that have reached their max usage
-    const activeCoupons = uniqueCoupons.filter((c) => {
-      if (c.maxUses !== null && c.usedCount >= c.maxUses) return false;
-      return true;
-    });
-
-    // Transform with smart sales-boosting recommendations
-    const processedCoupons = activeCoupons.map((c) => {
+    // Transform coupons with smart sales-boosting recommendations
+    const processedCoupons = uniqueCoupons.map((c) => {
       const isPersonal = Boolean(c.userId || c.userPhone);
       const isFirstOrderCoupon = isPersonal || c.code.startsWith("WELCOME");
       const isEligible = cartTotal >= c.minOrder;
-      const shortfall = isEligible ? 0 : Math.round((c.minOrder - cartTotal) * 100) / 100;
+      const shortfall = isEligible
+        ? 0
+        : Math.round((c.minOrder - cartTotal) * 100) / 100;
 
       let potentialSavings = 0;
       if (c.type === "PERCENTAGE") {
@@ -130,14 +182,20 @@ export async function GET(req: NextRequest) {
           ? "Special welcome offer for your first order!"
           : "Add items to your cart to use your welcome discount!";
       } else if (c.minOrder > 0) {
-        const capText = c.maxDiscount && c.maxDiscount > 0 ? ` up to ₹${c.maxDiscount}` : "";
-        headline = `${c.type === "PERCENTAGE" ? `${c.value}% OFF${capText}` : `₹${c.value} OFF`} (Orders over ₹${c.minOrder.toFixed(0)})`;
+        const capText =
+          c.maxDiscount && c.maxDiscount > 0 ? ` up to ₹${c.maxDiscount}` : "";
+        headline = `${
+          c.type === "PERCENTAGE" ? `${c.value}% OFF${capText}` : `₹${c.value} OFF`
+        } (Orders over ₹${c.minOrder.toFixed(0)})`;
         salesPrompt = isEligible
           ? `You qualify! Save ₹${potentialSavings.toFixed(2)} right now.`
           : `Add ₹${shortfall.toFixed(2)} more to your cart to unlock this deal!`;
       } else {
-        const capText = c.maxDiscount && c.maxDiscount > 0 ? ` (Up to ₹${c.maxDiscount})` : "";
-        headline = `${c.type === "PERCENTAGE" ? `${c.value}% OFF${capText}` : `₹${c.value} OFF`} Everything`;
+        const capText =
+          c.maxDiscount && c.maxDiscount > 0 ? ` (Up to ₹${c.maxDiscount})` : "";
+        headline = `${
+          c.type === "PERCENTAGE" ? `${c.value}% OFF${capText}` : `₹${c.value} OFF`
+        } Everything`;
         salesPrompt = "Storewide discount applicable immediately!";
       }
 
@@ -157,20 +215,20 @@ export async function GET(req: NextRequest) {
         daysLeft,
         salesPrompt,
         badge: isFirstOrderCoupon
-          ? "🎉 First Order Special"
+          ? "🎉 Personal Offer"
           : c.type === "PERCENTAGE"
           ? `${c.value}% OFF${c.maxDiscount ? ` (Cap ₹${c.maxDiscount})` : ""}`
           : `₹${c.value} OFF`,
       };
     });
 
-    // Sort order:
-    // 1. Personal / First-order coupons first
-    // 2. Currently eligible store coupons (highest savings first)
-    // 3. Upsell coupons (lowest shortfall first to maximize upsell conversions)
+    // Sort:
+    // 1. Personal / Account-associated coupons first
+    // 2. Currently eligible store coupons
+    // 3. Upsell coupons
     processedCoupons.sort((a, b) => {
-      if (a.isFirstOrderCoupon && !b.isFirstOrderCoupon) return -1;
-      if (!a.isFirstOrderCoupon && b.isFirstOrderCoupon) return 1;
+      if (a.isPersonal && !b.isPersonal) return -1;
+      if (!a.isPersonal && b.isPersonal) return 1;
 
       if (a.isEligible && !b.isEligible) return -1;
       if (!a.isEligible && b.isEligible) return 1;
@@ -182,16 +240,28 @@ export async function GET(req: NextRequest) {
       return a.shortfall - b.shortfall;
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       cartTotal,
       isLoggedIn: Boolean(userId),
       isFirstOrder: orderCount === 0,
       orderCount,
-      userDiscount: userPurchaseReward?.discount || null,
-      rewardTier: userPurchaseReward?.tier || null,
+      totalSpend,
+      visitCount,
+      userDiscount, // Strictly associated to this account, or null
       coupons: processedCoupons,
     });
+
+    // Increment guest visit count cookie
+    if (!userId) {
+      response.cookies.set("iq_visit_count", String(visitCount + 1), {
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+        path: "/",
+        sameSite: "lax",
+      });
+    }
+
+    return response;
   } catch (error) {
     console.error("Error fetching available discounts:", error);
     return NextResponse.json(

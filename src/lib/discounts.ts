@@ -1,194 +1,177 @@
 import { prisma } from "@/lib/prisma";
 
-export interface UserDiscountReward {
+export interface UserAccountDiscount {
+  id: string;
+  code: string;
+  type: "PERCENTAGE" | "FIXED";
+  value: number;
+  minOrder: number;
+  maxDiscount: number | null;
+  description: string;
+  expiresAt: Date | null;
+}
+
+export interface UserShoppingContext {
+  userId?: string | null;
+  phone?: string | null;
   orderCount: number;
   totalSpend: number;
-  tier: "WELCOME" | "REPEAT" | "LOYAL" | "VIP";
-  discount: {
-    id: string;
-    code: string;
-    type: "PERCENTAGE" | "FIXED";
-    value: number;
-    minOrder: number;
-    maxDiscount: number | null;
-    description: string;
-  };
+  visitCount: number;
+  usedDiscountCodes: Set<string>;
 }
 
 /**
- * Evaluates a user's purchase history and usage to dynamically grant or return
- * the appropriate account-bound discount coupon.
+ * STRICT REQUIREMENT:
+ * "FOR THE DISCOUNT POSTER USE THE DISCOUNT ASSOCIATED TO THAT ACCOUNT DO NOT CREATE ANY NEW COUPONS."
  *
- * Tier 1: 0 purchases -> 10% Welcome Discount (WELCOME10-XXXX)
- * Tier 2: 1 purchase completed -> ₹200 Off 2nd Purchase Reward (REPEAT200-XXXX)
- * Tier 3: 2-4 purchases or ₹4,000+ spend -> 15% Loyalty Privilege (LOYAL15-XXXX)
- * Tier 4: 5+ purchases or ₹8,000+ spend -> 25% VIP Privilege (VIP25-XXXX)
+ * Fetches the active, non-expired, usable discount associated with this specific user account.
+ * DO NOT create any new coupons in the database.
  */
-export async function getOrCreateUserPurchaseDiscount(
+export async function getUserAssociatedDiscount(
   userId: string
-): Promise<UserDiscountReward | null> {
+): Promise<UserAccountDiscount | null> {
   if (!userId) return null;
 
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, name: true, email: true, phone: true },
+      select: {
+        id: true,
+        phone: true,
+        firstDiscountCode: true,
+      },
     });
 
     if (!user) return null;
 
-    // 1. Calculate user purchase history (exclude cancelled orders)
-    const orders = await prisma.order.findMany({
-      where: {
-        userId,
-        status: { not: "CANCELLED" },
-      },
-      select: {
-        id: true,
-        total: true,
-        discountCode: true,
-        status: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const orderCount = orders.length;
-    const totalSpend = orders.reduce((sum, o) => sum + (o.total || 0), 0);
-
-    // 2. Determine reward tier based on purchases and usage
-    let tierName: "WELCOME" | "REPEAT" | "LOYAL" | "VIP" = "WELCOME";
-    let tierConfig: {
-      prefix: string;
-      type: "PERCENTAGE" | "FIXED";
-      value: number;
-      minOrder: number;
-      maxDiscount: number | null;
-      description: string;
-    } = {
-      prefix: "WELCOME10",
-      type: "PERCENTAGE",
-      value: 10,
-      minOrder: 999,
-      maxDiscount: 350,
-      description: "10% Welcome Discount on your first purchase",
-    };
-
-    if (orderCount === 1) {
-      tierName = "REPEAT";
-      tierConfig = {
-        prefix: "REPEAT200",
-        type: "FIXED" as const,
-        value: 200,
-        minOrder: 1799,
-        maxDiscount: null,
-        description: "₹200 Off Second Purchase Privilege",
-      };
-    } else if (orderCount >= 2 && orderCount < 5 && totalSpend < 8000) {
-      tierName = "LOYAL";
-      tierConfig = {
-        prefix: "LOYAL15",
-        type: "PERCENTAGE" as const,
-        value: 15,
-        minOrder: 2199,
-        maxDiscount: 600,
-        description: "15% Loyalty Reward based on your purchase history",
-      };
-    } else if (orderCount >= 5 || totalSpend >= 8000) {
-      tierName = "VIP";
-      tierConfig = {
-        prefix: "VIP25",
-        type: "PERCENTAGE" as const,
-        value: 25,
-        minOrder: 2499,
-        maxDiscount: 1000,
-        description: "25% VIP Privilege for top patrons",
-      };
-    }
-
     const now = new Date();
 
-    // 3. Check existing active personal discounts exclusively linked to this user's account
-    const existingPersonal = await prisma.discount.findMany({
+    // Query active discounts associated with this account (by userId, userPhone, or firstDiscountCode)
+    const orConditions: any[] = [{ userId: user.id }];
+    if (user.phone) {
+      orConditions.push({ userPhone: user.phone });
+    }
+    if (user.firstDiscountCode) {
+      orConditions.push({ code: user.firstDiscountCode });
+    }
+
+    const personalDiscounts = await prisma.discount.findMany({
       where: {
-        userId,
         active: true,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        OR: orConditions,
+        AND: [
+          {
+            OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+          },
+        ],
       },
       orderBy: { createdAt: "desc" },
     });
 
-    // Check for an unused coupon (maxUses === null or usedCount < maxUses)
-    const usable = existingPersonal.find(
+    // Pick the first discount that is still usable (not exceeded maxUses)
+    const usableDiscount = personalDiscounts.find(
       (d) => d.maxUses === null || d.usedCount < d.maxUses
     );
 
-    if (usable) {
-      return {
-        orderCount,
-        totalSpend,
-        tier: tierName,
-        discount: {
-          id: usable.id,
-          code: usable.code,
-          type: usable.type === "PERCENTAGE" ? "PERCENTAGE" : "FIXED",
-          value: Number(usable.value),
-          minOrder: Number(usable.minOrder || 0),
-          maxDiscount: usable.maxDiscount ? Number(usable.maxDiscount) : null,
-          description: usable.description || tierConfig.description,
-        },
-      };
+    if (!usableDiscount) {
+      // User has no active unexpired coupon associated with their account.
+      // Strict rule: DO NOT create any new coupon!
+      return null;
     }
-
-    // 4. If user has used their previous coupon or has no active coupon, generate the new tier coupon
-    const shortId = userId.slice(-4).toUpperCase();
-    const candidateCode = `${tierConfig.prefix}-${shortId}${orderCount > 0 ? `-${orderCount}` : ""}`;
-
-    let uniqueCode = candidateCode;
-    const existingCode = await prisma.discount.findUnique({
-      where: { code: uniqueCode },
-    });
-
-    if (existingCode) {
-      uniqueCode = `${tierConfig.prefix}-${shortId}-${Date.now().toString().slice(-4)}`;
-    }
-
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 45); // 45 days validity
-
-    const newDiscount = await prisma.discount.create({
-      data: {
-        code: uniqueCode,
-        type: tierConfig.type,
-        value: tierConfig.value,
-        minOrder: tierConfig.minOrder,
-        maxDiscount: tierConfig.maxDiscount,
-        maxUses: 1,
-        usedCount: 0,
-        active: true,
-        expiresAt,
-        userId,
-        userPhone: user.phone || null,
-        description: tierConfig.description,
-      },
-    });
 
     return {
-      orderCount,
-      totalSpend,
-      tier: tierName,
-      discount: {
-        id: newDiscount.id,
-        code: newDiscount.code,
-        type: newDiscount.type as "PERCENTAGE" | "FIXED",
-        value: Number(newDiscount.value),
-        minOrder: Number(newDiscount.minOrder),
-        maxDiscount: newDiscount.maxDiscount ? Number(newDiscount.maxDiscount) : null,
-        description: newDiscount.description || tierConfig.description,
-      },
+      id: usableDiscount.id,
+      code: usableDiscount.code,
+      type: usableDiscount.type === "PERCENTAGE" ? "PERCENTAGE" : "FIXED",
+      value: Number(usableDiscount.value),
+      minOrder: Number(usableDiscount.minOrder || 0),
+      maxDiscount: usableDiscount.maxDiscount ? Number(usableDiscount.maxDiscount) : null,
+      description: usableDiscount.description || `${usableDiscount.type === "PERCENTAGE" ? `${usableDiscount.value}%` : `₹${usableDiscount.value}`} OFF exclusive discount for your account`,
+      expiresAt: usableDiscount.expiresAt,
     };
-  } catch (err) {
-    console.error("Error evaluating user purchase discount reward:", err);
+  } catch (error) {
+    console.error("Error fetching user associated discount:", error);
     return null;
   }
+}
+
+/**
+ * Filter public discounts based on user usage, purchases, and visits.
+ * "ON ADMIN PANEL IN DISCOUNT PAGE THERE MAY BE 5 DISCOUNTS DONT SHOW ALL THE DISCOUNTS AVAILABLE TO USERS.
+ * SHOW THEM THE DISCOUNTS BASED ON THEIR USAGES/PURCHASES OR VISITS."
+ */
+export function filterDiscountsForUser(
+  discounts: any[],
+  context: UserShoppingContext
+): any[] {
+  const { orderCount, totalSpend, visitCount, usedDiscountCodes } = context;
+
+  return discounts.filter((d) => {
+    // 1. Check max uses
+    if (d.maxUses !== null && d.usedCount >= d.maxUses) {
+      return false;
+    }
+
+    // 2. Check if user has already redeemed this specific coupon in a past order
+    if (usedDiscountCodes.has(d.code.toUpperCase())) {
+      return false;
+    }
+
+    // 3. Evaluate Target Audience & Purchase Count
+    const audience = d.targetAudience || "ALL";
+
+    // First purchase only
+    if (
+      audience === "FIRST_PURCHASE" ||
+      d.code.startsWith("WELCOME") ||
+      (d.description && d.description.toLowerCase().includes("first order"))
+    ) {
+      if (orderCount > 0) {
+        return false; // User already made a purchase, do not show first purchase discounts
+      }
+    }
+
+    // Repeat buyers only
+    if (audience === "REPEAT_BUYER" || d.code.startsWith("REPEAT")) {
+      if (orderCount < 1) {
+        return false; // User hasn't made a first purchase yet
+      }
+    }
+
+    // Loyal / VIP Patrons only
+    if (
+      audience === "LOYAL_VIP" ||
+      d.code.startsWith("VIP") ||
+      d.code.startsWith("LOYAL") ||
+      (d.minOrder && d.minOrder >= 4000)
+    ) {
+      // High tier discounts only shown to users with 2+ orders or ₹4,000+ spend
+      if (orderCount < 2 && totalSpend < 4000) {
+        return false;
+      }
+    }
+
+    // Returning visitors only
+    if (audience === "RETURNING_VISITOR") {
+      if (visitCount < 2) {
+        return false; // Needs at least 2 visits
+      }
+    }
+
+    // Custom order count limits if defined by admin
+    if (d.minOrders !== null && d.minOrders !== undefined && d.minOrders > 0) {
+      if (orderCount < d.minOrders) return false;
+    }
+
+    if (d.maxOrders !== null && d.maxOrders !== undefined) {
+      if (orderCount > d.maxOrders) return false;
+    }
+
+    // Custom spend limits if defined by admin
+    if (d.minSpend !== null && d.minSpend !== undefined && d.minSpend > 0) {
+      if (totalSpend < d.minSpend) return false;
+    }
+
+    return true;
+  });
 }
