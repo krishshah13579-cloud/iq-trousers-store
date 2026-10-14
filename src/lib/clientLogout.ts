@@ -35,6 +35,12 @@ export async function performLogout(callbackUrl: string = "/") {
     } catch (err) {
       console.error("Failed to clear document cookies:", err);
     }
+
+    try {
+      localStorage.removeItem("iq_last_active_timestamp");
+    } catch {
+      // Ignore storage errors
+    }
   }
 
   // 3. Inform NextAuth of sign out

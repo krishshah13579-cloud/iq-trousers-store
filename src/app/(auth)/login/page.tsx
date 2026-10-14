@@ -58,6 +58,21 @@ function CustomerLoginForm() {
   const [devCode, setDevCode] = useState<string | null>(null);
   const [detectedRole, setDetectedRole] = useState<string | null>(null);
 
+  // Inactivity timeout notification
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isInactive =
+        searchParams.get("reason") === "inactivity" ||
+        sessionStorage.getItem("iq_inactivity_logout") === "true";
+      if (isInactive) {
+        setError(
+          "For your security, you were automatically signed out after 30 minutes of inactivity. Please sign in again."
+        );
+        sessionStorage.removeItem("iq_inactivity_logout");
+      }
+    }
+  }, [searchParams]);
+
   // Countdown timer effect
   useEffect(() => {
     if (countdown <= 0) return;

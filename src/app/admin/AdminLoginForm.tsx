@@ -41,6 +41,21 @@ export default function AdminLoginForm() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [devCode, setDevCode] = useState<string | null>(null);
 
+  // Inactivity timeout notice
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isInactive =
+        window.location.search.includes("reason=inactivity") ||
+        sessionStorage.getItem("iq_inactivity_logout") === "true";
+      if (isInactive) {
+        setError(
+          "Admin session timed out after 30 minutes of inactivity. Please sign in to verify your identity."
+        );
+        sessionStorage.removeItem("iq_inactivity_logout");
+      }
+    }
+  }, []);
+
   // Countdown timer effect
   useEffect(() => {
     if (countdown <= 0) return;
