@@ -5,15 +5,15 @@ import { Ruler, X, Check, ArrowRight } from "lucide-react";
 import { SizeGuideRow } from "@/types";
 
 export const DEFAULT_TROUSER_SIZE_GUIDE: SizeGuideRow[] = [
-  { brandSize: "28", waist: "30", length: "41" },
-  { brandSize: "30", waist: "32", length: "41" },
-  { brandSize: "32", waist: "34", length: "41" },
-  { brandSize: "34", waist: "36", length: "41" },
-  { brandSize: "36", waist: "38", length: "41" },
-  { brandSize: "38", waist: "40", length: "41" },
-  { brandSize: "40", waist: "42", length: "41" },
-  { brandSize: "42", waist: "44", length: "41" },
-  { brandSize: "44", waist: "46", length: "41" },
+  { brandSize: "28", waist: "28", length: "41" },
+  { brandSize: "30", waist: "30", length: "41" },
+  { brandSize: "32", waist: "32", length: "41" },
+  { brandSize: "34", waist: "34", length: "41" },
+  { brandSize: "36", waist: "36", length: "41" },
+  { brandSize: "38", waist: "38", length: "41" },
+  { brandSize: "40", waist: "40", length: "41" },
+  { brandSize: "42", waist: "42", length: "41" },
+  { brandSize: "44", waist: "44", length: "41" },
 ];
 
 /**

@@ -285,49 +285,73 @@ export default function ProductForm({
   const [isDescriptionOpen, setIsDescriptionOpen] = useState(true);
   const [isCareInstructionsOpen, setIsCareInstructionsOpen] = useState(false);
 
-  // Default Standard Size Guide
+  // Default Standard Size Guide (Fixed brand sizes 28–44, editable waist & length)
   const DEFAULT_ADMIN_SIZE_GUIDE: SizeGuideRow[] = [
-    { brandSize: "28", waist: "30", length: "41" },
-    { brandSize: "30", waist: "32", length: "41" },
-    { brandSize: "32", waist: "34", length: "41" },
-    { brandSize: "34", waist: "36", length: "41" },
-    { brandSize: "36", waist: "38", length: "41" },
-    { brandSize: "38", waist: "40", length: "41" },
-    { brandSize: "40", waist: "42", length: "41" },
-    { brandSize: "42", waist: "44", length: "41" },
-    { brandSize: "44", waist: "46", length: "41" },
+    { brandSize: "28", waist: "28", length: "41" },
+    { brandSize: "30", waist: "30", length: "41" },
+    { brandSize: "32", waist: "32", length: "41" },
+    { brandSize: "34", waist: "34", length: "41" },
+    { brandSize: "36", waist: "36", length: "41" },
+    { brandSize: "38", waist: "38", length: "41" },
+    { brandSize: "40", waist: "40", length: "41" },
+    { brandSize: "42", waist: "42", length: "41" },
+    { brandSize: "44", waist: "44", length: "41" },
   ];
 
   const parseInitialSizeGuide = (): SizeGuideRow[] => {
-    if (!initialData?.sizeGuide) return [...DEFAULT_ADMIN_SIZE_GUIDE];
-    if (Array.isArray(initialData.sizeGuide)) return initialData.sizeGuide;
-    try {
-      const parsed = JSON.parse(initialData.sizeGuide);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    } catch {}
-    return [...DEFAULT_ADMIN_SIZE_GUIDE];
+    let existingMap: Record<string, { waist: string; length: string }> = {};
+    if (initialData?.sizeGuide) {
+      try {
+        const parsed = Array.isArray(initialData.sizeGuide)
+          ? initialData.sizeGuide
+          : JSON.parse(initialData.sizeGuide);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((r: any) => {
+            if (r && r.brandSize) {
+              existingMap[String(r.brandSize).trim()] = {
+                waist: String(r.waist ?? ""),
+                length: String(r.length ?? ""),
+              };
+            }
+          });
+        }
+      } catch {}
+    }
+
+    return DEFAULT_ADMIN_SIZE_GUIDE.map((def) => {
+      const match = existingMap[def.brandSize];
+      if (match && match.waist !== undefined && match.waist !== "" && match.length !== undefined && match.length !== "") {
+        return {
+          brandSize: def.brandSize,
+          waist: match.waist,
+          length: match.length,
+        };
+      }
+      return { ...def };
+    });
   };
 
   const [sizeGuideRows, setSizeGuideRows] = useState<SizeGuideRow[]>(parseInitialSizeGuide);
   const [sizeGuideUnit, setSizeGuideUnit] = useState<"IN" | "CM">("IN");
 
-  const handleSizeGuideChange = (index: number, field: keyof SizeGuideRow, value: string) => {
+  const getConvertedEquivalent = (val: string, currentUnit: "IN" | "CM") => {
+    const num = parseFloat(val);
+    if (isNaN(num) || !val.trim()) return "-";
+    if (currentUnit === "IN") {
+      const cm = (num * 2.54).toFixed(1);
+      return `${cm.endsWith(".0") ? cm.slice(0, -2) : cm} cm`;
+    } else {
+      const inch = (num / 2.54).toFixed(1);
+      return `${inch.endsWith(".0") ? inch.slice(0, -2) : inch}"`;
+    }
+  };
+
+  const handleSizeGuideChange = (index: number, field: "waist" | "length", value: string) => {
     setSizeGuideRows((prev) => {
       const copy = [...prev];
       copy[index] = { ...copy[index], [field]: value };
       return copy;
     });
-  };
-
-  const handleAddSizeGuideRow = () => {
-    setSizeGuideRows((prev) => [
-      ...prev,
-      { brandSize: "", waist: "", length: sizeGuideUnit === "CM" ? "104" : "41" },
-    ]);
-  };
-
-  const handleRemoveSizeGuideRow = (index: number) => {
-    setSizeGuideRows((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleToggleSizeGuideUnit = (newUnit: "IN" | "CM") => {
@@ -783,23 +807,19 @@ export default function ProductForm({
       return;
     }
 
-    // Mandatory Size Guide validation: Brand Size, Waist and Length are required for each row
+    // Mandatory Size Guide validation: Waist and Length are required for each size
     if (sizeGuideRows.length === 0) {
-      setError("Size Guide is mandatory. Please provide at least one size row.");
+      setError("Size Guide is mandatory. Please provide all standard sizes.");
       return;
     }
     for (let i = 0; i < sizeGuideRows.length; i++) {
       const row = sizeGuideRows[i];
-      if (!row.brandSize.trim()) {
-        setError(`Brand Size is mandatory for row #${i + 1} in the Size Guide.`);
-        return;
-      }
       if (!row.waist.trim()) {
-        setError(`Waist measurement is mandatory for Size ${row.brandSize || `#${i + 1}`} in the Size Guide.`);
+        setError(`Waist measurement is mandatory for Size ${row.brandSize} in the Size Guide.`);
         return;
       }
       if (!row.length.trim()) {
-        setError(`Length measurement is mandatory for Size ${row.brandSize || `#${i + 1}`} in the Size Guide.`);
+        setError(`Length measurement is mandatory for Size ${row.brandSize} in the Size Guide.`);
         return;
       }
     }
@@ -831,6 +851,25 @@ export default function ProductForm({
         imagesList.map((img) => compressBase64Image(img, 850, 85 * 1024))
       );
 
+      // Ensure size guide rows are saved in canonical inches
+      // so user-side modal/accordions can toggle seamlessly between IN and CM
+      const normalizedSizeGuide = sizeGuideRows.map((row) => {
+        if (sizeGuideUnit === "CM") {
+          const toInches = (val: string) => {
+            const num = parseFloat(val);
+            if (isNaN(num)) return val;
+            const inch = (num / 2.54).toFixed(1);
+            return inch.endsWith(".0") ? inch.slice(0, -2) : inch;
+          };
+          return {
+            brandSize: row.brandSize,
+            waist: toInches(row.waist),
+            length: toInches(row.length),
+          };
+        }
+        return row;
+      });
+
       const payload = {
         ...formData,
         price: cleanPrice,
@@ -840,7 +879,7 @@ export default function ProductForm({
         sizes: selectedSizes,
         colors: selectedColors,
         inventory: inventory,
-        sizeGuide: sizeGuideRows,
+        sizeGuide: normalizedSizeGuide,
       };
 
       const res = await fetch(endpoint, {
@@ -1038,7 +1077,7 @@ export default function ProductForm({
           )}
         </div>
 
-        {/* 3. Product Size Guide (Mandatory - Brand Size, Waist, Length with IN / CM toggle) */}
+        {/* 3. Product Size Guide (Brand Size Fixed, Waist & Length Editable, IN & CM support) */}
         <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-2xs transition-all">
           <div className="w-full px-5 py-4 bg-gray-50/70 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 select-none">
             <div className="flex items-center gap-3">
@@ -1050,12 +1089,12 @@ export default function ProductForm({
                   <h3 className="text-sm font-bold text-gray-900 tracking-tight">
                     Product Size Guide
                   </h3>
-                  <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full uppercase">
-                    Mandatory *
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full uppercase">
+                    Fixed Sizes 28–44
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Brand Size, Waist and Length columns are required for customer fit on product page
+                  Brand sizes are fixed (28 to 44). You can customize Waist and Length in both IN and CM.
                 </p>
               </div>
             </div>
@@ -1095,69 +1134,68 @@ export default function ProductForm({
               <table className="w-full text-left text-xs sm:text-sm">
                 <thead className="bg-gray-50 text-[11px] uppercase font-bold text-gray-700 border-b border-gray-200">
                   <tr>
-                    <th scope="col" className="px-4 py-2.5">
-                      Brand Size *
+                    <th scope="col" className="px-4 py-3">
+                      Brand Size (Fixed)
                     </th>
-                    <th scope="col" className="px-4 py-2.5">
+                    <th scope="col" className="px-4 py-3">
                       Waist ({sizeGuideUnit}) *
                     </th>
-                    <th scope="col" className="px-4 py-2.5">
+                    <th scope="col" className="px-4 py-3">
                       Length ({sizeGuideUnit}) *
-                    </th>
-                    <th scope="col" className="px-4 py-2.5 text-right">
-                      Remove
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {sizeGuideRows.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50/50">
-                      <td className="px-4 py-2">
-                        <input
-                          type="text"
-                          required
-                          value={row.brandSize}
-                          onChange={(e) =>
-                            handleSizeGuideChange(idx, "brandSize", e.target.value)
-                          }
-                          placeholder="e.g. 30"
-                          className="w-full max-w-[120px] px-3 py-1.5 rounded-lg border border-gray-300 text-xs sm:text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-black"
-                        />
+                    <tr key={row.brandSize} className="hover:bg-gray-50/50">
+                      <td className="px-4 py-2.5 whitespace-nowrap">
+                        <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-gray-100 border border-gray-200/80 font-bold text-gray-900 text-xs sm:text-sm min-w-[50px]">
+                          {row.brandSize}
+                        </span>
                       </td>
-                      <td className="px-4 py-2">
-                        <input
-                          type="text"
-                          required
-                          value={row.waist}
-                          onChange={(e) =>
-                            handleSizeGuideChange(idx, "waist", e.target.value)
-                          }
-                          placeholder={`e.g. ${sizeGuideUnit === "CM" ? "76.2" : "30"}`}
-                          className="w-full max-w-[140px] px-3 py-1.5 rounded-lg border border-gray-300 text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-black"
-                        />
+                      <td className="px-4 py-2.5">
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              required
+                              value={row.waist}
+                              onChange={(e) =>
+                                handleSizeGuideChange(idx, "waist", e.target.value)
+                              }
+                              placeholder={`e.g. ${sizeGuideUnit === "CM" ? "71.1" : row.brandSize}`}
+                              className="w-full max-w-[130px] px-3 py-1.5 rounded-lg border border-gray-300 text-xs sm:text-sm font-medium focus:outline-hidden focus:ring-2 focus:ring-black"
+                            />
+                            <span className="text-xs font-semibold text-gray-500">
+                              {sizeGuideUnit}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-gray-400 font-medium">
+                            ≈ {getConvertedEquivalent(row.waist, sizeGuideUnit)}
+                          </span>
+                        </div>
                       </td>
-                      <td className="px-4 py-2">
-                        <input
-                          type="text"
-                          required
-                          value={row.length}
-                          onChange={(e) =>
-                            handleSizeGuideChange(idx, "length", e.target.value)
-                          }
-                          placeholder={`e.g. ${sizeGuideUnit === "CM" ? "104" : "41"}`}
-                          className="w-full max-w-[140px] px-3 py-1.5 rounded-lg border border-gray-300 text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-black"
-                        />
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveSizeGuideRow(idx)}
-                          disabled={sizeGuideRows.length <= 1}
-                          className="p-1.5 text-gray-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                          title="Remove Row"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <td className="px-4 py-2.5">
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              required
+                              value={row.length}
+                              onChange={(e) =>
+                                handleSizeGuideChange(idx, "length", e.target.value)
+                              }
+                              placeholder={`e.g. ${sizeGuideUnit === "CM" ? "104.1" : "41"}`}
+                              className="w-full max-w-[130px] px-3 py-1.5 rounded-lg border border-gray-300 text-xs sm:text-sm font-medium focus:outline-hidden focus:ring-2 focus:ring-black"
+                            />
+                            <span className="text-xs font-semibold text-gray-500">
+                              {sizeGuideUnit}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-gray-400 font-medium">
+                            ≈ {getConvertedEquivalent(row.length, sizeGuideUnit)}
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1166,14 +1204,9 @@ export default function ProductForm({
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <button
-                type="button"
-                onClick={handleAddSizeGuideRow}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-black transition-colors cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Size Row</span>
-              </button>
+              <p className="text-xs text-gray-500">
+                Default preset: 28 28 41, 30 30 41, 32 32 41, 34 34 41, 36 36 41, 38 38 41, 40 40 41, 42 42 41, 44 44 41
+              </p>
 
               <button
                 type="button"
@@ -1183,7 +1216,7 @@ export default function ProductForm({
                 }}
                 className="text-xs text-gray-500 hover:text-gray-900 underline cursor-pointer"
               >
-                Reset to Standard Trouser Sizing (28–44)
+                Reset to Standard Sizing
               </button>
             </div>
           </div>
