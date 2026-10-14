@@ -393,6 +393,21 @@ export default function ProductForm({
     active: initialData?.active ?? true,
   });
 
+  // 25% Off calculation state for admin pricing
+  const [autoApplyDiscount, setAutoApplyDiscount] = useState<boolean>(true);
+
+  const apply25PercentDiscount = (actualPriceInput?: string | number) => {
+    const raw = actualPriceInput !== undefined ? actualPriceInput : formData.comparePrice;
+    const num = parseFloat(String(raw).replace(/[^0-9.]/g, ""));
+    if (!isNaN(num) && num > 0) {
+      const roundedPrice = Math.round(num * 0.75);
+      setFormData((prev) => ({
+        ...prev,
+        price: String(roundedPrice),
+      }));
+    }
+  };
+
   // Sizes parsing
   const parseInitialSizes = (): string[] => {
     if (!initialData?.sizes) return [...CLOTHING_SIZES];
@@ -770,6 +785,19 @@ export default function ProductForm({
     } else if (name === "price" || name === "comparePrice") {
       // Strip currency signs and stray commas cleanly
       cleanValue = value.replace(/[^\d.]/g, "");
+    }
+
+    if (name === "comparePrice" && autoApplyDiscount) {
+      const num = parseFloat(cleanValue);
+      if (!isNaN(num) && num > 0) {
+        const roundedPrice = Math.round(num * 0.75);
+        setFormData((prev) => ({
+          ...prev,
+          comparePrice: cleanValue,
+          price: String(roundedPrice),
+        }));
+        return;
+      }
     }
 
     setFormData((prev) => ({
@@ -1907,34 +1935,42 @@ export default function ProductForm({
         )}
       </div>
 
-      {/* 6. Pricing (INR ₹) */}
+      {/* 6. Pricing & 25% Off Discount (INR ₹) */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-xs space-y-6">
-        <h2 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3">
-          Pricing (₹ INR)
-        </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-100 pb-4">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">
+              Pricing & 25% Off Discount (₹ INR)
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Set the actual price (MRP) and calculate 25% OFF rounded price automatically.
+            </p>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer select-none px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-100 transition-colors">
+            <input
+              type="checkbox"
+              checked={autoApplyDiscount}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setAutoApplyDiscount(checked);
+                if (checked && formData.comparePrice) {
+                  apply25PercentDiscount(formData.comparePrice);
+                }
+              }}
+              className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
+            />
+            <span>Auto 25% OFF (Round off)</span>
+          </label>
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
-              Selling Price (₹) *
-            </label>
-            <input
-              type="number"
-              step="any"
-              min="0"
-              name="price"
-              required
-              value={formData.price}
-              onChange={handleChange}
-              placeholder="1290.00"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black focus:border-transparent transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1.5">
-              Compare at Regular Price (₹)
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700">
+                Actual Price / MRP (₹)
+              </label>
+              <span className="text-[11px] font-medium text-gray-400">Regular Store Price</span>
+            </div>
             <input
               type="number"
               step="any"
@@ -1943,13 +1979,74 @@ export default function ProductForm({
               value={formData.comparePrice}
               onChange={handleChange}
               placeholder="1700.00"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black focus:border-transparent transition-all font-mono"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Original regular price before discount (optional for strikethrough)
+              Original regular price before discount (used for strikethrough & 25% OFF calculation)
+            </p>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700">
+                Selling Price (₹) *
+              </label>
+              {Number(formData.comparePrice) > 0 && (
+                <button
+                  type="button"
+                  onClick={() => apply25PercentDiscount(formData.comparePrice)}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
+                  title="Recalculate 25% OFF on Actual Price (Round off)"
+                >
+                  ⚡ Apply 25% OFF (₹{Math.round(Number(formData.comparePrice) * 0.75)})
+                </button>
+              )}
+            </div>
+            <input
+              type="number"
+              step="any"
+              min="0"
+              name="price"
+              required
+              value={formData.price}
+              onChange={handleChange}
+              placeholder="1275.00"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black focus:border-transparent transition-all font-mono"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Final customer price charged at checkout (can be set manually or via 25% OFF)
             </p>
           </div>
         </div>
+
+        {/* 25% OFF Discount Summary Banner with Round Off Details */}
+        {Number(formData.comparePrice) > 0 && (
+          <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-50 to-emerald-50 border border-amber-200/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2 text-gray-800">
+              <span className="font-extrabold bg-amber-200 text-amber-950 px-2 py-0.5 rounded-md text-[11px] tracking-wide">
+                25% OFF APPLIED
+              </span>
+              <span>
+                Actual: <strong className="font-semibold text-gray-900 font-mono">₹{Number(formData.comparePrice).toLocaleString("en-IN")}</strong>
+                {" − 25% = "}
+                <span className="text-gray-500 font-mono">₹{(Number(formData.comparePrice) * 0.75).toFixed(2)}</span>
+                {" → "}
+                Round off: <strong className="font-bold text-emerald-700 text-sm font-mono">₹{Math.round(Number(formData.comparePrice) * 0.75).toLocaleString("en-IN")}</strong>
+              </span>
+              <span className="text-gray-500 hidden sm:inline">
+                (Customer saves ₹{Math.max(0, Math.round(Number(formData.comparePrice) - Math.round(Number(formData.comparePrice) * 0.75))).toLocaleString("en-IN")})
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => apply25PercentDiscount(formData.comparePrice)}
+              className="px-3 py-1 rounded-lg bg-black text-white font-bold text-xs hover:bg-neutral-800 transition-transform active:scale-95 cursor-pointer shadow-xs"
+            >
+              Set ₹{Math.round(Number(formData.comparePrice) * 0.75).toLocaleString("en-IN")}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 6. Status & Storefront Display */}

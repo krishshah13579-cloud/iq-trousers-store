@@ -205,7 +205,7 @@ export default function HeroCarousel() {
                     {slide.type === "festival" && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-amber-400/20 text-amber-300 border border-amber-400/40">
                         <Flame className="w-3.5 h-3.5 text-amber-400" />
-                        <span>FESTIVE COLLECTION 2026</span>
+                        <span>FESTIVE GALA • FORMAL WEAR</span>
                       </span>
                     )}
 
