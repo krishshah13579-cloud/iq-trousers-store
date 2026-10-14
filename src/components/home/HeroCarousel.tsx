@@ -203,23 +203,23 @@ export default function HeroCarousel() {
                   {/* 2. Distinctive Poster Badge */}
                   <div>
                     {slide.type === "festival" && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-amber-400/20 text-amber-300 border border-amber-400/40">
+                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] font-black tracking-widest uppercase bg-amber-400/20 text-amber-300 border border-amber-400/40 shadow-xs">
                         <Flame className="w-3.5 h-3.5 text-amber-400" />
-                        <span>FESTIVE GALA • FORMAL WEAR</span>
+                        <span>BLACK-TIE BESPOKE • FORMAL WEAR</span>
                       </span>
                     )}
 
                     {slide.type === "discount" && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] font-black tracking-widest uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-xs">
                         <Tag className="w-3.5 h-3.5 text-rose-400" />
-                        <span>EXCLUSIVE PROMOTION • LIMITED TIME</span>
+                        <span>VIP PRIVILEGE • 25% OFF STOREWIDE + VOUCHER</span>
                       </span>
                     )}
 
                     {slide.type === "new-arrival" && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-sky-500/20 text-sky-300 border border-sky-500/40">
+                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] font-black tracking-widest uppercase bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-xs">
                         <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-                        <span>NEW SEASON DROP • AUTUMN/WINTER</span>
+                        <span>STREET EDIT DROP • 4-WAY ADAPTIVE FLEX</span>
                       </span>
                     )}
                   </div>
@@ -227,44 +227,62 @@ export default function HeroCarousel() {
                   {/* 3. Bold, Punchy Billboard Headline */}
                   <div>
                     {slide.type === "festival" && (
-                      <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter text-white uppercase leading-none font-sans drop-shadow-2xl">
-                        THE FESTIVE <span className="text-amber-400">EDIT</span>
+                      <h2 className="text-4xl sm:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter text-white uppercase leading-[0.92] font-sans drop-shadow-2xl">
+                        SHARP ENOUGH TO <br />
+                        <span className="text-amber-400">CUT THE TENSION.</span>
                       </h2>
                     )}
 
                     {slide.type === "discount" && (
-                      <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter text-white uppercase leading-none font-sans drop-shadow-2xl">
-                        FLAT ₹{activeCoupon.value} <span className="text-[#ef4444]">OFF</span>
+                      <h2 className="text-4xl sm:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter text-white uppercase leading-[0.92] font-sans drop-shadow-2xl">
+                        LOOK EXPENSIVE. <br />
+                        <span className="text-[#ef4444]">PAY WAY LESS.</span>
                       </h2>
                     )}
 
                     {slide.type === "new-arrival" && (
-                      <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter text-white uppercase leading-none font-sans drop-shadow-2xl">
-                        AUTUMN <span className="text-neutral-300">WINTER &apos;26</span>
+                      <h2 className="text-4xl sm:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter text-white uppercase leading-[0.92] font-sans drop-shadow-2xl">
+                        TOO COMFORTABLE <br />
+                        <span className="text-sky-400">TO BE THIS HANDSOME.</span>
                       </h2>
                     )}
                   </div>
 
                   {/* 4. Subtitle */}
-                  <p className="text-base sm:text-xl font-bold text-amber-100/90 tracking-tight leading-snug drop-shadow-sm">
-                    {slide.type === "discount" ? (
-                      activeCoupon.minOrder > 0 ? (
-                        <>Valid on orders over ₹{activeCoupon.minOrder.toLocaleString("en-IN")} • Use code at checkout</>
-                      ) : (
-                        <>Storewide instant deduction on all trouser fits</>
-                      )
-                    ) : (
-                      slide.subtitle
+                  <p className="text-base sm:text-lg lg:text-xl font-bold text-amber-100/90 tracking-tight leading-snug drop-shadow-sm max-w-xl">
+                    {slide.type === "festival" && (
+                      <>When your trousers drape this flawlessly, walking in isn&apos;t an arrival — it&apos;s a statement.</>
+                    )}
+                    {slide.type === "discount" && (
+                      <>25% off every single fit + an instant ₹{activeCoupon.value} voucher at checkout. High-tier luxury with zero guilt.</>
+                    )}
+                    {slide.type === "new-arrival" && (
+                      <>Engineered with 360° adaptive stretch. Moves with you all day, never wrinkles, and looks razor-sharp.</>
                     )}
                   </p>
 
-                  {/* 5. Discount Poster: Perforated Luxury Voucher Ticket */}
+                  {/* 5. Festival Poster: Formal Spec Badges */}
+                  {slide.type === "festival" && (
+                    <div className="pt-1 flex flex-wrap gap-2">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-white tracking-wide">
+                        ✦ 100% Worsted Weave
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-white tracking-wide">
+                        ★ Hand-Tailored Ahmedabad Cut
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-white tracking-wide">
+                        ⚡ Razor-Creased Finish
+                      </span>
+                    </div>
+                  )}
+
+                  {/* 5b. Discount Poster: Perforated Luxury Voucher Ticket */}
                   {slide.type === "discount" && (
                     <div className="pt-1 space-y-2">
                       <div className="inline-flex flex-wrap items-center gap-3 p-2.5 sm:p-3 rounded-xl bg-black/60 backdrop-blur-md border border-dashed border-rose-500/80 shadow-xl">
                         <div className="flex flex-col text-left pr-2 border-r border-white/15">
                           <span className="text-[9px] font-black uppercase tracking-widest text-neutral-400">
-                            PROMO CODE
+                            INSTANT VOUCHER
                           </span>
                           <span className="text-base sm:text-lg font-black tracking-widest text-amber-300 font-mono">
                             {activeCoupon.code}
@@ -283,35 +301,35 @@ export default function HeroCarousel() {
                           {copiedCouponCode === activeCoupon.code ? (
                             <>
                               <Check className="w-3.5 h-3.5 stroke-[3]" />
-                              <span>COPIED!</span>
+                              <span>COPIED TO CHECKOUT!</span>
                             </>
                           ) : (
                             <>
                               <Copy className="w-3.5 h-3.5" />
-                              <span>TAP TO COPY</span>
+                              <span>TAP TO COPY & SAVE</span>
                             </>
                           )}
                         </button>
                       </div>
 
                       <p className="text-xs text-neutral-300 font-medium">
-                        + New customers also receive <strong className="text-white">10% OFF</strong> on their first order.
+                        ⚡ Applied automatically at checkout on orders over ₹{activeCoupon.minOrder.toLocaleString("en-IN")}.
                       </p>
                     </div>
                   )}
 
                   {/* 6. New Arrival Poster: Technical Feature Pills */}
-                  {slide.type === "new-arrival" && slide.features && (
+                  {slide.type === "new-arrival" && (
                     <div className="flex flex-wrap gap-2 pt-1">
-                      {slide.features.map((feat) => (
-                        <span
-                          key={feat}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-white tracking-wide shadow-xs"
-                        >
-                          <Check className="w-3 h-3 text-sky-400" />
-                          <span>{feat}</span>
-                        </span>
-                      ))}
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-white tracking-wide shadow-xs">
+                        ⚡ 360° Flex Mobility
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-white tracking-wide shadow-xs">
+                        ✦ Zero-Iron Memory Crease
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-white tracking-wide shadow-xs">
+                        ★ Tailored Ankle Break
+                      </span>
                     </div>
                   )}
 
@@ -322,7 +340,9 @@ export default function HeroCarousel() {
                       className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-white text-neutral-950 font-black text-xs uppercase tracking-widest hover:bg-neutral-200 active:scale-95 transition-all shadow-xl cursor-pointer"
                     >
                       <span>
-                        {slide.type === "discount" ? "SHOP THE SALE" : slide.ctaText}
+                        {slide.type === "festival" && "COMMAND THE ROOM"}
+                        {slide.type === "discount" && "SNAG YOUR FIT"}
+                        {slide.type === "new-arrival" && "MEET YOUR NEW FAVOURITE"}
                       </span>
                       <ArrowRight className="w-4 h-4" />
                     </Link>
