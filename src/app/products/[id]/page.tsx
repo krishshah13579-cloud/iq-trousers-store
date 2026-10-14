@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/utils";
 import ProductImageGallery from "@/components/products/ProductImageGallery";
 import AddToCartSection from "@/components/products/AddToCartSection";
+import DeliveryPincodeChecker from "@/components/products/DeliveryPincodeChecker";
 import ProductDetailsAccordions from "@/components/products/ProductDetailsAccordions";
 import ProductReviewsSection from "@/components/products/ProductReviewsSection";
 import ProductCard from "@/components/products/ProductCard";
@@ -209,10 +210,14 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
             {/* Interactive Add to Cart & Stock Status */}
             <AddToCartSection product={product} />
 
-            {/* Collapsible Accordions: Product Description (Open) & Care Instructions */}
+            {/* Estimated Delivery Date & DTDC Courier by Pincode */}
+            <DeliveryPincodeChecker />
+
+            {/* Collapsible Accordions: Size Guide (Before Product Description!), Product Description & Care Instructions */}
             <ProductDetailsAccordions
               description={product.description}
               careInstructions={product.careInstructions}
+              sizeGuide={product.sizeGuide}
             />
           </div>
         </div>

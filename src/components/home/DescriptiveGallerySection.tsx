@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Product } from "@/types";
 import { formatPrice } from "@/lib/utils";
 import { Heart, ChevronLeft, ChevronRight } from "lucide-react";
@@ -22,57 +22,88 @@ export default function DescriptiveGallerySection({
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { addItem } = useCart();
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Maximize cards displayed to 4
-  const displayProducts = (products || []).slice(0, 4);
+  // Pick up to 8 products for loop carousel
+  const displayProducts = (products || []).slice(0, 8);
+  const totalItems = displayProducts.length;
 
-  const scrollLeft = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -300, behavior: "smooth" });
-    }
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+
+  // Loop navigation: wraps around infinitely
+  const handlePrev = () => {
+    if (totalItems <= 1) return;
+    setCurrentIndex((prev) => (prev - 1 + totalItems) % totalItems);
   };
 
-  const scrollRight = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 300, behavior: "smooth" });
-    }
+  const handleNext = () => {
+    if (totalItems <= 1) return;
+    setCurrentIndex((prev) => (prev + 1) % totalItems);
   };
+
+  // Touch handlers for mobile swipe
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStart === null) return;
+    const touchEnd = e.changedTouches[0].clientX;
+    const diff = touchStart - touchEnd;
+    if (diff > 50) {
+      handleNext();
+    } else if (diff < -50) {
+      handlePrev();
+    }
+    setTouchStart(null);
+  };
+
+  // Compute circular ordered items starting from currentIndex
+  // This guarantees seamless infinite looping without hitting edge stops
+  const circularItems =
+    totalItems > 0
+      ? displayProducts.map((_, idx) => {
+          const itemIdx = (currentIndex + idx) % totalItems;
+          return displayProducts[itemIdx];
+        })
+      : [];
 
   return (
-    <section className="py-14 sm:py-20 bg-white">
+    <section className="py-14 sm:py-20 bg-white select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Centered Royal Navy Title with Carousel Arrows */}
-        <div className="relative flex items-center justify-center mb-10 sm:mb-14">
-          <h2 className="text-3xl sm:text-5xl font-sans font-normal text-[#162082] tracking-tight text-center">
+        {/* Centered Royal Navy Title with Carousel Controls */}
+        <div className="relative flex items-center justify-between sm:justify-center mb-8 sm:mb-12">
+          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-sans font-normal text-[#162082] tracking-tight text-left sm:text-center">
             {title}
           </h2>
 
-          {/* Carousel Arrows (Visible when products exist) */}
-          {displayProducts.length > 0 && (
-            <div className="absolute right-0 hidden sm:flex items-center gap-2">
+          {/* Loop Carousel Controls (Always visible when products exist) */}
+          {totalItems > 1 && (
+            <div className="sm:absolute sm:right-0 flex items-center gap-2">
               <button
                 type="button"
-                onClick={scrollLeft}
-                aria-label={`Previous ${title} products`}
-                className="w-9 h-9 rounded-full border border-gray-200 hover:border-gray-900 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 hover:text-black transition-colors cursor-pointer shadow-2xs"
+                onClick={handlePrev}
+                aria-label={`Previous ${title} items`}
+                title="Previous (Loops around)"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-gray-300 hover:border-gray-900 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 hover:text-black transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
               <button
                 type="button"
-                onClick={scrollRight}
-                aria-label={`Next ${title} products`}
-                className="w-9 h-9 rounded-full border border-gray-200 hover:border-gray-900 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 hover:text-black transition-colors cursor-pointer shadow-2xs"
+                onClick={handleNext}
+                aria-label={`Next ${title} items`}
+                title="Next (Loops around)"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-gray-300 hover:border-gray-900 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 hover:text-black transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
           )}
         </div>
 
-        {/* Product Cards Carousel / Grid */}
-        {displayProducts.length === 0 ? (
+        {/* Product Cards Loop Carousel */}
+        {totalItems === 0 ? (
           <div className="py-12 px-4 text-center bg-gray-50/60 rounded-xl border border-dashed border-gray-200">
             <p className="text-gray-500 text-sm">
               New {title} arrivals coming soon. Check back shortly.
@@ -80,105 +111,133 @@ export default function DescriptiveGallerySection({
           </div>
         ) : (
           <div
-            ref={scrollContainerRef}
-            className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7 overflow-x-auto sm:overflow-visible scroll-smooth pb-4 sm:pb-0 scrollbar-none snap-x snap-mandatory"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            className="relative"
           >
-            {displayProducts.map((product) => {
-              // Parse images
-              let imageUrl = "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600";
-              try {
-                const parsed = JSON.parse(product.images);
-                if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]) {
-                  imageUrl = String(parsed[0]).trim();
-                } else if (typeof parsed === "string" && parsed.trim()) {
-                  imageUrl = parsed.trim();
-                }
-              } catch {
-                if (typeof product.images === "string" && product.images.trim()) {
-                  if (product.images.startsWith("data:")) {
-                    imageUrl = product.images.trim();
-                  } else {
-                    const split = product.images.split(",")[0]?.trim();
-                    if (split) imageUrl = split;
+            {/* Grid showing circular slice of up to 4 items on desktop, 2 on tablet, 1 on mobile */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7 transition-all duration-300 ease-out">
+              {circularItems.slice(0, Math.min(totalItems, 4)).map((product, displayIdx) => {
+                // Parse image
+                let imageUrl =
+                  "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600";
+                try {
+                  const parsed = JSON.parse(product.images);
+                  if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]) {
+                    imageUrl = String(parsed[0]).trim();
+                  } else if (typeof parsed === "string" && parsed.trim()) {
+                    imageUrl = parsed.trim();
+                  }
+                } catch {
+                  if (typeof product.images === "string" && product.images.trim()) {
+                    if (product.images.startsWith("data:")) {
+                      imageUrl = product.images.trim();
+                    } else {
+                      const split = product.images.split(",")[0]?.trim();
+                      if (split) imageUrl = split;
+                    }
                   }
                 }
-              }
 
-              const isWish = isInWishlist(product.id);
+                const isWish = isInWishlist(product.id);
 
-              return (
-                <div
-                  key={product.id}
-                  onMouseEnter={() => setHoveredCard(product.id)}
-                  onMouseLeave={() => setHoveredCard(null)}
-                  className="group relative flex flex-col bg-white border border-gray-300 hover:border-gray-400 transition-all duration-200 flex-shrink-0 sm:flex-shrink w-[260px] sm:w-auto snap-start"
-                >
-                  {/* 1:1 Square Image Container */}
-                  <div className="relative aspect-square w-full overflow-hidden bg-gray-50 border-b border-gray-200">
-                    <Link href={`/products/${product.id}`} className="block w-full h-full">
-                      <img
-                        src={imageUrl}
-                        alt={product.name}
-                        className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-102"
-                        loading="lazy"
-                      />
-                    </Link>
-
-                    {/* Wishlist Button (Top-Right) */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        toggleWishlist(product);
-                      }}
-                      className={`absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-xs transition-all duration-200 shadow-sm cursor-pointer ${
-                        isWish
-                          ? "bg-white text-rose-500 opacity-100 shadow-md scale-105"
-                          : "bg-white/90 text-gray-700 hover:text-rose-500 hover:bg-white opacity-90 sm:opacity-0 sm:group-hover:opacity-100 hover:scale-105"
-                      }`}
-                      title={isWish ? "Remove from Wishlist" : "Add to Wishlist"}
-                      aria-label={isWish ? "Remove from Wishlist" : "Add to Wishlist"}
-                    >
-                      <Heart
-                        className={`w-4 h-4 transition-colors ${
-                          isWish ? "fill-rose-500 text-rose-500" : ""
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  {/* Card Text Area Below Image */}
-                  <div className="p-3.5 sm:p-4 bg-white flex flex-col justify-between flex-1">
-                    <div>
+                return (
+                  <div
+                    key={`${product.id}-${currentIndex}-${displayIdx}`}
+                    onMouseEnter={() => setHoveredCard(product.id)}
+                    onMouseLeave={() => setHoveredCard(null)}
+                    className="group relative flex flex-col bg-white border border-gray-300 hover:border-gray-400 transition-all duration-200 animate-fadeIn"
+                  >
+                    {/* 1:1 Square Image Container */}
+                    <div className="relative aspect-square w-full overflow-hidden bg-gray-50 border-b border-gray-200">
                       <Link
                         href={`/products/${product.id}`}
-                        className="block text-[#284898] hover:text-[#162082] text-sm font-normal tracking-wide transition-colors"
+                        className="block w-full h-full"
                       >
-                        {product.name}
+                        <img
+                          src={imageUrl}
+                          alt={product.name}
+                          className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-102"
+                          loading="lazy"
+                        />
                       </Link>
 
-                      {/* Price Line: Strikethrough compare price + sale price */}
-                      <div className="mt-1 flex items-baseline gap-2 text-xs sm:text-sm">
-                        {product.comparePrice && product.comparePrice > product.price && (
-                          <span className="line-through text-gray-400 font-light">
-                            {formatPrice(product.comparePrice)}
+                      {/* Wishlist Button (Top-Right) */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleWishlist(product);
+                        }}
+                        className={`absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-xs transition-all duration-200 shadow-sm cursor-pointer ${
+                          isWish
+                            ? "bg-white text-rose-500 opacity-100 shadow-md scale-105"
+                            : "bg-white/90 text-gray-700 hover:text-rose-500 hover:bg-white opacity-90 sm:opacity-0 sm:group-hover:opacity-100 hover:scale-105"
+                        }`}
+                        title={isWish ? "Remove from Wishlist" : "Add to Wishlist"}
+                        aria-label={isWish ? "Remove from Wishlist" : "Add to Wishlist"}
+                      >
+                        <Heart
+                          className={`w-4 h-4 transition-colors ${
+                            isWish ? "fill-rose-500 text-rose-500" : ""
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Card Text Area Below Image */}
+                    <div className="p-3.5 sm:p-4 bg-white flex flex-col justify-between flex-1">
+                      <div>
+                        <Link
+                          href={`/products/${product.id}`}
+                          className="block text-[#284898] hover:text-[#162082] text-sm font-normal tracking-wide transition-colors line-clamp-1"
+                        >
+                          {product.name}
+                        </Link>
+
+                        {/* Price Line: Strikethrough compare price + sale price */}
+                        <div className="mt-1 flex items-baseline gap-2 text-xs sm:text-sm">
+                          {product.comparePrice &&
+                            product.comparePrice > product.price && (
+                              <span className="line-through text-gray-400 font-light">
+                                {formatPrice(product.comparePrice)}
+                              </span>
+                            )}
+                          <span className="text-gray-900 font-normal">
+                            {formatPrice(product.price)}
                           </span>
-                        )}
-                        <span className="text-gray-900 font-normal">
-                          {formatPrice(product.price)}
-                        </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+
+            {/* Loop Carousel Indicator Dots */}
+            {totalItems > 1 && (
+              <div className="flex items-center justify-center gap-1.5 mt-6 sm:mt-8">
+                {displayProducts.map((_, dotIdx) => (
+                  <button
+                    key={dotIdx}
+                    type="button"
+                    onClick={() => setCurrentIndex(dotIdx)}
+                    aria-label={`Jump to ${title} item ${dotIdx + 1}`}
+                    className={`h-2 rounded-full transition-all duration-200 cursor-pointer ${
+                      currentIndex === dotIdx
+                        ? "w-6 bg-[#0d1b74]"
+                        : "w-2 bg-gray-300 hover:bg-gray-400"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {/* Centered Royal Navy "Shop Now" Button */}
-        <div className="mt-10 sm:mt-14 flex justify-center">
+        <div className="mt-8 sm:mt-12 flex justify-center">
           <Link
             href={`/products?category=${slug}`}
             className="inline-flex items-center justify-center px-12 py-3 bg-[#0d1b74] hover:bg-[#081254] text-white text-xs sm:text-sm font-medium tracking-wide transition-colors shadow-xs active:scale-98 cursor-pointer"

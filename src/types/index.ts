@@ -12,6 +12,12 @@ export const CLOTHING_SIZES = [
 
 export type ClothingSize = (typeof CLOTHING_SIZES)[number];
 
+export interface SizeGuideRow {
+  brandSize: string;
+  waist: string;
+  length: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -24,6 +30,7 @@ export interface Product {
   sizes?: string | null; // JSON array string e.g. '["28","30","32"]'
   colors?: string | null; // JSON array string e.g. '["Navy Blue","Charcoal"]'
   inventory?: string | null; // JSON map string e.g. '{"Navy Blue":{"30":10,"32":15}}'
+  sizeGuide?: string | null; // JSON array string e.g. '[{"brandSize":"30","waist":"30","length":"41"}]'
   categoryId: string;
   category?: Category;
   stock: number;

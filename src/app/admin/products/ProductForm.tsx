@@ -27,8 +27,9 @@ import {
   ChevronRight,
   FileText,
   Shirt,
+  Ruler,
 } from "lucide-react";
-import { Category, CLOTHING_SIZES } from "@/types";
+import { Category, CLOTHING_SIZES, SizeGuideRow } from "@/types";
 
 // Standard Trouser & Formal Color Presets
 const PRESET_COLORS = [
@@ -58,6 +59,7 @@ interface ProductFormData {
   sizes?: string | string[];
   colors?: string | string[];
   inventory?: string | Record<string, Record<string, number>>;
+  sizeGuide?: string | SizeGuideRow[];
   featured: boolean;
   active: boolean;
 }
@@ -282,6 +284,76 @@ export default function ProductForm({
   // Collapsible Accordions (Description open by default, Care Instructions closed by default)
   const [isDescriptionOpen, setIsDescriptionOpen] = useState(true);
   const [isCareInstructionsOpen, setIsCareInstructionsOpen] = useState(false);
+
+  // Default Standard Size Guide
+  const DEFAULT_ADMIN_SIZE_GUIDE: SizeGuideRow[] = [
+    { brandSize: "28", waist: "30", length: "41" },
+    { brandSize: "30", waist: "32", length: "41" },
+    { brandSize: "32", waist: "34", length: "41" },
+    { brandSize: "34", waist: "36", length: "41" },
+    { brandSize: "36", waist: "38", length: "41" },
+    { brandSize: "38", waist: "40", length: "41" },
+    { brandSize: "40", waist: "42", length: "41" },
+    { brandSize: "42", waist: "44", length: "41" },
+    { brandSize: "44", waist: "46", length: "41" },
+  ];
+
+  const parseInitialSizeGuide = (): SizeGuideRow[] => {
+    if (!initialData?.sizeGuide) return [...DEFAULT_ADMIN_SIZE_GUIDE];
+    if (Array.isArray(initialData.sizeGuide)) return initialData.sizeGuide;
+    try {
+      const parsed = JSON.parse(initialData.sizeGuide);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {}
+    return [...DEFAULT_ADMIN_SIZE_GUIDE];
+  };
+
+  const [sizeGuideRows, setSizeGuideRows] = useState<SizeGuideRow[]>(parseInitialSizeGuide);
+  const [sizeGuideUnit, setSizeGuideUnit] = useState<"IN" | "CM">("IN");
+
+  const handleSizeGuideChange = (index: number, field: keyof SizeGuideRow, value: string) => {
+    setSizeGuideRows((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
+  };
+
+  const handleAddSizeGuideRow = () => {
+    setSizeGuideRows((prev) => [
+      ...prev,
+      { brandSize: "", waist: "", length: sizeGuideUnit === "CM" ? "104" : "41" },
+    ]);
+  };
+
+  const handleRemoveSizeGuideRow = (index: number) => {
+    setSizeGuideRows((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleToggleSizeGuideUnit = (newUnit: "IN" | "CM") => {
+    if (newUnit === sizeGuideUnit) return;
+    setSizeGuideRows((prev) =>
+      prev.map((row) => {
+        const convertVal = (val: string) => {
+          const num = parseFloat(val);
+          if (isNaN(num)) return val;
+          if (newUnit === "CM") {
+            const cm = (num * 2.54).toFixed(1);
+            return cm.endsWith(".0") ? cm.slice(0, -2) : cm;
+          } else {
+            const inch = (num / 2.54).toFixed(1);
+            return inch.endsWith(".0") ? inch.slice(0, -2) : inch;
+          }
+        };
+        return {
+          brandSize: row.brandSize,
+          waist: convertVal(row.waist),
+          length: convertVal(row.length),
+        };
+      })
+    );
+    setSizeGuideUnit(newUnit);
+  };
 
   // Form base state
   const [formData, setFormData] = useState({
@@ -711,6 +783,27 @@ export default function ProductForm({
       return;
     }
 
+    // Mandatory Size Guide validation: Brand Size, Waist and Length are required for each row
+    if (sizeGuideRows.length === 0) {
+      setError("Size Guide is mandatory. Please provide at least one size row.");
+      return;
+    }
+    for (let i = 0; i < sizeGuideRows.length; i++) {
+      const row = sizeGuideRows[i];
+      if (!row.brandSize.trim()) {
+        setError(`Brand Size is mandatory for row #${i + 1} in the Size Guide.`);
+        return;
+      }
+      if (!row.waist.trim()) {
+        setError(`Waist measurement is mandatory for Size ${row.brandSize || `#${i + 1}`} in the Size Guide.`);
+        return;
+      }
+      if (!row.length.trim()) {
+        setError(`Length measurement is mandatory for Size ${row.brandSize || `#${i + 1}`} in the Size Guide.`);
+        return;
+      }
+    }
+
     setSubmitting(true);
 
     try {
@@ -747,6 +840,7 @@ export default function ProductForm({
         sizes: selectedSizes,
         colors: selectedColors,
         inventory: inventory,
+        sizeGuide: sizeGuideRows,
       };
 
       const res = await fetch(endpoint, {
@@ -942,6 +1036,157 @@ export default function ProductForm({
               </p>
             </div>
           )}
+        </div>
+
+        {/* 3. Product Size Guide (Mandatory - Brand Size, Waist, Length with IN / CM toggle) */}
+        <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-2xs transition-all">
+          <div className="w-full px-5 py-4 bg-gray-50/70 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 select-none">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-white border border-gray-200 text-[#162082] shadow-2xs">
+                <Ruler className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-gray-900 tracking-tight">
+                    Product Size Guide
+                  </h3>
+                  <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full uppercase">
+                    Mandatory *
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Brand Size, Waist and Length columns are required for customer fit on product page
+                </p>
+              </div>
+            </div>
+
+            {/* Unit Toggle: IN or CM */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-gray-700">Unit:</span>
+              <div className="inline-flex rounded-lg bg-gray-200/70 p-0.5 border border-gray-300/80">
+                <button
+                  type="button"
+                  onClick={() => handleToggleSizeGuideUnit("IN")}
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                    sizeGuideUnit === "IN"
+                      ? "bg-white text-gray-900 shadow-2xs"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  IN (Inches)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleToggleSizeGuideUnit("CM")}
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                    sizeGuideUnit === "CM"
+                      ? "bg-white text-gray-900 shadow-2xs"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  CM (Centimeters)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-5 space-y-4">
+            <div className="overflow-x-auto rounded-xl border border-gray-200">
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead className="bg-gray-50 text-[11px] uppercase font-bold text-gray-700 border-b border-gray-200">
+                  <tr>
+                    <th scope="col" className="px-4 py-2.5">
+                      Brand Size *
+                    </th>
+                    <th scope="col" className="px-4 py-2.5">
+                      Waist ({sizeGuideUnit}) *
+                    </th>
+                    <th scope="col" className="px-4 py-2.5">
+                      Length ({sizeGuideUnit}) *
+                    </th>
+                    <th scope="col" className="px-4 py-2.5 text-right">
+                      Remove
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {sizeGuideRows.map((row, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50/50">
+                      <td className="px-4 py-2">
+                        <input
+                          type="text"
+                          required
+                          value={row.brandSize}
+                          onChange={(e) =>
+                            handleSizeGuideChange(idx, "brandSize", e.target.value)
+                          }
+                          placeholder="e.g. 30"
+                          className="w-full max-w-[120px] px-3 py-1.5 rounded-lg border border-gray-300 text-xs sm:text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-black"
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <input
+                          type="text"
+                          required
+                          value={row.waist}
+                          onChange={(e) =>
+                            handleSizeGuideChange(idx, "waist", e.target.value)
+                          }
+                          placeholder={`e.g. ${sizeGuideUnit === "CM" ? "76.2" : "30"}`}
+                          className="w-full max-w-[140px] px-3 py-1.5 rounded-lg border border-gray-300 text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-black"
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <input
+                          type="text"
+                          required
+                          value={row.length}
+                          onChange={(e) =>
+                            handleSizeGuideChange(idx, "length", e.target.value)
+                          }
+                          placeholder={`e.g. ${sizeGuideUnit === "CM" ? "104" : "41"}`}
+                          className="w-full max-w-[140px] px-3 py-1.5 rounded-lg border border-gray-300 text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-black"
+                        />
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSizeGuideRow(idx)}
+                          disabled={sizeGuideRows.length <= 1}
+                          className="p-1.5 text-gray-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                          title="Remove Row"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <button
+                type="button"
+                onClick={handleAddSizeGuideRow}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-black transition-colors cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Size Row</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSizeGuideRows([...DEFAULT_ADMIN_SIZE_GUIDE]);
+                  setSizeGuideUnit("IN");
+                }}
+                className="text-xs text-gray-500 hover:text-gray-900 underline cursor-pointer"
+              >
+                Reset to Standard Trouser Sizing (28–44)
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">

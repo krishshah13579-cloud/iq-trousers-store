@@ -180,6 +180,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Process size guide
+    let sizeGuideJson = "[]";
+    const rawSizeGuide = body.sizeGuide;
+    if (rawSizeGuide) {
+      if (Array.isArray(rawSizeGuide)) {
+        sizeGuideJson = JSON.stringify(rawSizeGuide);
+      } else if (typeof rawSizeGuide === "string") {
+        try {
+          const parsed = JSON.parse(rawSizeGuide);
+          sizeGuideJson = Array.isArray(parsed) ? JSON.stringify(parsed) : "[]";
+        } catch {
+          sizeGuideJson = "[]";
+        }
+      }
+    }
+
     const product = await prisma.product.create({
       data: {
         name,
@@ -194,6 +210,7 @@ export async function POST(req: NextRequest) {
         sizes: sizesJson,
         colors: colorsJson,
         inventory: inventoryJson,
+        sizeGuide: sizeGuideJson,
         featured: Boolean(featured),
         active: active !== undefined ? Boolean(active) : true,
       },

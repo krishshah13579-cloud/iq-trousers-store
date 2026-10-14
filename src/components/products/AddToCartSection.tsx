@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { ShoppingCart, Plus, Minus, Check, AlertCircle, Zap, Heart } from "lucide-react";
-import { Product } from "@/types";
+import { ShoppingCart, Plus, Minus, Check, AlertCircle, Zap, Heart, Ruler } from "lucide-react";
+import { Product, SizeGuideRow } from "@/types";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
+import SizeGuideModal from "./SizeGuideModal";
 
 function getColorHex(colorName: string): { hex: string; isLight: boolean } {
   const norm = colorName.trim().toLowerCase();
@@ -83,6 +84,16 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
   const [sizeError, setSizeError] = useState(false);
   const [colorError, setColorError] = useState(false);
   const [added, setAdded] = useState(false);
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+
+  const parsedSizeGuide: SizeGuideRow[] | null = (() => {
+    if (!product.sizeGuide) return null;
+    try {
+      const parsed = JSON.parse(product.sizeGuide);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {}
+    return null;
+  })();
 
   const availableSizes: string[] = (() => {
     if (!product.sizes) {
@@ -401,6 +412,14 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                     </span>
                   )}
                 </label>
+                <button
+                  type="button"
+                  onClick={() => setIsSizeGuideOpen(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#162082] hover:text-black hover:underline transition-colors cursor-pointer"
+                >
+                  <Ruler className="w-3.5 h-3.5" />
+                  <span>Size Guide</span>
+                </button>
               </div>
               <div className="flex flex-wrap gap-2">
                 {availableSizes.map((size) => {
@@ -554,6 +573,18 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
           </button>
         </div>
       )}
+
+      {/* Size Guide Modal Popup */}
+      <SizeGuideModal
+        isOpen={isSizeGuideOpen}
+        onClose={() => setIsSizeGuideOpen(false)}
+        rows={parsedSizeGuide}
+        selectedSize={selectedSize || undefined}
+        onSelectSize={(s) => {
+          setSelectedSize(s);
+          setSizeError(false);
+        }}
+      />
     </div>
   );
 }

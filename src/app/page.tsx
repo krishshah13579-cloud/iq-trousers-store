@@ -6,7 +6,7 @@ import DescriptiveGallerySection from "@/components/home/DescriptiveGallerySecti
 export const dynamic = "force-dynamic";
 export const revalidate = 0; // Ensure fresh product data
 
-function getRandomProducts<T>(items: T[], max = 4): T[] {
+function getRandomProducts<T>(items: T[], max = 8): T[] {
   if (!items || items.length === 0) return [];
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i--) {
@@ -52,7 +52,7 @@ export default async function HomePage() {
           key={category.id || category.slug}
           title={category.name}
           slug={category.slug}
-          products={getRandomProducts(category.products || [], 4)}
+          products={getRandomProducts(category.products || [], 8)}
         />
       ))}
     </div>

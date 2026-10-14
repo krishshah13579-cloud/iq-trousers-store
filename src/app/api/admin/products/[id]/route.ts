@@ -165,6 +165,21 @@ export async function PUT(req: NextRequest, { params }: Params) {
       }
     }
 
+    // Process size guide
+    let sizeGuideJson = existingProduct.sizeGuide || "[]";
+    if (body.sizeGuide !== undefined) {
+      if (Array.isArray(body.sizeGuide)) {
+        sizeGuideJson = JSON.stringify(body.sizeGuide);
+      } else if (typeof body.sizeGuide === "string") {
+        try {
+          const parsed = JSON.parse(body.sizeGuide);
+          sizeGuideJson = Array.isArray(parsed) ? JSON.stringify(parsed) : "[]";
+        } catch {
+          sizeGuideJson = "[]";
+        }
+      }
+    }
+
     const updated = await prisma.product.update({
       where: { id },
       data: {
@@ -191,6 +206,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
         }),
         colors: colorsJson,
         ...(inventoryJson !== undefined && { inventory: inventoryJson }),
+        ...(body.sizeGuide !== undefined && { sizeGuide: sizeGuideJson }),
         ...(featured !== undefined && { featured: Boolean(featured) }),
         ...(active !== undefined && { active: Boolean(active) }),
       },
