@@ -257,7 +257,7 @@ export const MONTHLY_CAMPAIGNS: MonthCampaignConfig[] = [
       title: "SUMMER SAVINGS SPREE",
       subtitle: "Save Extra with Instant Coupon on Handcrafted Trousers",
       description:
-        "Beat the heat with massive summer discounts. Premium stretch trousers shipped within 48 hours directly from our Ahmedabad workshop.",
+        "Beat the heat with massive summer discounts. Premium stretch trousers shipped within 48 hours directly to your doorstep.",
       couponCode: "FLAT100",
       couponOffer: "FLAT ₹100 OFF • Use Code: FLAT100",
       ctaText: "Shop Summer Sale",
@@ -472,7 +472,7 @@ export const MONTHLY_CAMPAIGNS: MonthCampaignConfig[] = [
       title: "PREMIUM DESIGN SHOULDN'T REQUIRE A PREMIUM MARKUP",
       subtitle: "25% Off Storewide + Instant ₹100 Off with Exclusive Voucher",
       description:
-        "Our biggest festive promotion of the year. Save 25% on every pair, with complimentary DTDC express dispatch from our Ahmedabad warehouse directly to your doorstep.",
+        "Our biggest festive promotion of the year. Save 25% on every pair, with complimentary DTDC express dispatch directly to your doorstep.",
       couponCode: "FLAT100",
       couponOffer: "FLAT ₹100 OFF • Code: FLAT100",
       ctaText: "Claim Diwali Discount",

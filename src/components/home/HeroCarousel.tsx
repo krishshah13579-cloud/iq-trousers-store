@@ -185,22 +185,17 @@ export default function HeroCarousel() {
               {/* Poster Foreground Content */}
               <div className="relative h-full max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 flex items-center">
                 <div className="max-w-xl lg:max-w-2xl py-6 sm:py-8 space-y-2.5 sm:space-y-3">
-                  {/* 1. Official Company Branding Lockup (Trouser & Formal Pant Manufacturer) */}
+                  {/* 1. Official Company Branding Lockup */}
                   <div className="flex items-center gap-2.5">
                     <div className="bg-[#b91c1c] text-white font-black text-xs px-2.5 py-1 tracking-widest uppercase rounded-xs shadow-md font-sans">
                       IQ
                     </div>
                     <div className="flex flex-col text-left">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs sm:text-sm font-black tracking-widest text-white uppercase font-sans">
-                          IQ TROUSERS
-                        </span>
-                        <span className="px-1.5 py-0.5 rounded-xs bg-amber-400/20 text-amber-300 border border-amber-400/40 text-[9px] font-black tracking-wider uppercase">
-                          MANUFACTURER DIRECT
-                        </span>
-                      </div>
+                      <span className="text-xs sm:text-sm font-black tracking-widest text-white uppercase font-sans">
+                        IQ TROUSERS
+                      </span>
                       <span className="text-[9px] sm:text-[10px] tracking-widest text-neutral-400 uppercase font-medium">
-                        AHMEDABAD TEXTILE MILLS • TROUSERS &amp; FORMAL PANTS
+                        THE ORIGINAL FIT • PREMIUM TROUSERS &amp; FORMAL PANTS
                       </span>
                     </div>
                   </div>
@@ -210,21 +205,21 @@ export default function HeroCarousel() {
                     {slide.type === "festival" && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-amber-400/20 text-amber-300 border border-amber-400/40 shadow-xs">
                         <Flame className="w-3.5 h-3.5 text-amber-400" />
-                        <span>IN-HOUSE TROUSER MILL • BESPOKE FORMAL PANTS</span>
+                        <span>SIGNATURE BESPOKE • LUXURY FORMAL PANTS</span>
                       </span>
                     )}
 
                     {slide.type === "discount" && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-xs">
                         <Tag className="w-3.5 h-3.5 text-rose-400" />
-                        <span>FACTORY-DIRECT PRIVILEGE • 25% OFF HONEST MAKER PRICING</span>
+                        <span>VIP PRIVILEGE • 25% OFF STOREWIDE + VOUCHER</span>
                       </span>
                     )}
 
                     {slide.type === "new-arrival" && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-xs">
                         <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-                        <span>100% DEDICATED TROUSER &amp; PANT SPECIALISTS</span>
+                        <span>SIGNATURE CASUALS • 4-WAY ADAPTIVE FLEX</span>
                       </span>
                     )}
                   </div>
@@ -234,7 +229,7 @@ export default function HeroCarousel() {
                     {slide.type === "festival" && (
                       <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[42px] font-black tracking-tighter text-white uppercase leading-[0.95] font-sans drop-shadow-2xl">
                         MASTER-CRAFTED FORMAL PANTS. <br />
-                        <span className="text-amber-400">DIRECT FROM OUR MILL.</span>
+                        <span className="text-amber-400">CUT TO COMMAND THE ROOM.</span>
                       </h2>
                     )}
 
@@ -256,13 +251,13 @@ export default function HeroCarousel() {
                   {/* 4. Subtitle */}
                   <p className="text-xs sm:text-[13px] md:text-sm font-bold text-amber-100/90 tracking-tight leading-snug drop-shadow-sm max-w-md sm:max-w-lg line-clamp-2">
                     {slide.type === "festival" && (
-                      <>Every pair of formal pants is precision-patterned, mill-woven, and hand-creased in our Ahmedabad workshop. True maker craftsmanship—no retail markup.</>
+                      <>When your trousers drape this flawlessly, walking in isn&apos;t an arrival — it&apos;s a statement. Tailored for black-tie elegance.</>
                     )}
                     {slide.type === "discount" && (
-                      <>By manufacturing in-house, we eliminate showroom commissions. Get ₹3,500+ luxury-grade formal pants direct from the workshop with 25% off + ₹{activeCoupon.value} voucher.</>
+                      <>25% off every pair of premium trousers and formal pants + instant ₹{activeCoupon.value} voucher applied at checkout.</>
                     )}
                     {slide.type === "new-arrival" && (
-                      <>We manufacture only trousers and formal pants. Decades of dedicated pattern engineering deliver an immaculate silhouette and all-day 360° adaptive flex.</>
+                      <>Engineered with 360° adaptive stretch. Moves with you all day, never wrinkles, and holds its razor-sharp fit.</>
                     )}
                   </p>
 
@@ -270,10 +265,10 @@ export default function HeroCarousel() {
                   {slide.type === "festival" && (
                     <div className="pt-0.5 flex flex-wrap gap-1.5">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide">
-                        ✦ In-House Worsted Weave
+                        ✦ 100% Fine Worsted Weave
                       </span>
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide">
-                        ★ Ahmedabad Master Tailoring
+                        ★ Precision Tailored Silhouette
                       </span>
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide">
                         ⚡ Permanent Razor-Creased Drape
@@ -287,7 +282,7 @@ export default function HeroCarousel() {
                       <div className="inline-flex flex-wrap items-center gap-2.5 p-2 rounded-lg bg-black/60 backdrop-blur-md border border-dashed border-rose-500/80 shadow-md">
                         <div className="flex flex-col text-left pr-2 border-r border-white/15">
                           <span className="text-[8px] font-black uppercase tracking-widest text-neutral-400">
-                            DIRECT MAKER VOUCHER
+                            INSTANT VOUCHER
                           </span>
                           <span className="text-sm sm:text-base font-black tracking-widest text-amber-300 font-mono">
                             {activeCoupon.code}
@@ -318,7 +313,7 @@ export default function HeroCarousel() {
                       </div>
 
                       <p className="text-[11px] text-neutral-300 font-medium">
-                        ⚡ Direct manufacturer discount applied at checkout on orders over ₹{activeCoupon.minOrder.toLocaleString("en-IN")}.
+                        ⚡ Applied automatically at checkout on orders over ₹{activeCoupon.minOrder.toLocaleString("en-IN")}.
                       </p>
                     </div>
                   )}
@@ -327,13 +322,13 @@ export default function HeroCarousel() {
                   {slide.type === "new-arrival" && (
                     <div className="flex flex-wrap gap-1.5 pt-0.5">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide shadow-xs">
-                        ✦ Specialized Trouser Mills
+                        ⚡ 360° Flex Mobility
                       </span>
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide shadow-xs">
-                        ★ High-Density Safety Seams
+                        ✦ Zero-Iron Memory Crease
                       </span>
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide shadow-xs">
-                        ⚡ 360° Adaptive Formal Stretch
+                        ★ Tailored Ankle Break
                       </span>
                     </div>
                   )}
@@ -346,15 +341,15 @@ export default function HeroCarousel() {
                     >
                       <span>
                         {slide.type === "festival" && "EXPLORE FORMAL PANTS"}
-                        {slide.type === "discount" && "CLAIM FACTORY PRICING"}
-                        {slide.type === "new-arrival" && "SHOP OUR TROUSERS"}
+                        {slide.type === "discount" && "SNAG YOUR FIT"}
+                        {slide.type === "new-arrival" && "EXPLORE SIGNATURE FITS"}
                       </span>
                       <ArrowRight className="w-4 h-4" />
                     </Link>
 
                     <span className="text-xs font-bold tracking-widest text-neutral-400 uppercase hidden sm:inline-flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Direct From Mill • Pan-India DTDC Express</span>
+                      <span>Pan-India DTDC Express</span>
                     </span>
                   </div>
                 </div>
@@ -388,34 +383,25 @@ export default function HeroCarousel() {
           <ChevronRight className="w-5 h-5" />
         </button>
 
-        {/* Bottom Interactive Lookbook Tabs (01 Festive • 02 Sale • 03 New In) */}
-        <div className="absolute bottom-3 sm:bottom-4 inset-x-0 z-20 flex items-center justify-center gap-2 sm:gap-2.5 px-4">
-          {slides.map((s, index) => {
+        {/* Minimal Slide Indicators */}
+        <div className="absolute bottom-3 sm:bottom-4 inset-x-0 z-20 flex items-center justify-center gap-2 px-4 pointer-events-auto">
+          {slides.map((_, index) => {
             const isActive = index === current;
             return (
               <button
                 type="button"
-                key={s.id}
+                key={index}
                 onClick={(e) => {
                   e.stopPropagation();
                   goToSlide(index);
                 }}
-                aria-label={`Switch to ${s.tabTitle}`}
-                className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[11px] font-bold transition-all duration-300 flex items-center gap-1.5 shadow-lg backdrop-blur-md cursor-pointer select-none active:scale-95 ${
+                aria-label={`Slide ${index + 1}`}
+                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
                   isActive
-                    ? "bg-white text-neutral-950 scale-105 border border-white shadow-amber-400/20"
-                    : "bg-black/60 text-neutral-300 hover:text-white hover:bg-black/80 border border-white/15 hover:border-white/30"
+                    ? "w-8 bg-white shadow-md shadow-white/30"
+                    : "w-2 bg-white/40 hover:bg-white/70"
                 }`}
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                    isActive ? "bg-amber-500 animate-pulse" : "bg-neutral-400"
-                  }`}
-                />
-                <span className="tracking-widest uppercase text-[10px] sm:text-[11px]">
-                  0{index + 1} • {s.tabTitle}
-                </span>
-              </button>
+              />
             );
           })}
         </div>
