@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Truck, MapPin, CheckCircle2, AlertCircle, Clock, ShieldCheck } from "lucide-react";
+import { Truck, MapPin, CheckCircle2, AlertCircle } from "lucide-react";
 import { getDTDCCourierRate } from "@/lib/shipping";
 
 interface DeliveryPincodeCheckerProps {
@@ -173,7 +173,7 @@ export default function DeliveryPincodeChecker({ className = "" }: DeliveryPinco
               Estimated Delivery
             </h4>
             <p className="text-[11px] text-gray-500">
-              Dispatched from Ahmedabad warehouse (2 processing days)
+              Enter your pincode to check delivery date
             </p>
           </div>
         </div>
@@ -226,7 +226,7 @@ export default function DeliveryPincodeChecker({ className = "" }: DeliveryPinco
           <div className="flex items-center gap-4 text-[11px] text-gray-500 pt-1">
             <span className="flex items-center gap-1">
               <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-              Pan-India DTDC Network
+              Pan-India Delivery
             </span>
             <span className="flex items-center gap-1">
               <CheckCircle2 className="w-3 h-3 text-emerald-600" />
@@ -235,41 +235,17 @@ export default function DeliveryPincodeChecker({ className = "" }: DeliveryPinco
           </div>
         </form>
       ) : (
-        <div className="space-y-3 bg-white p-3.5 rounded-xl border border-gray-200/80 animate-fadeIn">
-          {/* Main Delivery Date Line */}
-          <div className="flex items-start justify-between gap-2 border-b border-gray-100 pb-2.5">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full inline-block mb-1">
-                Estimated Delivery
-              </span>
-              <p className="text-sm sm:text-base font-bold text-gray-900">
-                {estimate.formattedDates}
-              </p>
-              <p className="text-xs text-gray-500">
-                Pincode <strong className="text-gray-800">{estimate.pincode}</strong> ({estimate.locationName})
-              </p>
-            </div>
-            <div className="text-right">
-              <span className="text-xs font-semibold text-emerald-600 block">
-                {estimate.formattedRange}
-              </span>
-            </div>
-          </div>
-
-          {/* Breakdown: 2 Processing Days + DTDC Courier Time */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600 pt-0.5">
-            <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-              <Clock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-              <span>
-                <strong>2 Processing Days</strong> (Warehouse packaging)
-              </span>
-            </div>
-            <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-              <Truck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span>
-                <strong>{estimate.courierDaysMin}–{estimate.courierDaysMax} Days</strong> ({estimate.courierPartner})
-              </span>
-            </div>
+        <div className="bg-white p-3.5 rounded-xl border border-gray-200/80 animate-fadeIn">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full inline-block mb-1">
+              Estimated Delivery
+            </span>
+            <p className="text-base sm:text-lg font-bold text-gray-900">
+              {estimate.formattedDates}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              for Pincode <strong className="text-gray-800">{estimate.pincode}</strong>
+            </p>
           </div>
         </div>
       )}
