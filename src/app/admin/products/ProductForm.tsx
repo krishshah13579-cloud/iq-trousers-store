@@ -30,6 +30,7 @@ import {
   Ruler,
 } from "lucide-react";
 import { Category, CLOTHING_SIZES, SizeGuideRow } from "@/types";
+import { getColorHex as resolveColorHex } from "@/lib/colors";
 
 // Standard Trouser & Formal Color Presets
 const PRESET_COLORS = [
@@ -470,11 +471,7 @@ export default function ProductForm({
   const [bulkQtyInput, setBulkQtyInput] = useState<string>("10");
 
   const getColorHex = (name: string): string => {
-    const found = PRESET_COLORS.find(
-      (c) => c.name.toLowerCase() === name.toLowerCase()
-    );
-    if (found) return found.hex;
-    return "#334155";
+    return resolveColorHex(name).hex;
   };
 
   const getVariantQty = (color: string, size: string): number => {

@@ -8,65 +8,7 @@ import { Product, SizeGuideRow } from "@/types";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import SizeGuideModal, { SizeGuideTable } from "./SizeGuideModal";
-
-function getColorHex(colorName: string): { hex: string; isLight: boolean } {
-  const norm = colorName.trim().toLowerCase();
-  const palette: Record<string, string> = {
-    "jet black": "#0a0a0a",
-    "black": "#121212",
-    "navy blue": "#1e293b",
-    "navy": "#1e293b",
-    "midnight blue": "#0f172a",
-    "royal blue": "#1d4ed8",
-    "slate blue": "#475569",
-    "blue": "#2563eb",
-    "charcoal grey": "#334155",
-    "charcoal gray": "#334155",
-    "charcoal": "#334155",
-    "dark grey": "#374151",
-    "dark gray": "#374151",
-    "grey": "#64748b",
-    "gray": "#64748b",
-    "light grey": "#cbd5e1",
-    "light gray": "#cbd5e1",
-    "khaki": "#c2b280",
-    "dark khaki": "#b0a068",
-    "olive green": "#3f4f34",
-    "olive": "#3f4f34",
-    "army green": "#4b5320",
-    "green": "#166534",
-    "forest green": "#14532d",
-    "beige": "#e7dbc8",
-    "cream": "#fef3c7",
-    "tan": "#c19a6b",
-    "camel": "#c19a6b",
-    "dark brown": "#452a1a",
-    "brown": "#5c3a21",
-    "chocolate": "#3b2219",
-    "coffee": "#4a2c1d",
-    "burgundy": "#581c24",
-    "maroon": "#6b1d2f",
-    "wine": "#581c24",
-    "off white": "#f8fafc",
-    "white": "#ffffff",
-    "stone": "#d6d3d1",
-    "sand": "#e2d9cc",
-    "taupe": "#8b8589",
-    "rust": "#b45309",
-  };
-
-  const hex = palette[norm] || "#475569";
-  const isLight = [
-    "#ffffff",
-    "#f8fafc",
-    "#e7dbc8",
-    "#fef3c7",
-    "#cbd5e1",
-    "#d6d3d1",
-    "#e2d9cc",
-  ].includes(hex);
-  return { hex, isLight };
-}
+import { getColorHex } from "@/lib/colors";
 
 interface AddToCartSectionProps {
   product: Product;
