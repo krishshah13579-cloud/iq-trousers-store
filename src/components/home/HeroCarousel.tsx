@@ -154,8 +154,8 @@ export default function HeroCarousel() {
         </div>
       </div>
 
-      {/* Widescreen Hero Banner Container matching Louis Philippe 2.4:1 ratio */}
-      <div className="relative w-full aspect-[2.4/1] min-h-[460px] sm:min-h-[520px] md:min-h-[580px] lg:min-h-[640px] xl:min-h-[720px] max-h-[820px] overflow-hidden">
+      {/* Compact Widescreen Hero Banner Container matching Louis Philippe compact layout */}
+      <div className="relative w-full aspect-[3.2/1] min-h-[380px] sm:min-h-[400px] md:min-h-[440px] lg:min-h-[460px] xl:min-h-[480px] max-h-[500px] overflow-hidden">
         {slides.map((slide, index) => {
           const isActive = index === current;
 
@@ -168,7 +168,7 @@ export default function HeroCarousel() {
                   : "opacity-0 z-0 pointer-events-none"
               }`}
             >
-              {/* Background Poster Image (1920x800 Louis Philippe 2.4:1 ratio) */}
+              {/* Background Poster Image (1920x600 3.2:1 ratio) */}
               <div className="absolute inset-0">
                 <img
                   src={slide.bgImage}
@@ -184,7 +184,7 @@ export default function HeroCarousel() {
 
               {/* Poster Foreground Content */}
               <div className="relative h-full max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 flex items-center">
-                <div className="max-w-xl lg:max-w-2xl py-10 sm:py-14 space-y-3.5 sm:space-y-4">
+                <div className="max-w-xl lg:max-w-2xl py-6 sm:py-8 space-y-2.5 sm:space-y-3">
                   {/* 1. Official Company Branding Lockup (Levi's / Lewis Style) */}
                   <div className="flex items-center gap-2.5">
                     <div className="bg-[#b91c1c] text-white font-black text-xs px-2.5 py-1 tracking-widest uppercase rounded-xs shadow-md font-sans">
@@ -227,21 +227,21 @@ export default function HeroCarousel() {
                   {/* 3. Bold, Punchy Billboard Headline */}
                   <div>
                     {slide.type === "festival" && (
-                      <h2 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tighter text-white uppercase leading-[0.92] font-sans drop-shadow-2xl">
+                      <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[42px] font-black tracking-tighter text-white uppercase leading-[0.95] font-sans drop-shadow-2xl">
                         SHARP ENOUGH TO <br />
                         <span className="text-amber-400">CUT THE TENSION.</span>
                       </h2>
                     )}
 
                     {slide.type === "discount" && (
-                      <h2 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tighter text-white uppercase leading-[0.94] font-sans drop-shadow-2xl">
+                      <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-[34px] font-black tracking-tighter text-white uppercase leading-[0.96] font-sans drop-shadow-2xl">
                         PREMIUM DESIGN SHOULDN&apos;T REQUIRE <br />
                         <span className="text-[#ef4444]">A PREMIUM MARKUP.</span>
                       </h2>
                     )}
 
                     {slide.type === "new-arrival" && (
-                      <h2 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tighter text-white uppercase leading-[0.92] font-sans drop-shadow-2xl">
+                      <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[42px] font-black tracking-tighter text-white uppercase leading-[0.95] font-sans drop-shadow-2xl">
                         TOO COMFORTABLE <br />
                         <span className="text-sky-400">TO BE THIS SHARP.</span>
                       </h2>
@@ -249,7 +249,7 @@ export default function HeroCarousel() {
                   </div>
 
                   {/* 4. Subtitle */}
-                  <p className="text-xs sm:text-sm md:text-base font-bold text-amber-100/90 tracking-tight leading-snug drop-shadow-sm max-w-md sm:max-w-lg">
+                  <p className="text-xs sm:text-[13px] md:text-sm font-bold text-amber-100/90 tracking-tight leading-snug drop-shadow-sm max-w-md sm:max-w-lg line-clamp-2">
                     {slide.type === "festival" && (
                       <>When your trousers drape this flawlessly, walking in isn&apos;t an arrival — it&apos;s a statement.</>
                     )}
@@ -263,14 +263,14 @@ export default function HeroCarousel() {
 
                   {/* 5. Festival Poster: Formal Spec Badges */}
                   {slide.type === "festival" && (
-                    <div className="pt-1 flex flex-wrap gap-2">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-white tracking-wide">
+                    <div className="pt-0.5 flex flex-wrap gap-1.5">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide">
                         ✦ 100% Worsted Weave
                       </span>
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-white tracking-wide">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide">
                         ★ Hand-Tailored Ahmedabad Cut
                       </span>
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-white tracking-wide">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide">
                         ⚡ Razor-Creased Finish
                       </span>
                     </div>
@@ -278,13 +278,13 @@ export default function HeroCarousel() {
 
                   {/* 5b. Discount Poster: Perforated Luxury Voucher Ticket */}
                   {slide.type === "discount" && (
-                    <div className="pt-1 space-y-2">
-                      <div className="inline-flex flex-wrap items-center gap-3 p-2.5 sm:p-3 rounded-xl bg-black/60 backdrop-blur-md border border-dashed border-rose-500/80 shadow-xl">
+                    <div className="pt-0.5 space-y-1.5">
+                      <div className="inline-flex flex-wrap items-center gap-2.5 p-2 rounded-lg bg-black/60 backdrop-blur-md border border-dashed border-rose-500/80 shadow-md">
                         <div className="flex flex-col text-left pr-2 border-r border-white/15">
-                          <span className="text-[9px] font-black uppercase tracking-widest text-neutral-400">
+                          <span className="text-[8px] font-black uppercase tracking-widest text-neutral-400">
                             INSTANT VOUCHER
                           </span>
-                          <span className="text-base sm:text-lg font-black tracking-widest text-amber-300 font-mono">
+                          <span className="text-sm sm:text-base font-black tracking-widest text-amber-300 font-mono">
                             {activeCoupon.code}
                           </span>
                         </div>
@@ -292,7 +292,7 @@ export default function HeroCarousel() {
                         <button
                           type="button"
                           onClick={() => handleCopyCoupon(activeCoupon.code)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 ${
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 ${
                             copiedCouponCode === activeCoupon.code
                               ? "bg-emerald-500 text-white font-black"
                               : "bg-white text-neutral-950 hover:bg-neutral-200"
@@ -300,44 +300,44 @@ export default function HeroCarousel() {
                         >
                           {copiedCouponCode === activeCoupon.code ? (
                             <>
-                              <Check className="w-3.5 h-3.5 stroke-[3]" />
-                              <span>COPIED TO CHECKOUT!</span>
+                              <Check className="w-3 h-3 stroke-[3]" />
+                              <span>COPIED!</span>
                             </>
                           ) : (
                             <>
-                              <Copy className="w-3.5 h-3.5" />
-                              <span>TAP TO COPY & SAVE</span>
+                              <Copy className="w-3 h-3" />
+                              <span>TAP TO COPY</span>
                             </>
                           )}
                         </button>
                       </div>
 
-                      <p className="text-xs text-neutral-300 font-medium">
-                        ⚡ Applied automatically at checkout on orders over ₹{activeCoupon.minOrder.toLocaleString("en-IN")}.
+                      <p className="text-[11px] text-neutral-300 font-medium">
+                        ⚡ Applied at checkout on orders over ₹{activeCoupon.minOrder.toLocaleString("en-IN")}.
                       </p>
                     </div>
                   )}
 
                   {/* 6. New Arrival Poster: Technical Feature Pills */}
                   {slide.type === "new-arrival" && (
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-white tracking-wide shadow-xs">
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide shadow-xs">
                         ⚡ 360° Flex Mobility
                       </span>
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-white tracking-wide shadow-xs">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide shadow-xs">
                         ✦ Zero-Iron Memory Crease
                       </span>
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-white tracking-wide shadow-xs">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide shadow-xs">
                         ★ Tailored Ankle Break
                       </span>
                     </div>
                   )}
 
                   {/* 7. CTA Action Button */}
-                  <div className="pt-2 sm:pt-3 flex flex-wrap items-center gap-4">
+                  <div className="pt-1.5 sm:pt-2 flex flex-wrap items-center gap-3">
                     <Link
                       href={slide.ctaLink}
-                      className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-white text-neutral-950 font-black text-xs uppercase tracking-widest hover:bg-neutral-200 active:scale-95 transition-all shadow-xl cursor-pointer"
+                      className="inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-2.5 sm:py-3 rounded-full bg-white text-neutral-950 font-black text-xs uppercase tracking-widest hover:bg-neutral-200 active:scale-95 transition-all shadow-xl cursor-pointer"
                     >
                       <span>
                         {slide.type === "festival" && "COMMAND THE ROOM"}
@@ -366,9 +366,9 @@ export default function HeroCarousel() {
             prevSlide();
           }}
           aria-label="Previous Carousel Slide"
-          className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/40 hover:bg-black/75 backdrop-blur-md text-white border border-white/15 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+          className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 hover:bg-black/75 backdrop-blur-md text-white border border-white/15 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
         >
-          <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+          <ChevronLeft className="w-5 h-5" />
         </button>
 
         <button
@@ -378,13 +378,13 @@ export default function HeroCarousel() {
             nextSlide();
           }}
           aria-label="Next Carousel Slide"
-          className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/40 hover:bg-black/75 backdrop-blur-md text-white border border-white/15 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+          className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 hover:bg-black/75 backdrop-blur-md text-white border border-white/15 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
         >
-          <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+          <ChevronRight className="w-5 h-5" />
         </button>
 
         {/* Bottom Interactive Lookbook Tabs (01 Festive • 02 Sale • 03 New In) */}
-        <div className="absolute bottom-4 sm:bottom-6 inset-x-0 z-20 flex items-center justify-center gap-2 sm:gap-3 px-4">
+        <div className="absolute bottom-3 sm:bottom-4 inset-x-0 z-20 flex items-center justify-center gap-2 sm:gap-2.5 px-4">
           {slides.map((s, index) => {
             const isActive = index === current;
             return (
@@ -396,18 +396,18 @@ export default function HeroCarousel() {
                   goToSlide(index);
                 }}
                 aria-label={`Switch to ${s.tabTitle}`}
-                className={`px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs font-bold transition-all duration-300 flex items-center gap-2 shadow-lg backdrop-blur-md cursor-pointer select-none active:scale-95 ${
+                className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[11px] font-bold transition-all duration-300 flex items-center gap-1.5 shadow-lg backdrop-blur-md cursor-pointer select-none active:scale-95 ${
                   isActive
                     ? "bg-white text-neutral-950 scale-105 border border-white shadow-amber-400/20"
                     : "bg-black/60 text-neutral-300 hover:text-white hover:bg-black/80 border border-white/15 hover:border-white/30"
                 }`}
               >
                 <span
-                  className={`w-2 h-2 rounded-full transition-colors ${
+                  className={`w-1.5 h-1.5 rounded-full transition-colors ${
                     isActive ? "bg-amber-500 animate-pulse" : "bg-neutral-400"
                   }`}
                 />
-                <span className="tracking-widest uppercase text-[11px] sm:text-xs">
+                <span className="tracking-widest uppercase text-[10px] sm:text-[11px]">
                   0{index + 1} • {s.tabTitle}
                 </span>
               </button>
