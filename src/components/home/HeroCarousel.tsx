@@ -137,25 +137,35 @@ export default function HeroCarousel() {
 
   return (
     <div
-      className="relative w-full overflow-hidden bg-neutral-950 text-white select-none group"
+      className="relative w-full overflow-hidden bg-neutral-950 text-white select-none group flex justify-center items-center"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       aria-label="IQ Trousers Hero Poster Carousel"
     >
-      {/* Iconic Levi's Style Red Brand Tab in Top Corner */}
-      <div className="absolute top-0 left-6 sm:left-12 z-20 pointer-events-none">
-        <div className="bg-[#b91c1c] text-white px-2.5 pt-2 pb-3.5 shadow-2xl rounded-b-md flex flex-col items-center border-x border-b border-red-800">
-          <span className="text-[10px] font-black tracking-widest uppercase text-amber-200">
-            IQ
-          </span>
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1 animate-pulse" />
-        </div>
+      {/* Ambient background glow for wide desktop displays */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20 filter blur-3xl scale-110 hidden md:block">
+        <img
+          src={slides[current]?.bgImage}
+          alt=""
+          className="w-full h-full object-cover"
+        />
       </div>
 
-      {/* Slides Container */}
-      <div className="relative w-full min-h-[520px] sm:min-h-[580px] md:min-h-[620px] lg:min-h-[660px] xl:min-h-[700px]">
+      {/* Capped 1080x1080 Carousel Container */}
+      <div className="relative w-full max-w-[1080px] aspect-square max-h-[1080px] min-h-[560px] overflow-hidden shadow-2xl">
+        {/* Iconic Levi's Style Red Brand Tab in Top Corner */}
+        <div className="absolute top-0 left-5 sm:left-8 z-20 pointer-events-none">
+          <div className="bg-[#b91c1c] text-white px-2.5 pt-2 pb-3.5 shadow-2xl rounded-b-md flex flex-col items-center border-x border-b border-red-800">
+            <span className="text-[10px] font-black tracking-widest uppercase text-amber-200">
+              IQ
+            </span>
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1 animate-pulse" />
+          </div>
+        </div>
+
+        {/* Slides */}
         {slides.map((slide, index) => {
           const isActive = index === current;
 
@@ -168,7 +178,7 @@ export default function HeroCarousel() {
                   : "opacity-0 z-0 pointer-events-none"
               }`}
             >
-              {/* Background Poster Image */}
+              {/* Background Poster Image (1080x1080) */}
               <div className="absolute inset-0">
                 <img
                   src={slide.bgImage}
@@ -177,24 +187,24 @@ export default function HeroCarousel() {
                   loading={index === 0 ? "eager" : "lazy"}
                 />
 
-                {/* Subtle vignette on the left only so model on right is 100% visible and unsmudged */}
-                <div className="absolute inset-0 bg-gradient-to-r from-neutral-950/85 via-neutral-950/40 to-transparent sm:w-2/3 md:w-3/5" />
-                <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/80 via-transparent to-transparent" />
+                {/* Subtle vignette on the left so model on right is 100% visible and unsmudged */}
+                <div className="absolute inset-0 bg-gradient-to-r from-neutral-950/85 via-neutral-950/40 to-transparent w-full sm:w-3/5" />
+                <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/75 via-transparent to-transparent" />
               </div>
 
               {/* Poster Foreground Content */}
-              <div className="relative h-full max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 flex items-center">
-                <div className="max-w-xl lg:max-w-2xl py-12 sm:py-16 lg:py-20 space-y-4 sm:space-y-5">
+              <div className="relative h-full w-full px-6 sm:px-10 md:px-12 flex items-center pb-16 sm:pb-20">
+                <div className="max-w-md sm:max-w-lg lg:max-w-xl py-6 sm:py-10 space-y-3 sm:space-y-4">
                   {/* 1. Official Company Branding Lockup (Levi's / Lewis Style) */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5">
                     <div className="bg-[#b91c1c] text-white font-black text-xs px-2.5 py-1 tracking-widest uppercase rounded-xs shadow-md font-sans">
                       IQ
                     </div>
                     <div className="flex flex-col text-left">
-                      <span className="text-sm font-black tracking-widest text-white uppercase font-sans">
+                      <span className="text-xs sm:text-sm font-black tracking-widest text-white uppercase font-sans">
                         IQ TROUSERS
                       </span>
-                      <span className="text-[10px] tracking-widest text-neutral-400 uppercase font-medium">
+                      <span className="text-[9px] sm:text-[10px] tracking-widest text-neutral-400 uppercase font-medium">
                         EST. AHMEDABAD • THE ORIGINAL FIT
                       </span>
                     </div>
@@ -203,21 +213,21 @@ export default function HeroCarousel() {
                   {/* 2. Distinctive Poster Badge */}
                   <div>
                     {slide.type === "festival" && (
-                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] font-black tracking-widest uppercase bg-amber-400/20 text-amber-300 border border-amber-400/40 shadow-xs">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-amber-400/20 text-amber-300 border border-amber-400/40 shadow-xs">
                         <Flame className="w-3.5 h-3.5 text-amber-400" />
                         <span>BLACK-TIE BESPOKE • FORMAL WEAR</span>
                       </span>
                     )}
 
                     {slide.type === "discount" && (
-                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] font-black tracking-widest uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-xs">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-xs">
                         <Tag className="w-3.5 h-3.5 text-rose-400" />
                         <span>VIP PRIVILEGE • 25% OFF STOREWIDE + VOUCHER</span>
                       </span>
                     )}
 
                     {slide.type === "new-arrival" && (
-                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] font-black tracking-widest uppercase bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-xs">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-xs">
                         <Sparkles className="w-3.5 h-3.5 text-sky-400" />
                         <span>SIGNATURE CASUALS • 4-WAY ADAPTIVE FLEX</span>
                       </span>
@@ -227,21 +237,21 @@ export default function HeroCarousel() {
                   {/* 3. Bold, Punchy Billboard Headline */}
                   <div>
                     {slide.type === "festival" && (
-                      <h2 className="text-4xl sm:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter text-white uppercase leading-[0.92] font-sans drop-shadow-2xl">
+                      <h2 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tighter text-white uppercase leading-[0.92] font-sans drop-shadow-2xl">
                         SHARP ENOUGH TO <br />
                         <span className="text-amber-400">CUT THE TENSION.</span>
                       </h2>
                     )}
 
                     {slide.type === "discount" && (
-                      <h2 className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tighter text-white uppercase leading-[0.94] font-sans drop-shadow-2xl">
+                      <h2 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tighter text-white uppercase leading-[0.94] font-sans drop-shadow-2xl">
                         PREMIUM DESIGN SHOULDN&apos;T REQUIRE <br />
                         <span className="text-[#ef4444]">A PREMIUM MARKUP.</span>
                       </h2>
                     )}
 
                     {slide.type === "new-arrival" && (
-                      <h2 className="text-4xl sm:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter text-white uppercase leading-[0.92] font-sans drop-shadow-2xl">
+                      <h2 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tighter text-white uppercase leading-[0.92] font-sans drop-shadow-2xl">
                         TOO COMFORTABLE <br />
                         <span className="text-sky-400">TO BE THIS SHARP.</span>
                       </h2>
@@ -249,7 +259,7 @@ export default function HeroCarousel() {
                   </div>
 
                   {/* 4. Subtitle */}
-                  <p className="text-base sm:text-lg lg:text-xl font-bold text-amber-100/90 tracking-tight leading-snug drop-shadow-sm max-w-xl">
+                  <p className="text-xs sm:text-sm md:text-base font-bold text-amber-100/90 tracking-tight leading-snug drop-shadow-sm max-w-md sm:max-w-lg">
                     {slide.type === "festival" && (
                       <>When your trousers drape this flawlessly, walking in isn&apos;t an arrival — it&apos;s a statement.</>
                     )}
@@ -357,63 +367,63 @@ export default function HeroCarousel() {
             </div>
           );
         })}
-      </div>
 
-      {/* Navigation Arrows */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          prevSlide();
-        }}
-        aria-label="Previous Carousel Slide"
-        className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/40 hover:bg-black/75 backdrop-blur-md text-white border border-white/15 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-      >
-        <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-      </button>
+        {/* Navigation Arrows */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            prevSlide();
+          }}
+          aria-label="Previous Carousel Slide"
+          className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/40 hover:bg-black/75 backdrop-blur-md text-white border border-white/15 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+        >
+          <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+        </button>
 
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          nextSlide();
-        }}
-        aria-label="Next Carousel Slide"
-        className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/40 hover:bg-black/75 backdrop-blur-md text-white border border-white/15 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-      >
-        <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
-      </button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            nextSlide();
+          }}
+          aria-label="Next Carousel Slide"
+          className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/40 hover:bg-black/75 backdrop-blur-md text-white border border-white/15 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+        >
+          <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+        </button>
 
-      {/* Bottom Interactive Lookbook Tabs (01 Festive • 02 Sale • 03 New In) */}
-      <div className="absolute bottom-5 inset-x-0 z-20 flex items-center justify-center gap-2 sm:gap-3 px-4">
-        {slides.map((s, index) => {
-          const isActive = index === current;
-          return (
-            <button
-              type="button"
-              key={s.id}
-              onClick={(e) => {
-                e.stopPropagation();
-                goToSlide(index);
-              }}
-              aria-label={`Switch to ${s.tabTitle}`}
-              className={`px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs font-bold transition-all duration-300 flex items-center gap-2 shadow-lg backdrop-blur-md cursor-pointer select-none active:scale-95 ${
-                isActive
-                  ? "bg-white text-neutral-950 scale-105 border border-white shadow-amber-400/20"
-                  : "bg-black/60 text-neutral-300 hover:text-white hover:bg-black/80 border border-white/15 hover:border-white/30"
-              }`}
-            >
-              <span
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  isActive ? "bg-amber-500 animate-pulse" : "bg-neutral-400"
+        {/* Bottom Interactive Lookbook Tabs (01 Festive • 02 Sale • 03 New In) */}
+        <div className="absolute bottom-4 sm:bottom-6 inset-x-0 z-20 flex items-center justify-center gap-2 sm:gap-3 px-4">
+          {slides.map((s, index) => {
+            const isActive = index === current;
+            return (
+              <button
+                type="button"
+                key={s.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goToSlide(index);
+                }}
+                aria-label={`Switch to ${s.tabTitle}`}
+                className={`px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs font-bold transition-all duration-300 flex items-center gap-2 shadow-lg backdrop-blur-md cursor-pointer select-none active:scale-95 ${
+                  isActive
+                    ? "bg-white text-neutral-950 scale-105 border border-white shadow-amber-400/20"
+                    : "bg-black/60 text-neutral-300 hover:text-white hover:bg-black/80 border border-white/15 hover:border-white/30"
                 }`}
-              />
-              <span className="tracking-widest uppercase text-[11px] sm:text-xs">
-                0{index + 1} • {s.tabTitle}
-              </span>
-            </button>
-          );
-        })}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    isActive ? "bg-amber-500 animate-pulse" : "bg-neutral-400"
+                  }`}
+                />
+                <span className="tracking-widest uppercase text-[11px] sm:text-xs">
+                  0{index + 1} • {s.tabTitle}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

@@ -54,7 +54,7 @@ function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
-  const { items, totalPrice, clearCart } = useCart();
+  const { items, totalPrice, clearCart, isLoaded } = useCart();
 
   const [formData, setFormData] = useState<ShippingAddress>({
     fullName: "",
@@ -133,6 +133,16 @@ function CheckoutContent() {
 
   // Financial calculations
   const subtotal = totalPrice;
+
+  // Automatically remove applied coupon from selection if cart value is lower than minimum order value
+  useEffect(() => {
+    if (!isLoaded || status === "loading") return;
+
+    if (appliedDiscount && (appliedDiscount.minOrder || 0) > 0 && subtotal < (appliedDiscount.minOrder || 0)) {
+      setAppliedDiscount(null);
+      sessionStorage.removeItem("activeDiscount");
+    }
+  }, [subtotal, appliedDiscount, isLoaded, status]);
   const hasEnteredLocation = Boolean(formData.state.trim() || formData.zipCode.trim());
   const shippingQuote = calculateShippingFee(subtotal, formData.state, formData.zipCode);
   const isFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;

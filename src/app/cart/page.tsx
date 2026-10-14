@@ -68,7 +68,7 @@ function getProductImage(images: string): string {
 export default function CartPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const { items, updateQuantity, removeItem, totalPrice, totalItems } = useCart();
+  const { items, updateQuantity, removeItem, totalPrice, totalItems, isLoaded } = useCart();
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -107,9 +107,25 @@ export default function CartPage() {
   // Estimated tax (5%) rounded off to nearest rupee
   const estimatedTax = Math.round(subtotal * 0.05);
 
+  // Automatically remove applied coupon from selection if cart value is lower than minimum order value
+  useEffect(() => {
+    if (!isLoaded || status === "loading") return;
+
+    if (appliedDiscount && (appliedDiscount.minOrder || 0) > 0 && subtotal < (appliedDiscount.minOrder || 0)) {
+      const removedCode = appliedDiscount.code;
+      const minReq = appliedDiscount.minOrder;
+      setAppliedDiscount(null);
+      sessionStorage.removeItem("activeDiscount");
+      setDiscountSuccess(null);
+      setDiscountError(
+        `Coupon "${removedCode}" was automatically removed because your cart value (₹${subtotal.toLocaleString("en-IN")}) is lower than the minimum order value of ₹${minReq.toLocaleString("en-IN")}.`
+      );
+    }
+  }, [subtotal, appliedDiscount, isLoaded, status]);
+
   // Recalculate discount amount based on current subtotal if percentage or fixed
   let currentDiscountAmount = 0;
-  if (appliedDiscount && subtotal >= appliedDiscount.minOrder) {
+  if (appliedDiscount && subtotal >= (appliedDiscount.minOrder || 0)) {
     if (appliedDiscount.type === "PERCENTAGE") {
       currentDiscountAmount = Math.round(((subtotal * appliedDiscount.value) / 100) * 100) / 100;
     } else {
