@@ -137,35 +137,25 @@ export default function HeroCarousel() {
 
   return (
     <div
-      className="relative w-full overflow-hidden bg-neutral-950 text-white select-none group flex justify-center items-center"
+      className="relative w-full overflow-hidden bg-neutral-950 text-white select-none group"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       aria-label="IQ Trousers Hero Poster Carousel"
     >
-      {/* Ambient background glow for wide desktop displays */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20 filter blur-3xl scale-110 hidden md:block">
-        <img
-          src={slides[current]?.bgImage}
-          alt=""
-          className="w-full h-full object-cover"
-        />
+      {/* Iconic Style Red Brand Tab in Top Corner */}
+      <div className="absolute top-0 left-6 sm:left-12 z-20 pointer-events-none">
+        <div className="bg-[#b91c1c] text-white px-2.5 pt-2 pb-3.5 shadow-2xl rounded-b-md flex flex-col items-center border-x border-b border-red-800">
+          <span className="text-[10px] font-black tracking-widest uppercase text-amber-200">
+            IQ
+          </span>
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1 animate-pulse" />
+        </div>
       </div>
 
-      {/* Capped 1080x1080 Carousel Container */}
-      <div className="relative w-full max-w-[1080px] aspect-square max-h-[1080px] min-h-[560px] overflow-hidden shadow-2xl">
-        {/* Iconic Levi's Style Red Brand Tab in Top Corner */}
-        <div className="absolute top-0 left-5 sm:left-8 z-20 pointer-events-none">
-          <div className="bg-[#b91c1c] text-white px-2.5 pt-2 pb-3.5 shadow-2xl rounded-b-md flex flex-col items-center border-x border-b border-red-800">
-            <span className="text-[10px] font-black tracking-widest uppercase text-amber-200">
-              IQ
-            </span>
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1 animate-pulse" />
-          </div>
-        </div>
-
-        {/* Slides */}
+      {/* Widescreen Hero Banner Container matching Louis Philippe 2.4:1 ratio */}
+      <div className="relative w-full aspect-[2.4/1] min-h-[460px] sm:min-h-[520px] md:min-h-[580px] lg:min-h-[640px] xl:min-h-[720px] max-h-[820px] overflow-hidden">
         {slides.map((slide, index) => {
           const isActive = index === current;
 
@@ -178,7 +168,7 @@ export default function HeroCarousel() {
                   : "opacity-0 z-0 pointer-events-none"
               }`}
             >
-              {/* Background Poster Image (1080x1080) */}
+              {/* Background Poster Image (1920x800 Louis Philippe 2.4:1 ratio) */}
               <div className="absolute inset-0">
                 <img
                   src={slide.bgImage}
@@ -188,13 +178,13 @@ export default function HeroCarousel() {
                 />
 
                 {/* Subtle vignette on the left so model on right is 100% visible and unsmudged */}
-                <div className="absolute inset-0 bg-gradient-to-r from-neutral-950/85 via-neutral-950/40 to-transparent w-full sm:w-3/5" />
-                <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/75 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-r from-neutral-950/85 via-neutral-950/35 to-transparent sm:w-2/3 md:w-3/5" />
+                <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/70 via-transparent to-transparent" />
               </div>
 
               {/* Poster Foreground Content */}
-              <div className="relative h-full w-full px-6 sm:px-10 md:px-12 flex items-center pb-16 sm:pb-20">
-                <div className="max-w-md sm:max-w-lg lg:max-w-xl py-6 sm:py-10 space-y-3 sm:space-y-4">
+              <div className="relative h-full max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 flex items-center">
+                <div className="max-w-xl lg:max-w-2xl py-10 sm:py-14 space-y-3.5 sm:space-y-4">
                   {/* 1. Official Company Branding Lockup (Levi's / Lewis Style) */}
                   <div className="flex items-center gap-2.5">
                     <div className="bg-[#b91c1c] text-white font-black text-xs px-2.5 py-1 tracking-widest uppercase rounded-xs shadow-md font-sans">
