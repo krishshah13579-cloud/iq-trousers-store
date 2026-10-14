@@ -58,15 +58,26 @@ interface SizeGuideContentProps {
   rows?: SizeGuideRow[] | null;
   selectedSize?: string;
   onSelectSize?: (size: string) => void;
+  availableSizes?: string[];
 }
 
 export function SizeGuideTable({
   rows,
   selectedSize,
   onSelectSize,
+  availableSizes,
 }: SizeGuideContentProps) {
   const [unit, setUnit] = useState<"IN" | "CM">("IN");
-  const dataRows = rows && rows.length > 0 ? rows : DEFAULT_TROUSER_SIZE_GUIDE;
+  
+  // Only display size guide rows for the available sizes selected for this product
+  const dataRows = (() => {
+    const base = rows && rows.length > 0 ? rows : DEFAULT_TROUSER_SIZE_GUIDE;
+    if (availableSizes && availableSizes.length > 0) {
+      const filtered = base.filter((r) => availableSizes.includes(r.brandSize));
+      if (filtered.length > 0) return filtered;
+    }
+    return base;
+  })();
 
   return (
     <div className="space-y-4">
@@ -198,6 +209,7 @@ interface SizeGuideModalProps {
   rows?: SizeGuideRow[] | null;
   selectedSize?: string;
   onSelectSize?: (size: string) => void;
+  availableSizes?: string[];
 }
 
 export default function SizeGuideModal({
@@ -206,6 +218,7 @@ export default function SizeGuideModal({
   rows,
   selectedSize,
   onSelectSize,
+  availableSizes,
 }: SizeGuideModalProps) {
   if (!isOpen) return null;
 
@@ -245,6 +258,7 @@ export default function SizeGuideModal({
           <SizeGuideTable
             rows={rows}
             selectedSize={selectedSize}
+            availableSizes={availableSizes}
             onSelectSize={(s) => {
               if (onSelectSize) onSelectSize(s);
               onClose();

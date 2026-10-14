@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { Product } from "@/types";
 import { formatPrice } from "@/lib/utils";
 import { Heart, ChevronLeft, ChevronRight } from "lucide-react";
@@ -23,23 +23,24 @@ export default function DescriptiveGallerySection({
   const { addItem } = useCart();
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
-  // Pick up to 8 products for loop carousel
+  // Maximum 8 products (4 cards per Face)
   const displayProducts = (products || []).slice(0, 8);
   const totalItems = displayProducts.length;
 
-  const [currentIndex, setCurrentIndex] = useState(0);
+  // Exactly 2 Faces (Face 0: items 0-3, Face 1: items 4-7)
+  const [activeFace, setActiveFace] = useState<0 | 1>(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
 
-  // Loop navigation: wraps around infinitely
-  const handlePrev = () => {
-    if (totalItems <= 1) return;
-    setCurrentIndex((prev) => (prev - 1 + totalItems) % totalItems);
+  const hasTwoFaces = totalItems > 4;
+
+  // Infinite loop navigation between the 2 Faces
+  const handleToggleFace = () => {
+    if (!hasTwoFaces) return;
+    setActiveFace((prev) => (prev === 0 ? 1 : 0));
   };
 
-  const handleNext = () => {
-    if (totalItems <= 1) return;
-    setCurrentIndex((prev) => (prev + 1) % totalItems);
-  };
+  const handlePrev = () => handleToggleFace();
+  const handleNext = () => handleToggleFace();
 
   // Touch handlers for mobile swipe
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -47,26 +48,19 @@ export default function DescriptiveGallerySection({
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStart === null) return;
+    if (touchStart === null || !hasTwoFaces) return;
     const touchEnd = e.changedTouches[0].clientX;
     const diff = touchStart - touchEnd;
-    if (diff > 50) {
-      handleNext();
-    } else if (diff < -50) {
-      handlePrev();
+    if (Math.abs(diff) > 40) {
+      handleToggleFace();
     }
     setTouchStart(null);
   };
 
-  // Compute circular ordered items starting from currentIndex
-  // This guarantees seamless infinite looping without hitting edge stops
-  const circularItems =
-    totalItems > 0
-      ? displayProducts.map((_, idx) => {
-          const itemIdx = (currentIndex + idx) % totalItems;
-          return displayProducts[itemIdx];
-        })
-      : [];
+  // Face 1: first 4 products; Face 2: next 4 products
+  const face1 = displayProducts.slice(0, 4);
+  const face2 = displayProducts.slice(4, 8);
+  const currentFaceProducts = activeFace === 0 ? face1 : face2.length > 0 ? face2 : face1;
 
   return (
     <section className="py-14 sm:py-20 bg-white select-none">
@@ -77,14 +71,14 @@ export default function DescriptiveGallerySection({
             {title}
           </h2>
 
-          {/* Loop Carousel Controls (Always visible when products exist) */}
-          {totalItems > 1 && (
+          {/* Loop Carousel Controls - 2 Faces only */}
+          {hasTwoFaces && (
             <div className="sm:absolute sm:right-0 flex items-center gap-2">
               <button
                 type="button"
                 onClick={handlePrev}
                 aria-label={`Previous ${title} items`}
-                title="Previous (Loops around)"
+                title="Previous Face (Loops)"
                 className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-gray-300 hover:border-gray-900 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 hover:text-black transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
               >
                 <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -93,7 +87,7 @@ export default function DescriptiveGallerySection({
                 type="button"
                 onClick={handleNext}
                 aria-label={`Next ${title} items`}
-                title="Next (Loops around)"
+                title="Next Face (Loops)"
                 className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-gray-300 hover:border-gray-900 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 hover:text-black transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
               >
                 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -102,7 +96,7 @@ export default function DescriptiveGallerySection({
           )}
         </div>
 
-        {/* Product Cards Loop Carousel */}
+        {/* Product Cards Grid for Active Face */}
         {totalItems === 0 ? (
           <div className="py-12 px-4 text-center bg-gray-50/60 rounded-xl border border-dashed border-gray-200">
             <p className="text-gray-500 text-sm">
@@ -115,9 +109,12 @@ export default function DescriptiveGallerySection({
             onTouchEnd={handleTouchEnd}
             className="relative"
           >
-            {/* Grid showing circular slice of up to 4 items on desktop, 2 on tablet, 1 on mobile */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7 transition-all duration-300 ease-out">
-              {circularItems.slice(0, Math.min(totalItems, 4)).map((product, displayIdx) => {
+            {/* Exactly 1 Face visible (4 items across on desktop) */}
+            <div
+              key={activeFace}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7 animate-fadeIn"
+            >
+              {currentFaceProducts.map((product) => {
                 // Parse image
                 let imageUrl =
                   "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600";
@@ -143,10 +140,10 @@ export default function DescriptiveGallerySection({
 
                 return (
                   <div
-                    key={`${product.id}-${currentIndex}-${displayIdx}`}
+                    key={product.id}
                     onMouseEnter={() => setHoveredCard(product.id)}
                     onMouseLeave={() => setHoveredCard(null)}
-                    className="group relative flex flex-col bg-white border border-gray-300 hover:border-gray-400 transition-all duration-200 animate-fadeIn"
+                    className="group relative flex flex-col bg-white border border-gray-300 hover:border-gray-400 transition-all duration-200"
                   >
                     {/* 1:1 Square Image Container */}
                     <div className="relative aspect-square w-full overflow-hidden bg-gray-50 border-b border-gray-200">
@@ -214,25 +211,6 @@ export default function DescriptiveGallerySection({
                 );
               })}
             </div>
-
-            {/* Loop Carousel Indicator Dots */}
-            {totalItems > 1 && (
-              <div className="flex items-center justify-center gap-1.5 mt-6 sm:mt-8">
-                {displayProducts.map((_, dotIdx) => (
-                  <button
-                    key={dotIdx}
-                    type="button"
-                    onClick={() => setCurrentIndex(dotIdx)}
-                    aria-label={`Jump to ${title} item ${dotIdx + 1}`}
-                    className={`h-2 rounded-full transition-all duration-200 cursor-pointer ${
-                      currentIndex === dotIdx
-                        ? "w-6 bg-[#0d1b74]"
-                        : "w-2 bg-gray-300 hover:bg-gray-400"
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
           </div>
         )}
 

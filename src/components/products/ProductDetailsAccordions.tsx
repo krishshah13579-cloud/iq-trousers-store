@@ -20,6 +20,7 @@ interface ProductDetailsAccordionsProps {
   sizeGuide?: string | null;
   selectedSize?: string;
   onSelectSize?: (size: string) => void;
+  availableSizes?: string[];
 }
 
 export default function ProductDetailsAccordions({
@@ -28,6 +29,7 @@ export default function ProductDetailsAccordions({
   sizeGuide,
   selectedSize,
   onSelectSize,
+  availableSizes,
 }: ProductDetailsAccordionsProps) {
   // Size Guide is right before Description like Amazon
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
@@ -93,6 +95,7 @@ export default function ProductDetailsAccordions({
             <SizeGuideTable
               rows={parsedRows}
               selectedSize={selectedSize}
+              availableSizes={availableSizes}
               onSelectSize={onSelectSize}
             />
           </div>

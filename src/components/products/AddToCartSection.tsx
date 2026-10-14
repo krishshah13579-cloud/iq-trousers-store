@@ -7,7 +7,7 @@ import { ShoppingCart, Plus, Minus, Check, AlertCircle, Zap, Heart, Ruler } from
 import { Product, SizeGuideRow } from "@/types";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
-import SizeGuideModal from "./SizeGuideModal";
+import SizeGuideModal, { SizeGuideTable } from "./SizeGuideModal";
 
 function getColorHex(colorName: string): { hex: string; isLight: boolean } {
   const norm = colorName.trim().toLowerCase();
@@ -85,6 +85,7 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
   const [colorError, setColorError] = useState(false);
   const [added, setAdded] = useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+  const [isSizeGuideInlineOpen, setIsSizeGuideInlineOpen] = useState(false);
 
   const parsedSizeGuide: SizeGuideRow[] | null = (() => {
     if (!product.sizeGuide) return null;
@@ -414,11 +415,11 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                 </label>
                 <button
                   type="button"
-                  onClick={() => setIsSizeGuideOpen(true)}
+                  onClick={() => setIsSizeGuideInlineOpen((prev) => !prev)}
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#162082] hover:text-black hover:underline transition-colors cursor-pointer"
                 >
                   <Ruler className="w-3.5 h-3.5" />
-                  <span>Size Guide</span>
+                  <span>{isSizeGuideInlineOpen ? "Hide Size Guide" : "Size Guide"}</span>
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -456,6 +457,34 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                   <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
                   <span>Please choose your size before adding to cart</span>
                 </p>
+              )}
+
+              {/* Inline Size Guide beside photos - strictly for available sizes */}
+              {isSizeGuideInlineOpen && (
+                <div className="p-4 rounded-2xl border border-blue-200/90 bg-blue-50/20 animate-fadeIn space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                      <Ruler className="w-3.5 h-3.5 text-[#162082]" />
+                      Size Guide (Available Sizes Only)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsSizeGuideOpen(true)}
+                      className="text-[11px] font-semibold text-[#162082] hover:underline cursor-pointer"
+                    >
+                      Enlarge View ↗
+                    </button>
+                  </div>
+                  <SizeGuideTable
+                    rows={parsedSizeGuide}
+                    selectedSize={selectedSize || undefined}
+                    availableSizes={availableSizes}
+                    onSelectSize={(s) => {
+                      setSelectedSize(s);
+                      setSizeError(false);
+                    }}
+                  />
+                </div>
               )}
             </div>
           )}
@@ -579,6 +608,7 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
         isOpen={isSizeGuideOpen}
         onClose={() => setIsSizeGuideOpen(false)}
         rows={parsedSizeGuide}
+        availableSizes={availableSizes}
         selectedSize={selectedSize || undefined}
         onSelectSize={(s) => {
           setSelectedSize(s);

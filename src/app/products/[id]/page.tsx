@@ -78,6 +78,19 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     }
   }
 
+  // Parse available sizes for size guide filtering
+  let availableSizes: string[] = [];
+  try {
+    const parsedSizes = JSON.parse(product.sizes || "[]");
+    if (Array.isArray(parsedSizes) && parsedSizes.length > 0) {
+      availableSizes = parsedSizes.map(String);
+    }
+  } catch {
+    if (typeof product.sizes === "string") {
+      availableSizes = product.sizes.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+  }
+
   // Fetch related products from the same category
   let relatedProducts: any[] = [];
   try {
@@ -218,6 +231,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
               description={product.description}
               careInstructions={product.careInstructions}
               sizeGuide={product.sizeGuide}
+              availableSizes={availableSizes}
             />
           </div>
         </div>

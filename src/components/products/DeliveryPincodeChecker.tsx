@@ -170,7 +170,7 @@ export default function DeliveryPincodeChecker({ className = "" }: DeliveryPinco
           </div>
           <div>
             <h4 className="text-xs sm:text-sm font-bold text-gray-900 tracking-tight">
-              Estimated Delivery &amp; DTDC Courier
+              Estimated Delivery
             </h4>
             <p className="text-[11px] text-gray-500">
               Dispatched from Ahmedabad warehouse (2 processing days)
@@ -270,11 +270,6 @@ export default function DeliveryPincodeChecker({ className = "" }: DeliveryPinco
                 <strong>{estimate.courierDaysMin}–{estimate.courierDaysMax} Days</strong> ({estimate.courierPartner})
               </span>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-[11px] text-gray-500 pt-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-            <span>Official DTDC tracking number provided upon dispatch</span>
           </div>
         </div>
       )}
