@@ -63,11 +63,11 @@ export default function DescriptiveGallerySection({
   const currentFaceProducts = activeFace === 0 ? face1 : face2.length > 0 ? face2 : face1;
 
   return (
-    <section className="py-14 sm:py-20 bg-white select-none">
+    <section className="py-2.5 sm:py-4 bg-white select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Centered Royal Navy Title with Carousel Controls */}
-        <div className="relative flex items-center justify-between sm:justify-center mb-8 sm:mb-12">
-          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-sans font-normal text-[#162082] tracking-tight text-left sm:text-center">
+        <div className="relative flex items-center justify-between sm:justify-center mb-3 sm:mb-4">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-sans font-normal text-[#162082] tracking-tight text-left sm:text-center">
             {title}
           </h2>
 
@@ -215,10 +215,10 @@ export default function DescriptiveGallerySection({
         )}
 
         {/* Centered Royal Navy "Shop Now" Button */}
-        <div className="mt-8 sm:mt-12 flex justify-center">
+        <div className="mt-3.5 sm:mt-4 flex justify-center">
           <Link
             href={`/products?category=${slug}`}
-            className="inline-flex items-center justify-center px-12 py-3 bg-[#0d1b74] hover:bg-[#081254] text-white text-xs sm:text-sm font-medium tracking-wide transition-colors shadow-xs active:scale-98 cursor-pointer"
+            className="inline-flex items-center justify-center px-10 py-2 sm:py-2.5 bg-[#0d1b74] hover:bg-[#081254] text-white text-xs sm:text-sm font-medium tracking-wide transition-colors shadow-xs active:scale-98 cursor-pointer"
           >
             Shop Now
           </Link>

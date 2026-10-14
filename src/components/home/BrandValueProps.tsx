@@ -30,7 +30,7 @@ const valueProps = [
 
 export default function BrandValueProps() {
   return (
-    <section className="bg-neutral-50/70 border-y border-neutral-200/80 py-8 sm:py-10">
+    <section className="bg-neutral-50/70 border-y border-neutral-200/80 py-4 sm:py-5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-6 sm:gap-8 items-start">
           {valueProps.map((item, index) => {
