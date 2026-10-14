@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getOrCreateUserPurchaseDiscount } from "@/lib/discounts";
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,8 +14,12 @@ export async function GET(req: NextRequest) {
 
     let userPhone: string | null = null;
     let orderCount = 0;
+    let userPurchaseReward = null;
 
     if (userId) {
+      // Dynamically evaluate and grant/ensure user discount based on purchases & usage
+      userPurchaseReward = await getOrCreateUserPurchaseDiscount(userId);
+
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { phone: true },
@@ -180,8 +185,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       cartTotal,
+      isLoggedIn: Boolean(userId),
       isFirstOrder: orderCount === 0,
       orderCount,
+      userDiscount: userPurchaseReward?.discount || null,
+      rewardTier: userPurchaseReward?.tier || null,
       coupons: processedCoupons,
     });
   } catch (error) {

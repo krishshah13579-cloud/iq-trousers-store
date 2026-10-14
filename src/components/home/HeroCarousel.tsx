@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -29,60 +30,87 @@ interface StoreCoupon {
 }
 
 export default function HeroCarousel() {
+  const { data: session, status: authStatus } = useSession();
+  const isLoggedIn = authStatus === "authenticated" && Boolean(session?.user);
+
   // Automatically determines active month (0-11)
   const currentMonthIndex = new Date().getMonth();
 
-  // Active public coupon (defaults to FLAT100, synced with DB if available)
-  const [activeCoupon, setActiveCoupon] = useState<StoreCoupon>({
-    id: "coupon-flat100",
-    code: "FLAT100",
-    type: "FIXED",
-    value: 100,
-    minOrder: 1999,
-    description: "Flat ₹100 Off on orders above ₹1,999",
-  });
-
+  // Active coupon tied exclusively to logged-in user's account (based on purchases & usage)
+  const [accountCoupon, setAccountCoupon] = useState<StoreCoupon | null>(null);
   const [copiedCouponCode, setCopiedCouponCode] = useState<string | null>(null);
   const [current, setCurrent] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
-  // Fetch live active discounts from DB if available
+  // Fetch account-bound discount based on purchases & usage when user is logged in
   useEffect(() => {
     let isMounted = true;
-    async function fetchPublicCoupon() {
+
+    if (authStatus === "loading") {
+      return;
+    }
+
+    if (!isLoggedIn) {
+      setAccountCoupon(null);
+      return;
+    }
+
+    async function fetchUserAccountDiscount() {
       try {
         const res = await fetch("/api/discounts/available?cartTotal=2000");
         if (!res.ok) return;
         const data = await res.json();
-        if (data && Array.isArray(data.coupons) && data.coupons.length > 0) {
-          const publicCoupons = data.coupons.filter(
-            (c: { isPersonal?: boolean; code?: string }) => !c.isPersonal && c.code
-          );
-          if (isMounted && publicCoupons.length > 0) {
-            const best = publicCoupons[0];
-            setActiveCoupon({
-              id: best.id,
-              code: best.code,
-              type: best.type === "PERCENTAGE" ? "PERCENTAGE" : "FIXED",
-              value: Number(best.value),
-              minOrder: Number(best.minOrder || 0),
-              description: best.description || `Flat ₹${best.value} Off on orders above ₹${best.minOrder}`,
+        if (isMounted && data) {
+          if (data.userDiscount) {
+            setAccountCoupon({
+              id: data.userDiscount.id,
+              code: data.userDiscount.code,
+              type: data.userDiscount.type === "PERCENTAGE" ? "PERCENTAGE" : "FIXED",
+              value: Number(data.userDiscount.value),
+              minOrder: Number(data.userDiscount.minOrder || 0),
+              description: data.userDiscount.description || "",
             });
+          } else if (Array.isArray(data.coupons)) {
+            const personal = data.coupons.find((c: any) => c.isPersonal);
+            if (personal) {
+              setAccountCoupon({
+                id: personal.id,
+                code: personal.code,
+                type: personal.type === "PERCENTAGE" ? "PERCENTAGE" : "FIXED",
+                value: Number(personal.value),
+                minOrder: Number(personal.minOrder || 0),
+                description: personal.description || "",
+              });
+            }
           }
         }
       } catch {
-        // Fallback to default
+        // Fallback
       }
     }
-    fetchPublicCoupon();
+
+    fetchUserAccountDiscount();
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isLoggedIn, authStatus]);
 
-  // Compute active slides for current month
-  const slides: CampaignPoster[] = getMonthlyPosters(currentMonthIndex, activeCoupon.code);
+  // Compute monthly posters with account-bound coupon code
+  const allMonthlySlides: CampaignPoster[] = getMonthlyPosters(
+    currentMonthIndex,
+    accountCoupon?.code || ""
+  );
+
+  // CRITICAL REQUIREMENT:
+  // "DISCOUNT COUPON POSTER SHOWED TO USER MUST BE LOGGED IN AND THE DISCOUNT SHOULD BE AVAILABLE TO THAT ACCOUNT."
+  // If user is not logged in or account has no available discount, do NOT show the discount poster!
+  const slides: CampaignPoster[] = allMonthlySlides.filter((slide) => {
+    if (slide.type === "discount") {
+      return isLoggedIn && accountCoupon !== null;
+    }
+    return true;
+  });
 
   const nextSlide = useCallback(() => {
     setCurrent((prev) => (prev + 1) % slides.length);
@@ -157,7 +185,15 @@ export default function HeroCarousel() {
       {/* Compact Widescreen Hero Banner Container matching Louis Philippe compact layout */}
       <div className="relative w-full aspect-[3.2/1] min-h-[380px] sm:min-h-[400px] md:min-h-[440px] lg:min-h-[460px] xl:min-h-[480px] max-h-[500px] overflow-hidden">
         {slides.map((slide, index) => {
-          const isActive = index === current;
+          const isActive = index === (current % Math.max(slides.length, 1));
+          const couponForSlide = accountCoupon || {
+            id: "default",
+            code: "VIP",
+            type: "PERCENTAGE" as const,
+            value: 25,
+            minOrder: 1999,
+            description: "Exclusive Account Discount",
+          };
 
           return (
             <div
@@ -212,7 +248,7 @@ export default function HeroCarousel() {
                     {slide.type === "discount" && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-xs">
                         <Tag className="w-3.5 h-3.5 text-rose-400" />
-                        <span>VIP PRIVILEGE • 25% OFF STOREWIDE + VOUCHER</span>
+                        <span>ACCOUNT PRIVILEGE • {couponForSlide.type === "PERCENTAGE" ? `${couponForSlide.value}% OFF` : `₹${couponForSlide.value} OFF`} ON ORDERS OVER ₹{couponForSlide.minOrder.toLocaleString("en-IN")}</span>
                       </span>
                     )}
 
@@ -254,7 +290,7 @@ export default function HeroCarousel() {
                       <>When your trousers drape this flawlessly, walking in isn&apos;t an arrival — it&apos;s a statement. Tailored for black-tie elegance.</>
                     )}
                     {slide.type === "discount" && (
-                      <>25% off every pair of premium trousers and formal pants + instant ₹{activeCoupon.value} voucher applied at checkout.</>
+                      <>{couponForSlide.description || `${couponForSlide.type === "PERCENTAGE" ? `${couponForSlide.value}% off` : `₹${couponForSlide.value} off`} your order`}. Applied automatically at checkout on orders over ₹{couponForSlide.minOrder.toLocaleString("en-IN")}.</>
                     )}
                     {slide.type === "new-arrival" && (
                       <>Engineered with 360° adaptive stretch. Moves with you all day, never wrinkles, and holds its razor-sharp fit.</>
@@ -282,23 +318,23 @@ export default function HeroCarousel() {
                       <div className="inline-flex flex-wrap items-center gap-2.5 p-2 rounded-lg bg-black/60 backdrop-blur-md border border-dashed border-rose-500/80 shadow-md">
                         <div className="flex flex-col text-left pr-2 border-r border-white/15">
                           <span className="text-[8px] font-black uppercase tracking-widest text-neutral-400">
-                            INSTANT VOUCHER
+                            ACCOUNT VOUCHER
                           </span>
                           <span className="text-sm sm:text-base font-black tracking-widest text-amber-300 font-mono">
-                            {activeCoupon.code}
+                            {couponForSlide.code}
                           </span>
                         </div>
 
                         <button
                           type="button"
-                          onClick={() => handleCopyCoupon(activeCoupon.code)}
+                          onClick={() => handleCopyCoupon(couponForSlide.code)}
                           className={`px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 ${
-                            copiedCouponCode === activeCoupon.code
+                            copiedCouponCode === couponForSlide.code
                               ? "bg-emerald-500 text-white font-black"
                               : "bg-white text-neutral-950 hover:bg-neutral-200"
                           }`}
                         >
-                          {copiedCouponCode === activeCoupon.code ? (
+                          {copiedCouponCode === couponForSlide.code ? (
                             <>
                               <Check className="w-3 h-3 stroke-[3]" />
                               <span>COPIED!</span>
@@ -313,7 +349,7 @@ export default function HeroCarousel() {
                       </div>
 
                       <p className="text-[11px] text-neutral-300 font-medium">
-                        ⚡ Applied automatically at checkout on orders over ₹{activeCoupon.minOrder.toLocaleString("en-IN")}.
+                        ⚡ Applied automatically to your account at checkout on orders over ₹{couponForSlide.minOrder.toLocaleString("en-IN")}.
                       </p>
                     </div>
                   )}
