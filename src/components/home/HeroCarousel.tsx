@@ -219,7 +219,7 @@ export default function HeroCarousel() {
                     {slide.type === "new-arrival" && (
                       <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] font-black tracking-widest uppercase bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-xs">
                         <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-                        <span>STREET EDIT DROP • 4-WAY ADAPTIVE FLEX</span>
+                        <span>SIGNATURE CASUALS • 4-WAY ADAPTIVE FLEX</span>
                       </span>
                     )}
                   </div>
@@ -234,16 +234,16 @@ export default function HeroCarousel() {
                     )}
 
                     {slide.type === "discount" && (
-                      <h2 className="text-4xl sm:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter text-white uppercase leading-[0.92] font-sans drop-shadow-2xl">
-                        LOOK EXPENSIVE. <br />
-                        <span className="text-[#ef4444]">PAY WAY LESS.</span>
+                      <h2 className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tighter text-white uppercase leading-[0.94] font-sans drop-shadow-2xl">
+                        PREMIUM DESIGN SHOULDN&apos;T REQUIRE <br />
+                        <span className="text-[#ef4444]">A PREMIUM MARKUP.</span>
                       </h2>
                     )}
 
                     {slide.type === "new-arrival" && (
                       <h2 className="text-4xl sm:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter text-white uppercase leading-[0.92] font-sans drop-shadow-2xl">
                         TOO COMFORTABLE <br />
-                        <span className="text-sky-400">TO BE THIS HANDSOME.</span>
+                        <span className="text-sky-400">TO BE THIS SHARP.</span>
                       </h2>
                     )}
                   </div>
@@ -254,10 +254,10 @@ export default function HeroCarousel() {
                       <>When your trousers drape this flawlessly, walking in isn&apos;t an arrival — it&apos;s a statement.</>
                     )}
                     {slide.type === "discount" && (
-                      <>25% off every single fit + an instant ₹{activeCoupon.value} voucher at checkout. High-tier luxury with zero guilt.</>
+                      <>25% off every pair storewide + instant ₹{activeCoupon.value} voucher at checkout. Direct from Ahmedabad, with zero luxury markup.</>
                     )}
                     {slide.type === "new-arrival" && (
-                      <>Engineered with 360° adaptive stretch. Moves with you all day, never wrinkles, and looks razor-sharp.</>
+                      <>Engineered with 360° adaptive stretch. Moves with you all day, never wrinkles, and holds its razor-sharp fit.</>
                     )}
                   </p>
 
@@ -342,7 +342,7 @@ export default function HeroCarousel() {
                       <span>
                         {slide.type === "festival" && "COMMAND THE ROOM"}
                         {slide.type === "discount" && "SNAG YOUR FIT"}
-                        {slide.type === "new-arrival" && "MEET YOUR NEW FAVOURITE"}
+                        {slide.type === "new-arrival" && "EXPLORE SIGNATURE FITS"}
                       </span>
                       <ArrowRight className="w-4 h-4" />
                     </Link>

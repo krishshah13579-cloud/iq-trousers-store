@@ -468,11 +468,11 @@ export const MONTHLY_CAMPAIGNS: MonthCampaignConfig[] = [
     },
     discount: {
       badge: "DIWALI MEGA SALE • EXCLUSIVE DISCOUNT",
-      tagline: "FESTIVE SAVINGS UNLOCKED",
-      title: "FLAT ₹100 OFF",
-      subtitle: "Apply Code FLAT100 for Instant Savings on Premium Trousers",
+      tagline: "THE IQ TROUSERS PHILOSOPHY",
+      title: "PREMIUM DESIGN SHOULDN'T REQUIRE A PREMIUM MARKUP",
+      subtitle: "25% Off Storewide + Instant ₹100 Off with Exclusive Voucher",
       description:
-        "Our biggest festive promotion of the year. Save on every pair, with complimentary DTDC express dispatch from our Ahmedabad warehouse directly to your doorstep.",
+        "Our biggest festive promotion of the year. Save 25% on every pair, with complimentary DTDC express dispatch from our Ahmedabad warehouse directly to your doorstep.",
       couponCode: "FLAT100",
       couponOffer: "FLAT ₹100 OFF • Code: FLAT100",
       ctaText: "Claim Diwali Discount",
@@ -480,10 +480,10 @@ export const MONTHLY_CAMPAIGNS: MonthCampaignConfig[] = [
       bgImage: "/posters/discount-hero-poster.jpg",
     },
     newArrival: {
-      badge: "NEW ARRIVAL • AUTUMN/WINTER '26",
-      tagline: "LEVI'S STYLE EDITORIAL DROP",
-      title: "WINTER WORSTED '26",
-      subtitle: "Heavyweight Flannels & Architectural 4-Way Stretch",
+      badge: "NEW ARRIVAL • SIGNATURE 4-WAY FLEX",
+      tagline: "ARCHITECTURAL MOBILITY",
+      title: "TOO COMFORTABLE TO BE THIS SHARP",
+      subtitle: "4-Way Adaptive Stretch Chinos for Everyday Elegance",
       description:
         "Experience the next echelon of tailored performance. Featuring anti-slip internal shirt grips, flex-comfort waistbands, and impeccable break over dress shoes.",
       features: ["Heavyweight 320 GSM", "Zero-Iron Crease", "Tailored Ankle Break"],
