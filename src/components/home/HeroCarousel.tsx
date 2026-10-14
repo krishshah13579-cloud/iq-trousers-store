@@ -14,6 +14,7 @@ import {
   Calendar,
   Gift,
   CheckCircle2,
+  ShieldCheck,
 } from "lucide-react";
 import {
   getMonthlyPosters,
@@ -21,48 +22,96 @@ import {
   CampaignPoster,
 } from "@/lib/monthlyCampaigns";
 
+interface StoreCoupon {
+  id: string;
+  code: string;
+  type: "FIXED" | "PERCENTAGE";
+  value: number;
+  minOrder: number;
+  description: string;
+  isFirstOrderCoupon?: boolean;
+}
+
 export default function HeroCarousel() {
   const [currentMonthIndex, setCurrentMonthIndex] = useState<number>(() => {
     return new Date().getMonth();
   });
-  const [activeCoupon, setActiveCoupon] = useState<string>("FLAT100");
-  const [copiedCode, setCopiedCode] = useState(false);
+
+  // Coupons available for users (fetched live from DB)
+  const [availableCoupons, setAvailableCoupons] = useState<StoreCoupon[]>([
+    {
+      id: "coupon-flat100",
+      code: "FLAT100",
+      type: "FIXED",
+      value: 100,
+      minOrder: 1999,
+      description: "Flat ₹100 Off on orders above ₹1,999",
+      isFirstOrderCoupon: false,
+    },
+    {
+      id: "coupon-welcome10",
+      code: "WELCOME10",
+      type: "PERCENTAGE",
+      value: 10,
+      minOrder: 0,
+      description: "10% First Order Welcome Discount",
+      isFirstOrderCoupon: true,
+    },
+  ]);
+
+  const [selectedCouponCode, setSelectedCouponCode] = useState<string>("FLAT100");
+  const [copiedCouponCode, setCopiedCouponCode] = useState<string | null>(null);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
 
   const [current, setCurrent] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
-  // Fetch live active discounts from DB if available
+  // Fetch live active discounts from DB
   useEffect(() => {
     let isMounted = true;
-    async function fetchPublicCoupon() {
+    async function fetchPublicCoupons() {
       try {
         const res = await fetch("/api/discounts/available?cartTotal=2000");
         if (!res.ok) return;
         const data = await res.json();
         if (data && Array.isArray(data.coupons) && data.coupons.length > 0) {
-          // Find first public coupon
-          const publicCoupons = data.coupons.filter(
-            (c: { isPersonal?: boolean; code?: string }) => !c.isPersonal && c.code
-          );
-          if (isMounted && publicCoupons.length > 0) {
-            setActiveCoupon(publicCoupons[0].code);
+          const list: StoreCoupon[] = data.coupons.map((c: any) => ({
+            id: c.id,
+            code: c.code,
+            type: c.type === "PERCENTAGE" ? "PERCENTAGE" : "FIXED",
+            value: Number(c.value),
+            minOrder: Number(c.minOrder || 0),
+            description:
+              c.description ||
+              (c.type === "PERCENTAGE"
+                ? `${c.value}% OFF on your cart`
+                : `Flat ₹${c.value} OFF on orders above ₹${c.minOrder}`),
+            isFirstOrderCoupon: Boolean(c.isFirstOrderCoupon),
+          }));
+
+          if (isMounted && list.length > 0) {
+            setAvailableCoupons(list);
+            setSelectedCouponCode(list[0].code);
           }
         }
       } catch {
-        // Fallback to default monthly coupon
+        // Fallback to default coupons
       }
     }
-    fetchPublicCoupon();
+    fetchPublicCoupons();
     return () => {
       isMounted = false;
     };
   }, []);
 
   // Compute active slides for selected month
-  const slides: CampaignPoster[] = getMonthlyPosters(currentMonthIndex, activeCoupon);
+  const slides: CampaignPoster[] = getMonthlyPosters(currentMonthIndex, selectedCouponCode);
   const activeMonthConfig = MONTHLY_CAMPAIGNS[currentMonthIndex] || MONTHLY_CAMPAIGNS[9];
+
+  // Active coupon currently selected for the discount poster
+  const activeCoupon =
+    availableCoupons.find((c) => c.code === selectedCouponCode) || availableCoupons[0];
 
   const nextSlide = useCallback(() => {
     setCurrent((prev) => (prev + 1) % slides.length);
@@ -105,11 +154,12 @@ export default function HeroCarousel() {
   const handleCopyCoupon = (code: string) => {
     try {
       navigator.clipboard.writeText(code);
-      setCopiedCode(true);
+      setCopiedCouponCode(code);
+      setSelectedCouponCode(code);
       try {
         localStorage.setItem("iq_saved_coupon", code);
       } catch {}
-      setTimeout(() => setCopiedCode(false), 2500);
+      setTimeout(() => setCopiedCouponCode(null), 2500);
     } catch {
       // ignore clipboard error
     }
@@ -135,7 +185,17 @@ export default function HeroCarousel() {
       onTouchEnd={handleTouchEnd}
       aria-label="IQ Trousers Hero Poster Carousel"
     >
-      {/* Top Floating Month / Campaign Indicator (Interactive month switcher) */}
+      {/* Levi's Style Iconic Red Brand Tab in Top Corner */}
+      <div className="absolute top-0 left-6 sm:left-10 z-30 pointer-events-none">
+        <div className="bg-[#b91c1c] text-white px-2.5 pt-2 pb-3.5 shadow-2xl rounded-b-md flex flex-col items-center border-x border-b border-red-800">
+          <span className="text-[10px] font-black tracking-widest uppercase text-amber-200">
+            IQ
+          </span>
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1 animate-pulse" />
+        </div>
+      </div>
+
+      {/* Top Floating Campaign Selector */}
       <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
         <div className="relative">
           <button
@@ -193,7 +253,7 @@ export default function HeroCarousel() {
       </div>
 
       {/* Slides Container */}
-      <div className="relative w-full min-h-[540px] sm:min-h-[580px] md:min-h-[620px] lg:min-h-[660px] xl:min-h-[700px]">
+      <div className="relative w-full min-h-[560px] sm:min-h-[600px] md:min-h-[640px] lg:min-h-[680px] xl:min-h-[720px]">
         {slides.map((slide, index) => {
           const isActive = index === current;
 
@@ -216,7 +276,7 @@ export default function HeroCarousel() {
                 />
 
                 {/* Levi's Style Moody Dark Gradient Overlay for Maximum Typographic Punch */}
-                <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-950/80 to-transparent sm:w-3/4 md:w-2/3" />
+                <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-950/85 to-transparent sm:w-3/4 md:w-2/3" />
                 <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/95 via-transparent to-neutral-950/40" />
 
                 {/* Subtle Festival Golden Ambient Glow on Festival Slide */}
@@ -225,16 +285,38 @@ export default function HeroCarousel() {
                 )}
                 {/* Subtle Red/Rose Glow on Discount Slide */}
                 {slide.type === "discount" && (
-                  <div className="absolute inset-0 bg-radial from-rose-500/10 via-transparent to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-radial from-rose-500/15 via-transparent to-transparent pointer-events-none" />
                 )}
               </div>
 
               {/* Slide Content Box */}
               <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
-                <div className="max-w-2xl py-14 sm:py-20 lg:py-24 space-y-4 sm:space-y-5">
-                  {/* Category Pill / Badge */}
+                <div className="max-w-2xl py-12 sm:py-16 lg:py-20 space-y-4 sm:space-y-4.5">
+                  {/* 1. OFFICIAL COMPANY BRANDING LOCKUP */}
+                  <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/15 shadow-sm inline-flex">
+                    <img
+                      src="/iq-trousers-logo-dark-mode.png"
+                      alt="IQ Trousers Logo"
+                      className="h-8 sm:h-9 w-auto object-contain shrink-0"
+                    />
+                    <div className="flex flex-col text-left">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs sm:text-sm font-black tracking-widest text-white uppercase font-sans">
+                          IQ TROUSERS
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-black tracking-widest uppercase bg-amber-400 text-neutral-950">
+                          ORIGINAL FIT
+                        </span>
+                      </div>
+                      <span className="text-[9px] sm:text-[10px] tracking-wider text-neutral-300 uppercase font-medium">
+                        Precision Tailored Menswear • Ahmedabad
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 2. Category Pill / Badge */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold tracking-wider text-amber-300 uppercase shadow-xs">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold tracking-wider text-amber-300 uppercase shadow-xs">
                       {renderPosterIcon(slide.type)}
                       <span>{slide.badge}</span>
                     </div>
@@ -246,64 +328,122 @@ export default function HeroCarousel() {
                     )}
                   </div>
 
-                  {/* High-Impact Levi's Billboard Headline */}
-                  <h2 className="text-4xl sm:text-6xl lg:text-7xl font-sans font-extrabold tracking-tight text-white leading-none drop-shadow-lg uppercase">
-                    {slide.title}
+                  {/* 3. High-Impact Levi's Billboard Headline (Dynamically tailored on discount poster) */}
+                  <h2 className="text-3xl sm:text-5xl lg:text-6xl font-sans font-extrabold tracking-tight text-white leading-none drop-shadow-lg uppercase">
+                    {slide.type === "discount" ? (
+                      activeCoupon.type === "FIXED" ? (
+                        <>FLAT ₹{activeCoupon.value} OFF</>
+                      ) : (
+                        <>FLAT {activeCoupon.value}% OFF</>
+                      )
+                    ) : (
+                      slide.title
+                    )}
                   </h2>
 
-                  {/* Subtitle */}
-                  <p className="text-base sm:text-xl font-semibold text-amber-100/95 drop-shadow-xs leading-snug">
-                    {slide.subtitle}
+                  {/* 4. Subtitle */}
+                  <p className="text-sm sm:text-lg font-semibold text-amber-100/95 drop-shadow-xs leading-snug">
+                    {slide.type === "discount" ? (
+                      activeCoupon.minOrder > 0 ? (
+                        <>Valid on orders above ₹{activeCoupon.minOrder.toLocaleString("en-IN")} • Code: <span className="text-amber-400 font-mono underline">{activeCoupon.code}</span></>
+                      ) : (
+                        <>Storewide instant discount on all trouser fits • Code: <span className="text-amber-400 font-mono underline">{activeCoupon.code}</span></>
+                      )
+                    ) : (
+                      slide.subtitle
+                    )}
                   </p>
 
-                  {/* Description */}
-                  <p className="text-xs sm:text-sm md:text-base text-neutral-300 leading-relaxed max-w-xl font-normal drop-shadow-xs">
-                    {slide.description}
+                  {/* 5. Description */}
+                  <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed max-w-xl font-normal drop-shadow-xs">
+                    {slide.type === "discount"
+                      ? "Handcrafted luxury trousers dispatched directly from our Ahmedabad workshop. Choose from our active discount vouchers below—tap any coupon to copy & activate your instant discount at checkout."
+                      : slide.description}
                   </p>
 
-                  {/* Discount Poster Special Feature: Interactive Coupon Ticket */}
-                  {slide.type === "discount" && slide.couponCode && (
-                    <div className="pt-1 flex flex-wrap items-center gap-3">
-                      <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-neutral-900 to-neutral-800 border border-amber-400/40 shadow-lg">
-                        <Gift className="w-4 h-4 text-amber-400 shrink-0" />
-                        <div className="flex flex-col text-left">
-                          <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-400">
-                            PROMO CODE
-                          </span>
-                          <span className="text-sm font-extrabold tracking-wider text-white font-mono">
-                            {slide.couponCode}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyCoupon(slide.couponCode!)}
-                          className="ml-2 px-3 py-1 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-bold text-xs rounded-lg transition-all cursor-pointer flex items-center gap-1 active:scale-95"
-                          title="Copy promo code"
-                        >
-                          {copiedCode ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 text-emerald-950" />
-                              <span>Copied!</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3.5 h-3.5" />
-                              <span>Copy</span>
-                            </>
-                          )}
-                        </button>
+                  {/* 6. DISCOUNT POSTER: INTERACTIVE AVAILABLE COUPONS VOUCHER DECK */}
+                  {slide.type === "discount" && (
+                    <div className="space-y-2 pt-1">
+                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-300">
+                        <Gift className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Available Coupons for Users (Tap to Copy & Apply):</span>
                       </div>
 
-                      {slide.couponOffer && (
-                        <span className="text-xs font-semibold text-amber-200/90 flex items-center gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>{slide.couponOffer}</span>
-                        </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-xl">
+                        {availableCoupons.map((c) => {
+                          const isSelected = c.code === selectedCouponCode;
+                          const isCopied = copiedCouponCode === c.code;
+
+                          return (
+                            <div
+                              key={c.code}
+                              onClick={() => handleCopyCoupon(c.code)}
+                              className={`p-3 rounded-xl border transition-all duration-200 cursor-pointer text-left relative overflow-hidden backdrop-blur-md select-none active:scale-[0.98] ${
+                                isSelected
+                                  ? "bg-amber-400/20 border-amber-400 text-white shadow-lg ring-1 ring-amber-400/50"
+                                  : "bg-black/55 border-white/15 text-neutral-200 hover:border-white/35 hover:bg-black/75"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-mono font-black text-sm tracking-widest text-amber-300 bg-black/60 px-2 py-0.5 rounded border border-amber-400/30">
+                                  {c.code}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCopyCoupon(c.code);
+                                  }}
+                                  className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer shadow-xs ${
+                                    isCopied
+                                      ? "bg-emerald-500 text-white font-extrabold"
+                                      : isSelected
+                                      ? "bg-amber-400 text-neutral-950 hover:bg-amber-300"
+                                      : "bg-white/10 text-neutral-200 hover:bg-white/20"
+                                  }`}
+                                >
+                                  {isCopied ? (
+                                    <>
+                                      <Check className="w-3 h-3 stroke-[3]" />
+                                      <span>Copied!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="w-3 h-3" />
+                                      <span>Copy</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+
+                              <p className="text-xs font-bold text-white mt-2 line-clamp-1">
+                                {c.type === "FIXED" ? `Flat ₹${c.value} Off` : `${c.value}% Off`}
+                                {c.minOrder > 0
+                                  ? ` on orders over ₹${c.minOrder.toLocaleString("en-IN")}`
+                                  : " on all orders"}
+                              </p>
+
+                              <p className="text-[10px] text-neutral-300 mt-0.5 flex items-center gap-1">
+                                <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />
+                                <span>{c.description}</span>
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {copiedCouponCode && (
+                        <p className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5 animate-fadeIn">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>
+                            Coupon <strong>{copiedCouponCode}</strong> copied to clipboard! It will auto-apply to your order at checkout.
+                          </span>
+                        </p>
                       )}
                     </div>
                   )}
 
-                  {/* New Arrival Poster Special Feature: Technical Trouser Feature Chips */}
+                  {/* 7. NEW ARRIVAL POSTER SPECIAL: TECHNICAL FEATURE CHIPS */}
                   {slide.type === "new-arrival" && slide.features && (
                     <div className="flex flex-wrap gap-2 pt-1">
                       {slide.features.map((feat) => (
@@ -318,13 +458,17 @@ export default function HeroCarousel() {
                     </div>
                   )}
 
-                  {/* CTA Buttons */}
-                  <div className="pt-3 sm:pt-4 flex flex-wrap items-center gap-4">
+                  {/* 8. CTA Buttons */}
+                  <div className="pt-2 sm:pt-3 flex flex-wrap items-center gap-3.5">
                     <Link
                       href={slide.ctaLink}
                       className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-white text-neutral-950 font-bold text-xs uppercase tracking-wider hover:bg-neutral-200 active:scale-95 transition-all shadow-xl cursor-pointer"
                     >
-                      <span>{slide.ctaText}</span>
+                      <span>
+                        {slide.type === "discount"
+                          ? `Shop with Code ${selectedCouponCode}`
+                          : slide.ctaText}
+                      </span>
                       <ArrowRight className="w-4 h-4" />
                     </Link>
 
@@ -367,7 +511,7 @@ export default function HeroCarousel() {
         <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
       </button>
 
-      {/* Bottom Interactive Carousel Tabs (Festival Poster, Discount Poster, New Arrival) */}
+      {/* Bottom Interactive Carousel Tabs */}
       <div className="absolute bottom-5 inset-x-0 z-20 flex items-center justify-center gap-2 sm:gap-3 px-4">
         {slides.map((s, index) => {
           const isActive = index === current;
