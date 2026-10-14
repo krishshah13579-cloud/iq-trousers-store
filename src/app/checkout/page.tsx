@@ -31,6 +31,7 @@ interface AppliedDiscount {
   code: string;
   type: string;
   value: number;
+  maxDiscount?: number | null;
   amount: number;
   minOrder?: number;
 }
@@ -146,6 +147,9 @@ function CheckoutContent() {
       currentDiscountAmount = Math.round(((subtotal * appliedDiscount.value) / 100) * 100) / 100;
     } else {
       currentDiscountAmount = Math.min(appliedDiscount.value, subtotal);
+    }
+    if (appliedDiscount.maxDiscount && appliedDiscount.maxDiscount > 0) {
+      currentDiscountAmount = Math.min(currentDiscountAmount, appliedDiscount.maxDiscount);
     }
   }
 
@@ -630,7 +634,7 @@ function CheckoutContent() {
                         </div>
                         <p className="text-[11px] text-emerald-700 mt-0.5">
                           {appliedDiscount.type === "PERCENTAGE"
-                            ? `${appliedDiscount.value}% off applied`
+                            ? `${appliedDiscount.value}% off applied${appliedDiscount.maxDiscount ? ` (up to ${formatPrice(appliedDiscount.maxDiscount)})` : ""}`
                             : `${formatPrice(appliedDiscount.value)} off applied`}
                           {currentDiscountAmount > 0
                             ? ` • Saved ${formatPrice(currentDiscountAmount)}`

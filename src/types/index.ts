@@ -103,6 +103,7 @@ export interface Discount {
   type: "PERCENTAGE" | "FIXED";
   value: number;
   minOrder: number;
+  maxDiscount?: number | null;
   maxUses: number | null;
   usedCount: number;
   active: boolean;

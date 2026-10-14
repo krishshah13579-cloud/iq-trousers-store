@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { code, type, value, minOrder, maxUses, expiresAt } = body;
+    const { code, type, value, minOrder, maxDiscount, maxUses, expiresAt } = body;
 
     if (!code || !type || value === undefined) {
       return NextResponse.json(
@@ -60,6 +60,10 @@ export async function POST(req: NextRequest) {
         type: type === "PERCENTAGE" ? "PERCENTAGE" : "FIXED",
         value: parseFloat(value),
         minOrder: minOrder ? parseFloat(minOrder) : 0,
+        maxDiscount:
+          maxDiscount !== undefined && maxDiscount !== null && String(maxDiscount).trim() !== ""
+            ? parseFloat(maxDiscount)
+            : null,
         maxUses: maxUses ? parseInt(maxUses, 10) : null,
         expiresAt: expiresAt && String(expiresAt).trim() ? new Date(expiresAt) : null,
         active: true,
@@ -84,7 +88,7 @@ export async function PUT(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { id, active, code, type, value, minOrder, maxUses, expiresAt } = body;
+    const { id, active, code, type, value, minOrder, maxDiscount, maxUses, expiresAt } = body;
 
     if (!id) {
       return NextResponse.json({ error: "Discount ID is required" }, { status: 400 });
@@ -98,6 +102,12 @@ export async function PUT(req: NextRequest) {
         ...(type !== undefined && { type }),
         ...(value !== undefined && { value: parseFloat(value) }),
         ...(minOrder !== undefined && { minOrder: parseFloat(minOrder) }),
+        ...(maxDiscount !== undefined && {
+          maxDiscount:
+            maxDiscount !== null && String(maxDiscount).trim() !== ""
+              ? parseFloat(maxDiscount)
+              : null,
+        }),
         ...(maxUses !== undefined && {
           maxUses: maxUses ? parseInt(maxUses, 10) : null,
         }),

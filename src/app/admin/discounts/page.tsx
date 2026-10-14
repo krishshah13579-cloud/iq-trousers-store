@@ -33,6 +33,7 @@ export default function AdminDiscountsPage() {
     type: "PERCENTAGE",
     value: "",
     minOrder: "",
+    maxDiscount: "",
     maxUses: "",
     expiresAt: "",
   });
@@ -78,6 +79,7 @@ export default function AdminDiscountsPage() {
       type: "PERCENTAGE",
       value: "",
       minOrder: "",
+      maxDiscount: "",
       maxUses: "",
       expiresAt: "",
     });
@@ -92,6 +94,7 @@ export default function AdminDiscountsPage() {
       type: discount.type,
       value: String(discount.value),
       minOrder: discount.minOrder > 0 ? String(discount.minOrder) : "",
+      maxDiscount: discount.maxDiscount && discount.maxDiscount > 0 ? String(discount.maxDiscount) : "",
       maxUses: discount.maxUses ? String(discount.maxUses) : "",
       expiresAt: discount.expiresAt
         ? new Date(discount.expiresAt).toISOString().split("T")[0]
@@ -162,6 +165,7 @@ export default function AdminDiscountsPage() {
             type: formData.type,
             value: formData.value,
             minOrder: formData.minOrder || "0",
+            maxDiscount: formData.maxDiscount || null,
             maxUses: formData.maxUses || null,
             expiresAt: formData.expiresAt || null,
           }),
@@ -198,6 +202,7 @@ export default function AdminDiscountsPage() {
         type: "PERCENTAGE",
         value: "",
         minOrder: "",
+        maxDiscount: "",
         maxUses: "",
         expiresAt: "",
       });
@@ -254,6 +259,7 @@ export default function AdminDiscountsPage() {
                     <th scope="col" className="px-5 py-3">Code</th>
                     <th scope="col" className="px-5 py-3">Type</th>
                     <th scope="col" className="px-5 py-3">Discount Value</th>
+                    <th scope="col" className="px-5 py-3">Max Discount Cap</th>
                     <th scope="col" className="px-5 py-3">Min Order</th>
                     <th scope="col" className="px-5 py-3">Uses</th>
                     <th scope="col" className="px-5 py-3">Expires</th>
@@ -296,6 +302,15 @@ export default function AdminDiscountsPage() {
                           {discount.type === "PERCENTAGE"
                             ? `${discount.value}% OFF`
                             : `${formatPrice(discount.value)} OFF`}
+                        </td>
+                        <td className="px-5 py-3.5 text-gray-700">
+                          {discount.maxDiscount && discount.maxDiscount > 0 ? (
+                            <span className="inline-flex items-center gap-1 font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-xs">
+                              Up to {formatPrice(discount.maxDiscount)}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-xs italic">No cap</span>
+                          )}
                         </td>
                         <td className="px-5 py-3.5 text-gray-700">
                           {discount.minOrder > 0
@@ -469,15 +484,40 @@ export default function AdminDiscountsPage() {
                     type="number"
                     step="0.01"
                     min="0"
-                    placeholder="0"
+                    placeholder="0 (No minimum)"
                     value={formData.minOrder}
                     onChange={(e) =>
                       setFormData({ ...formData, minOrder: e.target.value })
                     }
                     className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black"
                   />
+                  <span className="text-[10px] text-gray-400 mt-0.5 block">
+                    Min cart subtotal required
+                  </span>
                 </div>
 
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Max Discount Limit (₹)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="No cap (e.g. 500)"
+                    value={formData.maxDiscount}
+                    onChange={(e) =>
+                      setFormData({ ...formData, maxDiscount: e.target.value })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black"
+                  />
+                  <span className="text-[10px] text-gray-400 mt-0.5 block">
+                    Max ₹ off cap (e.g. up to ₹500)
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">
                     Maximum Uses
@@ -493,20 +533,20 @@ export default function AdminDiscountsPage() {
                     className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Expiration Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.expiresAt}
-                  onChange={(e) =>
-                    setFormData({ ...formData, expiresAt: e.target.value })
-                  }
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black"
-                />
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Expiration Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.expiresAt}
+                    onChange={(e) =>
+                      setFormData({ ...formData, expiresAt: e.target.value })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-black"
+                  />
+                </div>
               </div>
 
               <div className="pt-3 flex justify-end gap-3 border-t border-gray-100">

@@ -104,6 +104,11 @@ export async function POST(req: NextRequest) {
       amount = Math.min(discount.value, subtotal);
     }
 
+    // Apply Maximum Discount Limit cap if configured
+    if (discount.maxDiscount && discount.maxDiscount > 0) {
+      amount = Math.min(amount, discount.maxDiscount);
+    }
+
     amount = Math.round(amount * 100) / 100;
 
     return NextResponse.json({
@@ -113,6 +118,7 @@ export async function POST(req: NextRequest) {
         code: discount.code,
         type: discount.type,
         value: discount.value,
+        maxDiscount: discount.maxDiscount,
         amount,
         minOrder: discount.minOrder,
       },

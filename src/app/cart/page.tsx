@@ -28,6 +28,7 @@ interface AppliedDiscount {
   code: string;
   type: string;
   value: number;
+  maxDiscount?: number | null;
   amount: number;
   minOrder: number;
 }
@@ -37,6 +38,7 @@ interface AvailableCoupon {
   code: string;
   type: string;
   value: number;
+  maxDiscount?: number | null;
   minOrder: number;
   description: string;
   isPersonal: boolean;
@@ -112,6 +114,9 @@ export default function CartPage() {
       currentDiscountAmount = Math.round(((subtotal * appliedDiscount.value) / 100) * 100) / 100;
     } else {
       currentDiscountAmount = Math.min(appliedDiscount.value, subtotal);
+    }
+    if (appliedDiscount.maxDiscount && appliedDiscount.maxDiscount > 0) {
+      currentDiscountAmount = Math.min(currentDiscountAmount, appliedDiscount.maxDiscount);
     }
   }
 
@@ -566,7 +571,9 @@ export default function CartPage() {
                     <div>
                       <span className="font-semibold">{appliedDiscount.code}</span>
                       <span className="ml-1 text-emerald-700">
-                        ({appliedDiscount.type === "PERCENTAGE" ? `${appliedDiscount.value}% off` : `${formatPrice(appliedDiscount.value)} off`})
+                        ({appliedDiscount.type === "PERCENTAGE"
+                          ? `${appliedDiscount.value}% off${appliedDiscount.maxDiscount ? ` up to ${formatPrice(appliedDiscount.maxDiscount)}` : ""}`
+                          : `${formatPrice(appliedDiscount.value)} off`})
                       </span>
                     </div>
                   </div>

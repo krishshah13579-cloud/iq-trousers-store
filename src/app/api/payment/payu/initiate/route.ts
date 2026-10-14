@@ -136,6 +136,12 @@ export async function POST(req: NextRequest) {
         } else if (discount.type === "FIXED") {
           discountAmount = Math.min(discount.value, roundedSubtotal);
         }
+
+        // Apply Maximum Discount Limit cap if configured
+        if (discount.maxDiscount && discount.maxDiscount > 0) {
+          discountAmount = Math.min(discountAmount, discount.maxDiscount);
+        }
+
         discountAmount = Math.round(discountAmount * 100) / 100;
         appliedDiscountCode = discount.code;
         discountRecord = discount;

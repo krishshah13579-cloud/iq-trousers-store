@@ -121,6 +121,7 @@ model Discount {
   type        String    // PERCENTAGE or FIXED
   value       Float
   minOrder    Float     @default(0)
+  maxDiscount Float?
   maxUses     Int?
   usedCount   Int       @default(0)
   active      Boolean   @default(true)

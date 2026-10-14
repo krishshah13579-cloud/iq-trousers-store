@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
       type: string;
       value: number;
       minOrder: number;
+      maxDiscount: number | null;
       maxUses: number | null;
       usedCount: number;
       active: boolean;
@@ -105,6 +106,10 @@ export async function GET(req: NextRequest) {
         potentialSavings = Math.min(c.value, cartTotal);
       }
 
+      if (c.maxDiscount && c.maxDiscount > 0) {
+        potentialSavings = Math.min(potentialSavings, c.maxDiscount);
+      }
+
       let daysLeft: number | null = null;
       if (c.expiresAt) {
         const diffMs = new Date(c.expiresAt).getTime() - now.getTime();
@@ -120,12 +125,14 @@ export async function GET(req: NextRequest) {
           ? "Special welcome offer for your first order!"
           : "Add items to your cart to use your welcome discount!";
       } else if (c.minOrder > 0) {
-        headline = `${c.type === "PERCENTAGE" ? `${c.value}% OFF` : `₹${c.value} OFF`} (Orders over ₹${c.minOrder.toFixed(0)})`;
+        const capText = c.maxDiscount && c.maxDiscount > 0 ? ` up to ₹${c.maxDiscount}` : "";
+        headline = `${c.type === "PERCENTAGE" ? `${c.value}% OFF${capText}` : `₹${c.value} OFF`} (Orders over ₹${c.minOrder.toFixed(0)})`;
         salesPrompt = isEligible
           ? `You qualify! Save ₹${potentialSavings.toFixed(2)} right now.`
           : `Add ₹${shortfall.toFixed(2)} more to your cart to unlock this deal!`;
       } else {
-        headline = `${c.type === "PERCENTAGE" ? `${c.value}% OFF` : `₹${c.value} OFF`} Everything`;
+        const capText = c.maxDiscount && c.maxDiscount > 0 ? ` (Up to ₹${c.maxDiscount})` : "";
+        headline = `${c.type === "PERCENTAGE" ? `${c.value}% OFF${capText}` : `₹${c.value} OFF`} Everything`;
         salesPrompt = "Storewide discount applicable immediately!";
       }
 
@@ -134,6 +141,7 @@ export async function GET(req: NextRequest) {
         code: c.code,
         type: c.type,
         value: c.value,
+        maxDiscount: c.maxDiscount,
         minOrder: c.minOrder,
         description: c.description || headline,
         isPersonal,
@@ -146,7 +154,7 @@ export async function GET(req: NextRequest) {
         badge: isFirstOrderCoupon
           ? "🎉 First Order Special"
           : c.type === "PERCENTAGE"
-          ? `${c.value}% OFF`
+          ? `${c.value}% OFF${c.maxDiscount ? ` (Cap ₹${c.maxDiscount})` : ""}`
           : `₹${c.value} OFF`,
       };
     });
