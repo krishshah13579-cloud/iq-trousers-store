@@ -6,90 +6,82 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowRight,
-  Snowflake,
-  Briefcase,
-  Shirt,
+  Sparkles,
+  Tag,
+  Flame,
+  Copy,
+  Check,
+  Calendar,
+  Gift,
+  CheckCircle2,
 } from "lucide-react";
-
-interface CarouselSlide {
-  id: string;
-  tabTitle: string;
-  badge: string;
-  title: string;
-  subtitle: string;
-  description: string;
-  ctaText: string;
-  ctaLink: string;
-  bgImage: string;
-  icon: "snowflake" | "shirt" | "briefcase";
-}
-
-const carouselSlides: CarouselSlide[] = [
-  {
-    id: "winter-collection",
-    tabTitle: "Winter Collection",
-    badge: "WINTER 2026 • NEW SEASON ARRIVAL",
-    title: "Winter Collection",
-    subtitle: "Heavyweight Flannels, Corduroys & Thermal Wool Blends",
-    description:
-      "Engineered for cold-weather refinement and comfort. Thick-gauge worsted flannels, textured cotton corduroys, and insulated stretch linings tailored with surgical precision.",
-    ctaText: "Shop Winter Collection",
-    ctaLink: "/products",
-    bgImage: "/winter-collection-hero.jpg",
-    icon: "snowflake",
-  },
-  {
-    id: "everyday-casual",
-    tabTitle: "Everyday Casual",
-    badge: "COLLECTION 01 • EVERYDAY WEAR",
-    title: "Everyday Casual",
-    subtitle: "Engineered for 24/7 Movement, Breathability & Comfort",
-    description:
-      "Crafted from 4-way stretch twill, French linen, and enzyme-washed cottons with adaptive flex waistbands. Casual perfection from morning work to weekend leisure.",
-    ctaText: "Shop Everyday Casual",
-    ctaLink: "/products?category=everyday-casual",
-    bgImage: "/everyday-casual-hero.jpg",
-    icon: "shirt",
-  },
-  {
-    id: "formal-wear",
-    tabTitle: "Formal Wear",
-    badge: "COLLECTION 02 • FORMAL TROUSERS",
-    title: "Formal Wear",
-    subtitle: "Precision-Engineered Elegance & Boardroom Authority",
-    description:
-      "Manufactured from high-grade wool blends with curtained waistbands, anti-slip shirt grips, and razor-sharp French creases tailored for executive presence.",
-    ctaText: "Shop Formal Wear",
-    ctaLink: "/products?category=formal-wear",
-    bgImage: "/formal-wear-hero.jpg",
-    icon: "briefcase",
-  },
-];
+import {
+  getMonthlyPosters,
+  MONTHLY_CAMPAIGNS,
+  CampaignPoster,
+} from "@/lib/monthlyCampaigns";
 
 export default function HeroCarousel() {
+  const [currentMonthIndex, setCurrentMonthIndex] = useState<number>(() => {
+    return new Date().getMonth();
+  });
+  const [activeCoupon, setActiveCoupon] = useState<string>("FLAT100");
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+
   const [current, setCurrent] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
-  const nextSlide = useCallback(() => {
-    setCurrent((prev) => (prev + 1) % carouselSlides.length);
+  // Fetch live active discounts from DB if available
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchPublicCoupon() {
+      try {
+        const res = await fetch("/api/discounts/available?cartTotal=2000");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && Array.isArray(data.coupons) && data.coupons.length > 0) {
+          // Find first public coupon
+          const publicCoupons = data.coupons.filter(
+            (c: { isPersonal?: boolean; code?: string }) => !c.isPersonal && c.code
+          );
+          if (isMounted && publicCoupons.length > 0) {
+            setActiveCoupon(publicCoupons[0].code);
+          }
+        }
+      } catch {
+        // Fallback to default monthly coupon
+      }
+    }
+    fetchPublicCoupon();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
+  // Compute active slides for selected month
+  const slides: CampaignPoster[] = getMonthlyPosters(currentMonthIndex, activeCoupon);
+  const activeMonthConfig = MONTHLY_CAMPAIGNS[currentMonthIndex] || MONTHLY_CAMPAIGNS[9];
+
+  const nextSlide = useCallback(() => {
+    setCurrent((prev) => (prev + 1) % slides.length);
+  }, [slides.length]);
+
   const prevSlide = useCallback(() => {
-    setCurrent((prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length);
-  }, []);
+    setCurrent((prev) => (prev - 1 + slides.length) % slides.length);
+  }, [slides.length]);
 
   const goToSlide = useCallback((index: number) => {
     setCurrent(index);
-    // Pause briefly so user can inspect their selected slide
     setIsPaused(true);
     setTimeout(() => setIsPaused(false), 8000);
   }, []);
 
-  // Autoplay timer (every 6 seconds unless paused)
+  // Autoplay timer (every 6.5s)
   useEffect(() => {
     if (isPaused) return;
-    const interval = setInterval(nextSlide, 6000);
+    const interval = setInterval(nextSlide, 6500);
     return () => clearInterval(interval);
   }, [nextSlide, isPaused]);
 
@@ -110,14 +102,27 @@ export default function HeroCarousel() {
     touchStartX.current = null;
   };
 
-  const renderBadgeIcon = (type: CarouselSlide["icon"]) => {
+  const handleCopyCoupon = (code: string) => {
+    try {
+      navigator.clipboard.writeText(code);
+      setCopiedCode(true);
+      try {
+        localStorage.setItem("iq_saved_coupon", code);
+      } catch {}
+      setTimeout(() => setCopiedCode(false), 2500);
+    } catch {
+      // ignore clipboard error
+    }
+  };
+
+  const renderPosterIcon = (type: CampaignPoster["type"]) => {
     switch (type) {
-      case "snowflake":
-        return <Snowflake className="w-3.5 h-3.5 text-sky-400" />;
-      case "shirt":
-        return <Shirt className="w-3.5 h-3.5 text-amber-400" />;
-      case "briefcase":
-        return <Briefcase className="w-3.5 h-3.5 text-amber-400" />;
+      case "festival":
+        return <Flame className="w-3.5 h-3.5 text-amber-400" />;
+      case "discount":
+        return <Tag className="w-3.5 h-3.5 text-rose-400" />;
+      case "new-arrival":
+        return <Sparkles className="w-3.5 h-3.5 text-sky-400" />;
     }
   };
 
@@ -128,62 +133,206 @@ export default function HeroCarousel() {
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      aria-label="IQ Trousers Hero Carousel"
+      aria-label="IQ Trousers Hero Poster Carousel"
     >
+      {/* Top Floating Month / Campaign Indicator (Interactive month switcher) */}
+      <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowMonthPicker((prev) => !prev)}
+            title="Preview different monthly festival & discount campaigns"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-neutral-200 hover:text-white transition-all shadow-md cursor-pointer active:scale-95"
+          >
+            <Calendar className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">Campaign:</span>
+            <span className="font-bold text-white uppercase tracking-wider">
+              {activeMonthConfig.monthName} ({activeMonthConfig.season})
+            </span>
+            <span className="text-gray-400 text-[10px]">▾</span>
+          </button>
+
+          {/* Month Dropdown Menu */}
+          {showMonthPicker && (
+            <div className="absolute right-0 mt-2 w-64 max-h-80 overflow-y-auto rounded-2xl bg-neutral-900/95 backdrop-blur-xl border border-white/15 p-2 shadow-2xl z-40 text-left divide-y divide-neutral-800">
+              <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                Preview Monthly Campaigns
+              </div>
+              <div className="py-1">
+                {MONTHLY_CAMPAIGNS.map((m) => {
+                  const isCur = m.monthIndex === currentMonthIndex;
+                  return (
+                    <button
+                      type="button"
+                      key={m.monthIndex}
+                      onClick={() => {
+                        setCurrentMonthIndex(m.monthIndex);
+                        setCurrent(0);
+                        setShowMonthPicker(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                        isCur
+                          ? "bg-amber-400 text-neutral-950 font-bold"
+                          : "text-neutral-300 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <div className="flex flex-col">
+                        <span>{m.monthName}</span>
+                        <span className="text-[10px] opacity-75 font-normal truncate max-w-[160px]">
+                          {m.festival.tagline}
+                        </span>
+                      </div>
+                      {isCur && <Check className="w-3.5 h-3.5" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Slides Container */}
-      <div className="relative w-full min-h-[500px] sm:min-h-[560px] md:min-h-[600px] lg:min-h-[640px] xl:min-h-[680px]">
-        {carouselSlides.map((slide, index) => {
+      <div className="relative w-full min-h-[540px] sm:min-h-[580px] md:min-h-[620px] lg:min-h-[660px] xl:min-h-[700px]">
+        {slides.map((slide, index) => {
           const isActive = index === current;
 
           return (
             <div
               key={slide.id}
-              className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${
+              className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
                 isActive
                   ? "opacity-100 z-10 pointer-events-auto"
                   : "opacity-0 z-0 pointer-events-none"
               }`}
             >
-              {/* Background Image with Cinematic Dark Gradient */}
+              {/* Background Poster Image with Cinematic Contrast Gradients */}
               <div className="absolute inset-0">
                 <img
                   src={slide.bgImage}
                   alt={slide.title}
-                  className="w-full h-full object-cover object-center"
+                  className="w-full h-full object-cover object-center scale-100 transform transition-transform duration-1000 ease-out"
                   loading={index === 0 ? "eager" : "lazy"}
                 />
-                {/* Gradient for optimal text legibility */}
-                <div className="absolute inset-0 bg-gradient-to-r from-neutral-950/95 via-neutral-950/75 to-neutral-950/25 sm:to-transparent" />
-                <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/85 via-transparent to-neutral-950/30" />
+
+                {/* Levi's Style Moody Dark Gradient Overlay for Maximum Typographic Punch */}
+                <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-950/80 to-transparent sm:w-3/4 md:w-2/3" />
+                <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/95 via-transparent to-neutral-950/40" />
+
+                {/* Subtle Festival Golden Ambient Glow on Festival Slide */}
+                {slide.type === "festival" && (
+                  <div className="absolute inset-0 bg-radial from-amber-500/10 via-transparent to-transparent pointer-events-none" />
+                )}
+                {/* Subtle Red/Rose Glow on Discount Slide */}
+                {slide.type === "discount" && (
+                  <div className="absolute inset-0 bg-radial from-rose-500/10 via-transparent to-transparent pointer-events-none" />
+                )}
               </div>
 
               {/* Slide Content Box */}
               <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
-                <div className="max-w-2xl py-16 sm:py-20 lg:py-28 space-y-5">
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold tracking-wider text-amber-300 uppercase shadow-xs">
-                    {renderBadgeIcon(slide.icon)}
-                    <span>{slide.badge}</span>
+                <div className="max-w-2xl py-14 sm:py-20 lg:py-24 space-y-4 sm:space-y-5">
+                  {/* Category Pill / Badge */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold tracking-wider text-amber-300 uppercase shadow-xs">
+                      {renderPosterIcon(slide.type)}
+                      <span>{slide.badge}</span>
+                    </div>
+
+                    {slide.tagline && (
+                      <span className="hidden sm:inline-block px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 text-[11px] font-bold tracking-widest uppercase border border-amber-400/30">
+                        {slide.tagline}
+                      </span>
+                    )}
                   </div>
 
-                  <h2 className="text-4xl sm:text-6xl lg:text-7xl font-sans font-bold tracking-tight text-white leading-tight drop-shadow-md">
+                  {/* High-Impact Levi's Billboard Headline */}
+                  <h2 className="text-4xl sm:text-6xl lg:text-7xl font-sans font-extrabold tracking-tight text-white leading-none drop-shadow-lg uppercase">
                     {slide.title}
                   </h2>
 
-                  <p className="text-lg sm:text-xl font-medium text-amber-100/90 drop-shadow-xs">
+                  {/* Subtitle */}
+                  <p className="text-base sm:text-xl font-semibold text-amber-100/95 drop-shadow-xs leading-snug">
                     {slide.subtitle}
                   </p>
 
-                  <p className="text-sm sm:text-base text-neutral-300 leading-relaxed max-w-xl font-light">
+                  {/* Description */}
+                  <p className="text-xs sm:text-sm md:text-base text-neutral-300 leading-relaxed max-w-xl font-normal drop-shadow-xs">
                     {slide.description}
                   </p>
 
-                  <div className="pt-3 flex flex-wrap items-center gap-3.5">
+                  {/* Discount Poster Special Feature: Interactive Coupon Ticket */}
+                  {slide.type === "discount" && slide.couponCode && (
+                    <div className="pt-1 flex flex-wrap items-center gap-3">
+                      <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-neutral-900 to-neutral-800 border border-amber-400/40 shadow-lg">
+                        <Gift className="w-4 h-4 text-amber-400 shrink-0" />
+                        <div className="flex flex-col text-left">
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-400">
+                            PROMO CODE
+                          </span>
+                          <span className="text-sm font-extrabold tracking-wider text-white font-mono">
+                            {slide.couponCode}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyCoupon(slide.couponCode!)}
+                          className="ml-2 px-3 py-1 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-bold text-xs rounded-lg transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                          title="Copy promo code"
+                        >
+                          {copiedCode ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-emerald-950" />
+                              <span>Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5" />
+                              <span>Copy</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {slide.couponOffer && (
+                        <span className="text-xs font-semibold text-amber-200/90 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>{slide.couponOffer}</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* New Arrival Poster Special Feature: Technical Trouser Feature Chips */}
+                  {slide.type === "new-arrival" && slide.features && (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {slide.features.map((feat) => (
+                        <span
+                          key={feat}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-white tracking-wide shadow-xs"
+                        >
+                          <Check className="w-3 h-3 text-sky-400" />
+                          <span>{feat}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* CTA Buttons */}
+                  <div className="pt-3 sm:pt-4 flex flex-wrap items-center gap-4">
                     <Link
                       href={slide.ctaLink}
-                      className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-white text-neutral-950 font-semibold text-xs uppercase tracking-wider hover:bg-neutral-200 active:scale-95 transition-all shadow-xl cursor-pointer"
+                      className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-white text-neutral-950 font-bold text-xs uppercase tracking-wider hover:bg-neutral-200 active:scale-95 transition-all shadow-xl cursor-pointer"
                     >
                       <span>{slide.ctaText}</span>
                       <ArrowRight className="w-4 h-4" />
+                    </Link>
+
+                    <Link
+                      href="/products"
+                      className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white font-semibold text-xs uppercase tracking-wider border border-white/20 transition-all cursor-pointer"
+                    >
+                      <span>Browse All Fits</span>
                     </Link>
                   </div>
                 </div>
@@ -201,9 +350,9 @@ export default function HeroCarousel() {
           prevSlide();
         }}
         aria-label="Previous Carousel Slide"
-        className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-black/40 hover:bg-black/75 backdrop-blur-md text-white border border-white/15 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+        className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/40 hover:bg-black/75 backdrop-blur-md text-white border border-white/15 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
       >
-        <ChevronLeft className="w-6 h-6" />
+        <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
       </button>
 
       <button
@@ -213,14 +362,14 @@ export default function HeroCarousel() {
           nextSlide();
         }}
         aria-label="Next Carousel Slide"
-        className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-black/40 hover:bg-black/75 backdrop-blur-md text-white border border-white/15 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+        className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/40 hover:bg-black/75 backdrop-blur-md text-white border border-white/15 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
       >
-        <ChevronRight className="w-6 h-6" />
+        <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
       </button>
 
-      {/* Bottom Interactive Carousel Tabs / Indicators */}
+      {/* Bottom Interactive Carousel Tabs (Festival Poster, Discount Poster, New Arrival) */}
       <div className="absolute bottom-5 inset-x-0 z-20 flex items-center justify-center gap-2 sm:gap-3 px-4">
-        {carouselSlides.map((s, index) => {
+        {slides.map((s, index) => {
           const isActive = index === current;
           return (
             <button
