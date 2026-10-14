@@ -87,7 +87,10 @@ export default function AdminDiscountsPage() {
       const res = await fetch("/api/admin/discounts");
       if (!res.ok) throw new Error("Failed to load discounts");
       const data = await res.json();
-      setDiscounts(data);
+      const unusedDiscounts = Array.isArray(data)
+        ? data.filter((d: any) => (d.usedCount || 0) === 0)
+        : [];
+      setDiscounts(unusedDiscounts);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error fetching discounts");
     } finally {

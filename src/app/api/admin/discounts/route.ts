@@ -10,6 +10,13 @@ export async function GET() {
   }
 
   try {
+    // Automatically purge any coupons that have been used by users
+    await prisma.discount.deleteMany({
+      where: {
+        usedCount: { gt: 0 },
+      },
+    });
+
     const discounts = await prisma.discount.findMany({
       orderBy: { createdAt: "desc" },
       include: {

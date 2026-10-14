@@ -94,7 +94,19 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // 2. Dispatch confirmation email (awaited to guarantee SMTP transmission)
+      // 2. Automatically delete the used coupon from the coupons page / database
+      if (order.discountCode) {
+        try {
+          await prisma.discount.deleteMany({
+            where: { code: order.discountCode },
+          });
+          console.log(`[PAYU SUCCESS] Automatically deleted used coupon "${order.discountCode}" from the coupons page.`);
+        } catch (couponDelErr) {
+          console.error(`[PAYU SUCCESS] Failed to auto-delete coupon "${order.discountCode}":`, couponDelErr);
+        }
+      }
+
+      // 3. Dispatch confirmation email (awaited to guarantee SMTP transmission)
       try {
         let parsedAddress = {
           fullName: "",
