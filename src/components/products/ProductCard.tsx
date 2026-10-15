@@ -20,7 +20,12 @@ export default function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [added, setAdded] = useState(false);
+  const [isOpening, setIsOpening] = useState(false);
   const isWish = isInWishlist(product.id);
+
+  const handleSelectProduct = () => {
+    setIsOpening(true);
+  };
 
   // Parse product images
   let imageUrl = "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600";
@@ -142,11 +147,41 @@ export default function ProductCard({ product }: ProductCardProps) {
       : null;
 
   return (
-    <div className="group relative flex flex-col bg-white rounded-2xl border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md hover:border-gray-200">
+    <div
+      className={`group relative flex flex-col bg-white rounded-2xl border overflow-hidden transition-all duration-300 ${
+        isOpening
+          ? "border-gray-900 ring-2 ring-gray-900/15 shadow-xl scale-[0.985]"
+          : "border-gray-100 hover:shadow-md hover:border-gray-200"
+      }`}
+    >
+      {/* Top indeterminate progress line when user selects product */}
+      {isOpening && (
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gray-100 overflow-hidden z-40">
+          <div className="h-full bg-gray-900 animate-pulse w-full" />
+        </div>
+      )}
+
+      {/* Full-card loading overlay with spinner when selected */}
+      {isOpening && (
+        <div className="absolute inset-0 z-30 bg-white/85 backdrop-blur-[2px] flex flex-col items-center justify-center p-4 transition-all duration-300">
+          <div className="relative mb-3 flex items-center justify-center">
+            <div className="w-10 h-10 border-2 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
+            <div className="absolute w-2.5 h-2.5 bg-gray-900 rounded-full animate-ping" />
+          </div>
+          <span className="text-xs font-semibold uppercase tracking-wider text-gray-900">
+            Loading Product...
+          </span>
+          <span className="text-[11px] text-gray-500 font-normal mt-0.5">
+            Opening details & sizes
+          </span>
+        </div>
+      )}
+
       {/* Product Image */}
       <Link
         href={`/products/${product.id}`}
-        className="relative block aspect-[4/5] w-full overflow-hidden bg-gray-50"
+        onClick={handleSelectProduct}
+        className="relative block aspect-[4/5] w-full overflow-hidden bg-gray-50 cursor-pointer"
       >
         <img
           src={imageUrl}
@@ -211,6 +246,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         <Link
           href={`/products/${product.id}`}
+          onClick={handleSelectProduct}
           className="group-hover:text-gray-600 transition-colors"
         >
           <h3 className="font-medium text-gray-900 line-clamp-1 text-base">
@@ -266,10 +302,19 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           <Link
             href={`/products/${product.id}`}
+            onClick={handleSelectProduct}
             aria-label="View product and select size"
-            className="flex items-center justify-center h-9 w-9 rounded-full bg-gray-900 text-white hover:bg-gray-800 active:scale-95 shadow-sm transition-all duration-200"
+            className={`flex items-center justify-center h-9 w-9 rounded-full text-white shadow-sm transition-all duration-200 ${
+              isOpening
+                ? "bg-gray-800 scale-95"
+                : "bg-gray-900 hover:bg-gray-800 active:scale-95"
+            }`}
           >
-            <ShoppingCart className="w-4 h-4" />
+            {isOpening ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <ShoppingCart className="w-4 h-4" />
+            )}
           </Link>
         </div>
       </div>

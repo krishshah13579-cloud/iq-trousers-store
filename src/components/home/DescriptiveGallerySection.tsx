@@ -22,6 +22,7 @@ export default function DescriptiveGallerySection({
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { addItem } = useCart();
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [navigatingProductId, setNavigatingProductId] = useState<string | null>(null);
 
   // Maximum 8 products (4 cards per Face)
   const displayProducts = (products || []).slice(0, 8);
@@ -137,19 +138,45 @@ export default function DescriptiveGallerySection({
                 }
 
                 const isWish = isInWishlist(product.id);
+                const isCardOpening = navigatingProductId === product.id;
 
                 return (
                   <div
                     key={product.id}
                     onMouseEnter={() => setHoveredCard(product.id)}
                     onMouseLeave={() => setHoveredCard(null)}
-                    className="group relative flex flex-col bg-white border border-gray-300 hover:border-gray-400 transition-all duration-200"
+                    className={`group relative flex flex-col bg-white border transition-all duration-300 overflow-hidden ${
+                      isCardOpening
+                        ? "border-gray-900 ring-2 ring-gray-900/15 shadow-md scale-[0.985]"
+                        : "border-gray-300 hover:border-gray-400"
+                    }`}
                   >
+                    {/* Top progress line when selected */}
+                    {isCardOpening && (
+                      <div className="absolute top-0 left-0 right-0 h-1 bg-gray-100 overflow-hidden z-30">
+                        <div className="h-full bg-gray-900 animate-pulse w-full" />
+                      </div>
+                    )}
+
+                    {/* Loading overlay when selected */}
+                    {isCardOpening && (
+                      <div className="absolute inset-0 z-20 bg-white/85 backdrop-blur-[2px] flex flex-col items-center justify-center p-3 transition-all duration-300">
+                        <div className="relative mb-2 flex items-center justify-center">
+                          <div className="w-8 h-8 border-2 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
+                          <div className="absolute w-2 h-2 bg-gray-900 rounded-full animate-ping" />
+                        </div>
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-900">
+                          Loading...
+                        </span>
+                      </div>
+                    )}
+
                     {/* 1:1 Square Image Container */}
                     <div className="relative aspect-square w-full overflow-hidden bg-gray-50 border-b border-gray-200">
                       <Link
                         href={`/products/${product.id}`}
-                        className="block w-full h-full"
+                        onClick={() => setNavigatingProductId(product.id)}
+                        className="block w-full h-full cursor-pointer"
                       >
                         <img
                           src={imageUrl}
@@ -188,6 +215,7 @@ export default function DescriptiveGallerySection({
                       <div>
                         <Link
                           href={`/products/${product.id}`}
+                          onClick={() => setNavigatingProductId(product.id)}
                           className="block text-[#284898] hover:text-[#162082] text-sm font-normal tracking-wide transition-colors line-clamp-1"
                         >
                           {product.name}
