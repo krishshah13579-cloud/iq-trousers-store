@@ -9,48 +9,56 @@ import DeliveryPincodeChecker from "@/components/products/DeliveryPincodeChecker
 import ProductDetailsAccordions from "@/components/products/ProductDetailsAccordions";
 import ProductReviewsSection from "@/components/products/ProductReviewsSection";
 import ProductCard from "@/components/products/ProductCard";
+import { withDbTimeout } from "@/lib/dbQuery";
+import { ALL_FALLBACK_PRODUCTS } from "@/lib/fallbackData";
 
 interface ProductDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
-export const dynamic = "force-dynamic";
+// Cache product detail page for 60 seconds with on-demand revalidation
+export const revalidate = 60;
 
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
   const { id } = await params;
 
-  let product = null;
-  try {
-    product = await prisma.product.findFirst({
-      where: {
-        OR: [
-          { id },
-          { slug: { equals: id, mode: "insensitive" } },
-          { name: { equals: id, mode: "insensitive" } },
-        ],
-      },
-      include: {
-        category: true,
-        reviews: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
+  const fallbackProduct =
+    ALL_FALLBACK_PRODUCTS.find(
+      (p) =>
+        p.id === id ||
+        p.slug.toLowerCase() === id.toLowerCase() ||
+        p.name.toLowerCase() === id.toLowerCase()
+    ) || null;
+
+  const queryPromise = prisma.product.findFirst({
+    where: {
+      OR: [
+        { id },
+        { slug: { equals: id, mode: "insensitive" } },
+        { name: { equals: id, mode: "insensitive" } },
+      ],
+    },
+    include: {
+      category: true,
+      reviews: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
             },
           },
-          orderBy: {
-            createdAt: "desc",
-          },
+        },
+        orderBy: {
+          createdAt: "desc",
         },
       },
-    });
-  } catch (error) {
-    console.error("Failed to query product details:", error);
-    product = null;
-  }
+    },
+  });
+
+  const product = ((await withDbTimeout(queryPromise, fallbackProduct as any, 2000)) ||
+    fallbackProduct) as any;
 
   if (!product) {
     notFound();
@@ -87,7 +95,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     }
   } catch {
     if (typeof product.sizes === "string") {
-      availableSizes = product.sizes.split(",").map((s) => s.trim()).filter(Boolean);
+      availableSizes = product.sizes.split(",").map((s: string) => s.trim()).filter(Boolean);
     }
   }
 
@@ -112,10 +120,11 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   }
 
   // Calculate review stats
-  const totalReviews = product.reviews.length;
+  const totalReviews = (product.reviews || []).length;
   const avgRating =
     totalReviews > 0
-      ? product.reviews.reduce((acc, r) => acc + r.rating, 0) / totalReviews
+      ? (product.reviews || []).reduce((acc: number, r: any) => acc + (r?.rating || 0), 0) /
+        totalReviews
       : 0;
 
   const discountPercent =

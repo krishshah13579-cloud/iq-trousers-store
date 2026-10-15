@@ -26,13 +26,19 @@ function createPrismaClient(): PrismaClient {
       urlObj.searchParams.set("sslmode", "require");
     }
     if (!urlObj.searchParams.has("connect_timeout")) {
-      urlObj.searchParams.set("connect_timeout", "30");
+      urlObj.searchParams.set("connect_timeout", "15");
+    }
+    if (!urlObj.searchParams.has("connection_limit")) {
+      urlObj.searchParams.set("connection_limit", "10");
+    }
+    if (!urlObj.searchParams.has("pool_timeout")) {
+      urlObj.searchParams.set("pool_timeout", "15");
     }
     dbUrl = urlObj.toString();
   } catch {
     if (!dbUrl.includes("sslmode=")) {
       const sep = dbUrl.includes("?") ? "&" : "?";
-      dbUrl = `${dbUrl}${sep}sslmode=require&connect_timeout=30`;
+      dbUrl = `${dbUrl}${sep}sslmode=require&connect_timeout=15&connection_limit=10&pool_timeout=15`;
     }
   }
 

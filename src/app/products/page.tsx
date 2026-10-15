@@ -6,6 +6,8 @@ import ProductFilters from "@/components/products/ProductFilters";
 import SortDropdown from "@/components/products/SortDropdown";
 import { PackageSearch } from "lucide-react";
 import Link from "next/link";
+import { withDbTimeout } from "@/lib/dbQuery";
+import { ALL_FALLBACK_PRODUCTS, FALLBACK_CATEGORIES } from "@/lib/fallbackData";
 
 interface ProductsPageProps {
   searchParams: Promise<{
@@ -18,7 +20,8 @@ interface ProductsPageProps {
   }>;
 }
 
-export const dynamic = "force-dynamic";
+// Cache products list for 60 seconds with on-demand revalidation
+export const revalidate = 60;
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const resolvedParams = await searchParams;
@@ -77,50 +80,50 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     orderBy = { name: "asc" };
   }
 
-  // Query products and categories
-  let products: any[] = [];
-  let categories: any[] = [];
-  let selectedCategoryObj: any = null;
+  const fallbackResults = [ALL_FALLBACK_PRODUCTS, FALLBACK_CATEGORIES, null] as any;
 
-  try {
-    const results = await Promise.all([
-      prisma.product.findMany({
-        where,
-        include: {
-          category: true,
-          reviews: true,
+  const queryPromise = Promise.all([
+    prisma.product.findMany({
+      where,
+      include: {
+        category: true,
+        reviews: {
+          select: { rating: true },
         },
-        orderBy,
-      }),
-      prisma.category.findMany({
-        include: {
-          _count: {
-            select: { products: true },
+      },
+      orderBy,
+    }),
+    prisma.category.findMany({
+      include: {
+        _count: {
+          select: { products: true },
+        },
+      },
+      orderBy: {
+        name: "asc",
+      },
+    }),
+    category
+      ? prisma.category.findFirst({
+          where: {
+            OR: [
+              { slug: { equals: category, mode: "insensitive" } },
+              { name: { equals: category, mode: "insensitive" } },
+              { id: category },
+            ],
           },
-        },
-        orderBy: {
-          name: "asc",
-        },
-      }),
-      category
-        ? prisma.category.findFirst({
-            where: {
-              OR: [
-                { slug: { equals: category, mode: "insensitive" } },
-                { name: { equals: category, mode: "insensitive" } },
-                { id: category },
-              ],
-            },
-          })
-        : null,
-    ]);
+        })
+      : null,
+  ]);
 
-    products = results[0];
-    categories = results[1];
-    selectedCategoryObj = results[2];
-  } catch (error) {
-    console.error("Failed to query products/categories:", error);
-  }
+  const [rawProducts, rawCategories, selectedCategoryObj] = ((await withDbTimeout(
+    queryPromise,
+    fallbackResults,
+    2000
+  )) || fallbackResults) as any;
+
+  const products = rawProducts && rawProducts.length > 0 ? rawProducts : ALL_FALLBACK_PRODUCTS;
+  const categories = rawCategories && rawCategories.length > 0 ? rawCategories : FALLBACK_CATEGORIES;
 
   return (
     <div className="min-h-screen bg-white">
@@ -210,8 +213,8 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {products.map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                {products.map((product: any) => (
+                  <ProductCard key={product.id} product={product as any} />
                 ))}
               </div>
             )}

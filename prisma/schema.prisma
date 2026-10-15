@@ -64,6 +64,10 @@ model Product {
   orderItems  OrderItem[]
   reviews     Review[]
   cartItems   CartItem[]
+
+  @@index([categoryId])
+  @@index([active])
+  @@index([featured])
 }
 
 model Order {
@@ -80,6 +84,9 @@ model Order {
   discountAmount  Float       @default(0)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([status])
 }
 
 model OrderItem {
@@ -138,6 +145,9 @@ model Discount {
   maxOrders      Int?
   minSpend       Float?    @default(0)
   createdAt      DateTime  @default(now())
+
+  @@index([userId])
+  @@index([active])
 }
 
 model NewsletterSubscriber {

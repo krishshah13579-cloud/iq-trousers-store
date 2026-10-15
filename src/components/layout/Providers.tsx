@@ -8,7 +8,7 @@ import { ReactNode } from "react";
 
 export default function Providers({ children }: { children: ReactNode }) {
   return (
-    <SessionProvider refetchInterval={2 * 60} refetchOnWindowFocus={true}>
+    <SessionProvider refetchInterval={5 * 60} refetchOnWindowFocus={false}>
       <CartProvider>
         <WishlistProvider>
           <InactivityWatcher />
