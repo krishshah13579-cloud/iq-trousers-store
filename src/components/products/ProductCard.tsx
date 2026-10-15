@@ -180,6 +180,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       {/* Product Image */}
       <Link
         href={`/products/${product.id}`}
+        prefetch={true}
         onClick={handleSelectProduct}
         className="relative block aspect-[4/5] w-full overflow-hidden bg-gray-50 cursor-pointer"
       >
@@ -246,6 +247,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         <Link
           href={`/products/${product.id}`}
+          prefetch={true}
           onClick={handleSelectProduct}
           className="group-hover:text-gray-600 transition-colors"
         >
@@ -302,6 +304,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           <Link
             href={`/products/${product.id}`}
+            prefetch={true}
             onClick={handleSelectProduct}
             aria-label="View product and select size"
             className={`flex items-center justify-center h-9 w-9 rounded-full text-white shadow-sm transition-all duration-200 ${

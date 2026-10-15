@@ -16,28 +16,40 @@ interface ProductDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
-// Cache product detail page for 60 seconds with on-demand revalidation
+// Enable ISR with 60-second background revalidation
 export const revalidate = 60;
+
+// Pre-render all products at build time so /products/[id] loads in 0ms
+export async function generateStaticParams() {
+  return (ALL_FALLBACK_PRODUCTS as any[]).flatMap((p) => [
+    { id: p.id },
+    ...(p.slug && p.slug !== p.id ? [{ id: p.slug }] : []),
+  ]);
+}
 
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
   const { id } = await params;
 
   const fallbackProduct =
-    ALL_FALLBACK_PRODUCTS.find(
+    (ALL_FALLBACK_PRODUCTS as any[]).find(
       (p) =>
         p.id === id ||
-        p.slug.toLowerCase() === id.toLowerCase() ||
-        p.name.toLowerCase() === id.toLowerCase()
+        (p.slug && p.slug.toLowerCase() === id.toLowerCase()) ||
+        (p.name && p.name.toLowerCase() === id.toLowerCase())
     ) || null;
 
-  const queryPromise = prisma.product.findFirst({
-    where: {
-      OR: [
-        { id },
-        { slug: { equals: id, mode: "insensitive" } },
-        { name: { equals: id, mode: "insensitive" } },
-      ],
-    },
+  const isDirectId = id.length > 20 || id.startsWith("prod_") || id.startsWith("cmv");
+  const whereClause = isDirectId
+    ? { id }
+    : {
+        OR: [
+          { id },
+          { slug: { equals: id, mode: "insensitive" as const } },
+        ],
+      };
+
+  const productQuery = prisma.product.findFirst({
+    where: whereClause,
     include: {
       category: true,
       reviews: {
@@ -57,17 +69,67 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     },
   });
 
-  const product = ((await withDbTimeout(queryPromise, fallbackProduct as any, 2000)) ||
-    fallbackProduct) as any;
+  const targetCategoryId = fallbackProduct?.categoryId;
+  const relatedFallback = targetCategoryId
+    ? (ALL_FALLBACK_PRODUCTS as any[])
+        .filter((p: any) => p.id !== (fallbackProduct?.id || id) && p.categoryId === targetCategoryId)
+        .slice(0, 4)
+    : [];
+
+  const relatedQuery = targetCategoryId
+    ? prisma.product.findMany({
+        where: {
+          categoryId: targetCategoryId,
+          id: { not: fallbackProduct?.id || id },
+          active: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          price: true,
+          comparePrice: true,
+          images: true,
+          colors: true,
+          sizes: true,
+          stock: true,
+          featured: true,
+          active: true,
+          categoryId: true,
+          category: {
+            select: { id: true, name: true, slug: true },
+          },
+          reviews: {
+            select: { rating: true },
+          },
+        },
+        take: 4,
+      })
+    : Promise.resolve(relatedFallback);
+
+  const [dbProduct, dbRelated] = (await withDbTimeout(
+    Promise.all([productQuery, relatedQuery]),
+    [fallbackProduct, relatedFallback] as any,
+    fallbackProduct ? 600 : 1500
+  )) || [fallbackProduct, relatedFallback];
+
+  const product = (dbProduct || fallbackProduct) as any;
+  let relatedProducts: any[] = dbRelated && dbRelated.length > 0 ? dbRelated : relatedFallback;
 
   if (!product) {
     notFound();
   }
 
+  if (product && relatedProducts.length === 0 && product.categoryId) {
+    relatedProducts = (ALL_FALLBACK_PRODUCTS as any[])
+      .filter((p: any) => p.id !== product.id && p.categoryId === product.categoryId)
+      .slice(0, 4);
+  }
+
   // Parse images
   let images: string[] = [];
   try {
-    const parsed = JSON.parse(product.images);
+    const parsed = JSON.parse(product.images || "[]");
     if (Array.isArray(parsed)) {
       images = parsed.map((img) => String(img).trim()).filter(Boolean);
     } else if (typeof parsed === "string" && parsed.trim()) {
@@ -97,26 +159,6 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     if (typeof product.sizes === "string") {
       availableSizes = product.sizes.split(",").map((s: string) => s.trim()).filter(Boolean);
     }
-  }
-
-  // Fetch related products from the same category
-  let relatedProducts: any[] = [];
-  try {
-    relatedProducts = await prisma.product.findMany({
-      where: {
-        categoryId: product.categoryId,
-        id: { not: product.id },
-        active: true,
-      },
-      include: {
-        category: true,
-        reviews: true,
-      },
-      take: 4,
-    });
-  } catch (error) {
-    console.error("Failed to query related products:", error);
-    relatedProducts = [];
   }
 
   // Calculate review stats
