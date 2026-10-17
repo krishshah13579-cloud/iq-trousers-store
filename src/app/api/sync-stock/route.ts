@@ -17,8 +17,8 @@ function normalizeCode(str: string): string {
 export async function GET(request: NextRequest) {
   try {
     const backendUrl =
-      process.env.GARMENT_BACKEND_URL || "https://krish-clothing.vercel.app";
-    const res = await fetch(`${backendUrl}/api/ecommerce?action=inventory`, {
+      process.env.GARMENT_BACKEND_URL || "https://employee-order.vercel.app";
+    const res = await fetch(`${backendUrl}/api/ecommerce?action=inventory&in_stock_only=0`, {
       cache: "no-store",
       headers: {
         Accept: "application/json",
