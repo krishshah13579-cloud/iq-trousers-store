@@ -14,7 +14,7 @@ const occasions = [
     tag: "EVERYDAY CASUAL",
     subtitle: "High-density stretch twills engineered for seamless desk-to-dinner wear.",
     image: "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=800",
-    href: "/products?category=casual-everyday",
+    href: "/products?category=everyday-casual",
   },
   {
     title: "Winter Flannel & Corduroy",
@@ -28,7 +28,7 @@ const occasions = [
     tag: "WEEKEND LEISURE",
     subtitle: "Airy French linen blends and relaxed drawstring waists for effortless style.",
     image: "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=800",
-    href: "/products?category=casual-everyday",
+    href: "/products?category=everyday-casual",
   },
 ];
 

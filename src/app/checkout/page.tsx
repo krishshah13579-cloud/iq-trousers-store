@@ -69,6 +69,7 @@ function CheckoutContent() {
   const [errors, setErrors] = useState<Partial<Record<keyof ShippingAddress, string>>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
     if (session?.user?.name) {
@@ -243,7 +244,8 @@ function CheckoutContent() {
         return;
       }
 
-      // Clear cart and stored discount
+      // Transition directly to secure payment screen (avoids empty cart flash)
+      setIsRedirecting(true);
       clearCart();
       sessionStorage.removeItem("activeDiscount");
 
@@ -275,8 +277,34 @@ function CheckoutContent() {
       console.error("PayU checkout initiation error:", err);
       setSubmitError("Failed to connect to PayU payment gateway. Please try again.");
       setIsSubmitting(false);
+      setIsRedirecting(false);
     }
   };
+
+  if (isRedirecting) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 py-16 text-center animate-in fade-in duration-300">
+        <div className="relative mb-6">
+          <div className="w-20 h-20 rounded-3xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-sm animate-pulse">
+            <ShieldCheck className="w-10 h-10" />
+          </div>
+          <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-white border border-neutral-200 flex items-center justify-center shadow-xs">
+            <Loader2 className="w-4 h-4 animate-spin text-emerald-700" />
+          </div>
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900 mb-2">
+          Connecting to PayU Secure Payment...
+        </h2>
+        <p className="text-neutral-500 text-sm max-w-md mb-6 leading-relaxed">
+          Please wait a moment while we securely transfer you to complete your order payment. Do not refresh or close this window.
+        </p>
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neutral-100 text-xs text-neutral-600 font-medium border border-neutral-200">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+          <span>256-Bit SSL Encrypted Connection</span>
+        </div>
+      </div>
+    );
+  }
 
   if (status === "loading") {
     return (
@@ -287,7 +315,7 @@ function CheckoutContent() {
     );
   }
 
-  if (items.length === 0) {
+  if (!isRedirecting && !isSubmitting && items.length === 0) {
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center">
         <div className="w-16 h-16 rounded-full bg-neutral-100 flex items-center justify-center mx-auto mb-4 text-neutral-400">
