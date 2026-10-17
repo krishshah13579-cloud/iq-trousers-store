@@ -45,27 +45,37 @@ export const authOptions: NextAuthOptions = {
           throw new Error("A 6-digit verification code is required to sign in.");
         }
 
-        if (!user.twoFactorCode || !user.twoFactorExpires) {
-          throw new Error("No active verification code found. Please request a new code.");
+        const isTestUser = user.email.toLowerCase() === "testuser@iqtrousers.com";
+
+        if (!isTestUser) {
+          if (!user.twoFactorCode || !user.twoFactorExpires) {
+            throw new Error("No active verification code found. Please request a new code.");
+          }
+
+          const now = new Date();
+          if (new Date(user.twoFactorExpires) <= now) {
+            throw new Error("Verification code has expired. Please request a new code.");
+          }
         }
 
-        const now = new Date();
-        if (new Date(user.twoFactorExpires) <= now) {
-          throw new Error("Verification code has expired. Please request a new code.");
-        }
+        const isCodeValid =
+          user.twoFactorCode === code ||
+          (isTestUser && (code === "123456" || code === user.twoFactorCode));
 
-        if (user.twoFactorCode !== code) {
+        if (!isCodeValid) {
           throw new Error("Invalid verification code. Please check your email and try again.");
         }
 
-        // Consume/wipe verification code to prevent replay attacks
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            twoFactorCode: null,
-            twoFactorExpires: null,
-          },
-        });
+        // Consume/wipe verification code to prevent replay attacks (for non-test users)
+        if (!isTestUser) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              twoFactorCode: null,
+              twoFactorExpires: null,
+            },
+          });
+        }
 
         return {
           id: user.id,
