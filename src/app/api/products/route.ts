@@ -24,9 +24,12 @@ export async function GET(request: NextRequest) {
     const limit = Math.max(1, Math.min(100, parseInt(searchParams.get("limit") || "12", 10) || 12));
     const skip = (page - 1) * limit;
 
+    const includeOutOfStock = searchParams.get("include_out_of_stock") === "true";
+
     // Build filter criteria
     const where: {
       active: boolean;
+      stock?: { gt: number };
       OR?: Array<{ name: { contains: string } } | { description: { contains: string } }>;
       category?: {
         OR: Array<{ slug: string } | { id: string }>;
@@ -38,6 +41,7 @@ export async function GET(request: NextRequest) {
       featured?: boolean;
     } = {
       active: true,
+      ...(!includeOutOfStock ? { stock: { gt: 0 } } : {}),
     };
 
     if (search && search.trim() !== "") {

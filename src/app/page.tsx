@@ -32,7 +32,7 @@ export default async function HomePage() {
       name: true,
       slug: true,
       products: {
-        where: { active: true },
+        where: { active: true, stock: { gt: 0 } },
         take: 12,
         select: {
           id: true,
@@ -57,8 +57,14 @@ export default async function HomePage() {
   });
 
   const rawCategories = (await withDbTimeout(query, FALLBACK_CATEGORIES as any, 2000)) as any;
-  const categories =
+  const baseCategories =
     rawCategories && rawCategories.length > 0 ? rawCategories : FALLBACK_CATEGORIES;
+  const categories = baseCategories.map((c: any) => ({
+    ...c,
+    products: (c.products || []).filter(
+      (p: any) => p && (p.stock === undefined || p.stock > 0)
+    ),
+  }));
 
   return (
     <div className="min-h-screen bg-white">

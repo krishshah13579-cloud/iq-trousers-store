@@ -116,7 +116,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   const product = (dbProduct || fallbackProduct) as any;
   let relatedProducts: any[] = dbRelated && dbRelated.length > 0 ? dbRelated : relatedFallback;
 
-  if (!product) {
+  if (!product || !product.active || (product.stock !== undefined && product.stock <= 0)) {
     notFound();
   }
 

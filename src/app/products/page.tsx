@@ -27,9 +27,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const resolvedParams = await searchParams;
   const { search, category, sort, minPrice, maxPrice, featured } = resolvedParams || {};
 
-  // Build Prisma where query
+  // Build Prisma where query - Only show active and in-stock products to customers
   const where: Prisma.ProductWhereInput = {
     active: true,
+    stock: { gt: 0 },
   };
 
   if (search && search.trim() !== "") {
@@ -122,7 +123,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     2000
   )) || fallbackResults) as any;
 
-  const products = rawProducts && rawProducts.length > 0 ? rawProducts : ALL_FALLBACK_PRODUCTS;
+  const rawProductList = rawProducts && rawProducts.length > 0 ? rawProducts : ALL_FALLBACK_PRODUCTS;
+  const products = (rawProductList as any[]).filter(
+    (p: any) => p && (p.stock === undefined || p.stock > 0)
+  );
   const categories = rawCategories && rawCategories.length > 0 ? rawCategories : FALLBACK_CATEGORIES;
 
   return (
