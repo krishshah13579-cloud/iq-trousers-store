@@ -454,7 +454,7 @@ export default function CartPage() {
 
               <p className="text-[11px] text-neutral-500 mt-2">
                 {isFreeShipping
-                  ? "Orders ₹1,499 & above enjoy Pan-India Free Delivery."
+                  ? `Orders ₹${FREE_SHIPPING_THRESHOLD} & above enjoy Pan-India Free Delivery.`
                   : `Free Pan-India shipping threshold: ₹${FREE_SHIPPING_THRESHOLD}. Current subtotal: ${formatPrice(subtotal)}.`}
               </p>
             </div>

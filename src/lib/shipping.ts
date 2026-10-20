@@ -9,7 +9,8 @@
  *    - All other locations in India: DTDC Express Courier tariff
  */
 
-export const FREE_SHIPPING_THRESHOLD = 1499;
+// Temporary limit: 100 for testing / 1st order verification (will restore to 1499 after first order)
+export const FREE_SHIPPING_THRESHOLD = 100;
 
 export interface ShippingQuote {
   amount: number;

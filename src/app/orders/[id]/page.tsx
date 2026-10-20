@@ -9,7 +9,7 @@ import { ShippingAddress } from "@/types";
 import { CheckCircle2, Package, MapPin, ArrowRight, XCircle, Truck, Tag } from "lucide-react";
 import { CancelOrderButton } from "@/components/orders/CancelOrderButton";
 import { OrderTimeline } from "@/components/orders/OrderTimeline";
-import { calculateShippingFee } from "@/lib/shipping";
+import { calculateShippingFee, FREE_SHIPPING_THRESHOLD } from "@/lib/shipping";
 
 interface OrderPageProps {
   params: Promise<{ id: string }>;
@@ -398,7 +398,7 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
             <div className="flex justify-between">
               <span>Shipping</span>
               <span className="font-medium text-neutral-900">
-                {itemsSubtotal >= 1499
+                {itemsSubtotal >= FREE_SHIPPING_THRESHOLD
                   ? "Free"
                   : formatPrice(
                       calculateShippingFee(
