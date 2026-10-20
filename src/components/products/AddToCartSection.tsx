@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ShoppingCart, Plus, Minus, Check, AlertCircle, Zap, Heart, Ruler } from "lucide-react";
@@ -57,23 +57,6 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
     return ["28", "30", "32", "34", "36", "38", "40", "42", "44"];
   })();
 
-  const availableColors: string[] = (() => {
-    if (!product.colors) return [];
-    try {
-      const parsed = JSON.parse(product.colors);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    } catch {
-      // fallback
-    }
-    if (typeof product.colors === "string") {
-      return product.colors
-        .split(",")
-        .map((c) => c.trim())
-        .filter(Boolean);
-    }
-    return [];
-  })();
-
   const inventoryMap: Record<string, Record<string, number>> | null = (() => {
     if (!product.inventory) return null;
     try {
@@ -88,35 +71,79 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
     return null;
   })();
 
-  const activeColor = selectedColor;
-
   const getVariantStock = (size?: string | null, color?: string | null): number => {
-    if (!inventoryMap) {
+    if (!inventoryMap || Object.keys(inventoryMap).length === 0) {
       return product.stock;
     }
-    const targetColor = color || activeColor;
-    if (targetColor && inventoryMap[targetColor]) {
-      if (size && inventoryMap[targetColor][size] !== undefined) {
-        return Number(inventoryMap[targetColor][size]);
+    const targetColor = (color || selectedColor || "").trim().toLowerCase();
+
+    // Match color in inventoryMap (case-insensitive & trimmed)
+    const matchedColorKey = Object.keys(inventoryMap).find(
+      (k) => k.trim().toLowerCase() === targetColor
+    );
+
+    if (matchedColorKey && inventoryMap[matchedColorKey]) {
+      const colSizes = inventoryMap[matchedColorKey];
+      if (size) {
+        const matchedSizeKey = Object.keys(colSizes).find(
+          (sz) => sz.trim().toLowerCase() === size.trim().toLowerCase()
+        );
+        return matchedSizeKey !== undefined ? Number(colSizes[matchedSizeKey] || 0) : 0;
       }
-      return Object.values(inventoryMap[targetColor]).reduce(
-        (a, b) => a + Number(b || 0),
-        0
-      );
+      return Object.values(colSizes).reduce((a, b) => a + Number(b || 0), 0);
     }
+
     if (size) {
       let sizeSum = 0;
       let found = false;
       Object.values(inventoryMap).forEach((colMap) => {
-        if (typeof colMap === "object" && colMap && colMap[size] !== undefined) {
-          sizeSum += Number(colMap[size]);
-          found = true;
+        if (typeof colMap === "object" && colMap) {
+          const matchedSizeKey = Object.keys(colMap).find(
+            (sz) => sz.trim().toLowerCase() === size.trim().toLowerCase()
+          );
+          if (matchedSizeKey !== undefined) {
+            sizeSum += Number(colMap[matchedSizeKey] || 0);
+            found = true;
+          }
         }
       });
       if (found) return sizeSum;
     }
     return product.stock;
   };
+
+  const availableColors: string[] = (() => {
+    let colorsList: string[] = [];
+    if (product.colors) {
+      try {
+        const parsed = JSON.parse(product.colors);
+        if (Array.isArray(parsed) && parsed.length > 0) colorsList = parsed;
+      } catch {}
+      if (colorsList.length === 0 && typeof product.colors === "string") {
+        colorsList = product.colors.split(",").map((c) => c.trim()).filter(Boolean);
+      }
+    }
+
+    // Filter out any color variant that has 0 stock in inventoryMap
+    if (inventoryMap && Object.keys(inventoryMap).length > 0 && colorsList.length > 0) {
+      const inStockList = colorsList.filter((col) => {
+        const colStock = getVariantStock(null, col);
+        return colStock > 0;
+      });
+      if (inStockList.length > 0) return inStockList;
+    }
+
+    return colorsList;
+  })();
+
+  // Auto-select first available color if none is selected
+  useEffect(() => {
+    if (!selectedColor && availableColors.length > 0) {
+      setSelectedColor(availableColors[0]);
+    }
+  }, [availableColors, selectedColor]);
+
+  const activeColor = selectedColor || (availableColors.length > 0 ? availableColors[0] : null);
 
   const currentVariantStock = selectedSize
     ? getVariantStock(selectedSize, activeColor)
@@ -305,6 +332,9 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                       onClick={() => {
                         setSelectedColor(color);
                         setColorError(false);
+                        if (selectedSize && getVariantStock(selectedSize, color) <= 0) {
+                          setSelectedSize(null);
+                        }
                       }}
                       title={color}
                       aria-label={`Select color ${color}`}
@@ -374,16 +404,18 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                     <button
                       key={size}
                       type="button"
+                      disabled={isSoldOut}
                       onClick={() => {
+                        if (isSoldOut) return;
                         setSelectedSize(size);
                         setSizeError(false);
                       }}
                       className={`relative min-w-[46px] h-10 px-3 text-xs font-medium rounded-lg border transition-all duration-150 flex items-center justify-center ${
                         isSelected
-                          ? "bg-gray-900 text-white border-gray-900 shadow-xs"
+                          ? "bg-gray-900 text-white border-gray-900 shadow-xs cursor-pointer"
                           : isSoldOut
-                          ? "bg-gray-50 text-gray-400 border-gray-200 hover:border-gray-300"
-                          : "bg-white text-gray-800 border-gray-200 hover:border-gray-900 hover:bg-gray-50"
+                          ? "bg-gray-50 text-gray-300 border-gray-200 cursor-not-allowed opacity-50"
+                          : "bg-white text-gray-800 border-gray-200 hover:border-gray-900 hover:bg-gray-50 cursor-pointer"
                       }`}
                     >
                       <span className={isSoldOut ? "line-through opacity-60" : ""}>{size}</span>

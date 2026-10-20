@@ -110,7 +110,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   const [dbProduct, dbRelated] = (await withDbTimeout(
     Promise.all([productQuery, relatedQuery]),
     [fallbackProduct, relatedFallback] as any,
-    fallbackProduct ? 600 : 1500
+    2500
   )) || [fallbackProduct, relatedFallback];
 
   const product = (dbProduct || fallbackProduct) as any;
