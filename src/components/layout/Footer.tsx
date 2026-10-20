@@ -305,10 +305,18 @@ export default function Footer() {
             <ul className="space-y-2.5 text-sm">
               <li>
                 <Link
-                  href="/size-guide"
+                  href="/refund-policy"
                   className="text-neutral-300 hover:text-white transition-colors"
                 >
-                  Size Guide
+                  Refund Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/cancellation-policy"
+                  className="text-neutral-300 hover:text-white transition-colors"
+                >
+                  Cancellation Policy
                 </Link>
               </li>
               <li>
@@ -317,6 +325,14 @@ export default function Footer() {
                   className="text-neutral-300 hover:text-white transition-colors"
                 >
                   Shipping Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/size-guide"
+                  className="text-neutral-300 hover:text-white transition-colors"
+                >
+                  Size Guide
                 </Link>
               </li>
               <li>

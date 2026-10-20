@@ -24,8 +24,8 @@ const FAQS = [
     a: "All orders are fulfilled and dispatched directly from our Krish Clothing Co. headquarters at Samet Business Park, Khokhra Circle, Maninagar, Ahmedabad.",
   },
   {
-    q: "What is your exchange and return policy?",
-    a: "We offer hassle-free 15-day exchanges for unworn, unwashed garments with tags attached if you need a different size. Contact our support desk at support@iqtrousers.com to initiate an exchange.",
+    q: "What is your refund, exchange, and cancellation policy?",
+    a: "We operate under a strict No Refund Policy once an order has been delivered. However, we offer hassle-free size and color exchanges within 7 days of purchase / delivery for unworn, unwashed garments with tags intact. Orders can also be cancelled before dispatch for a 100% full refund within 5–7 business days. Contact our support desk at krishclothingco3@gmail.com or +91 81287 56632 to initiate an exchange or cancellation.",
   },
   {
     q: "How should I care for my wool and linen trousers?",
