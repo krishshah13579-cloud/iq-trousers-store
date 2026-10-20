@@ -93,6 +93,11 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
       return Object.values(colSizes).reduce((a, b) => a + Number(b || 0), 0);
     }
 
+    // If targetColor is specified but not found in inventoryMap or has no stock
+    if (targetColor) {
+      return 0;
+    }
+
     if (size) {
       let sizeSum = 0;
       let found = false;
@@ -130,7 +135,7 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
         const colStock = getVariantStock(null, col);
         return colStock > 0;
       });
-      if (inStockList.length > 0) return inStockList;
+      return inStockList;
     }
 
     return colorsList;

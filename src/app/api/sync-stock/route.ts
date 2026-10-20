@@ -5,6 +5,16 @@ import { revalidatePath } from "next/cache";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-sync-secret, Accept, User-Agent",
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
+}
+
 // Canonical normalizer: "IMP - 004" -> "imp004", "IMP-001" -> "imp001"
 function normalizeCode(str: string): string {
   return (str || "").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -30,7 +40,7 @@ export async function GET(request: NextRequest) {
     if (!res.ok) {
       return NextResponse.json(
         { error: `Failed to fetch products from backend: ${res.statusText}` },
-        { status: 502 }
+        { status: 502, headers: corsHeaders }
       );
     }
 
@@ -39,7 +49,7 @@ export async function GET(request: NextRequest) {
     if (!Array.isArray(products)) {
       return NextResponse.json(
         { error: "Invalid products payload from backend" },
-        { status: 500 }
+        { status: 500, headers: corsHeaders }
       );
     }
 
@@ -143,12 +153,12 @@ export async function GET(request: NextRequest) {
       syncedStylesCount: products.length,
       updatedProductsCount: updates.length,
       updates,
-    });
+    }, { headers: corsHeaders });
   } catch (error: any) {
     console.error("Error syncing stock:", error);
     return NextResponse.json(
       { error: "Internal server error during stock sync: " + error.message },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
