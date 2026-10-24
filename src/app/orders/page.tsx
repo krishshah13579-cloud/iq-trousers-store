@@ -51,9 +51,15 @@ export default async function OrdersPage() {
 
     const targetUserId = user?.id || sessionUserId;
 
-    if (targetUserId) {
+    if (targetUserId || email) {
       orders = await prisma.order.findMany({
-        where: { userId: targetUserId },
+        where: {
+          OR: [
+            ...(targetUserId ? [{ userId: targetUserId }] : []),
+            ...(sessionUserId && sessionUserId !== targetUserId ? [{ userId: sessionUserId }] : []),
+            ...(email ? [{ user: { email: { equals: email, mode: "insensitive" as const } } }] : []),
+          ],
+        },
         include: {
           items: {
             include: {

@@ -20,20 +20,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
-    let userId = (session.user as { id?: string }).id;
-    if (!userId && session.user.email) {
-      const dbUser = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        select: { id: true },
+    const userEmail = session.user.email?.toLowerCase().trim();
+    let dbUser = null;
+
+    if (userEmail) {
+      dbUser = await prisma.user.findUnique({
+        where: { email: userEmail },
+        select: { id: true, name: true, email: true, phone: true },
       });
-      if (dbUser) {
-        userId = dbUser.id;
-      }
     }
 
-    if (!userId) {
-      return NextResponse.json({ error: "User record not found. Please log in again." }, { status: 401 });
+    if (!dbUser && (session.user as { id?: string })?.id) {
+      dbUser = await prisma.user.findUnique({
+        where: { id: (session.user as { id: string }).id },
+        select: { id: true, name: true, email: true, phone: true },
+      });
     }
+
+    if (!dbUser) {
+      return NextResponse.json({ error: "User account not found. Please log in again." }, { status: 401 });
+    }
+
+    const userId = dbUser.id;
 
     const body = await req.json();
     const { items, shippingAddress, discountCode } = body as {

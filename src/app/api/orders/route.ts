@@ -23,18 +23,26 @@ export async function GET() {
       );
     }
 
-    let userId = (session.user as { id?: string }).id;
-    if (!userId && session.user.email) {
-      const dbUser = await prisma.user.findUnique({
-        where: { email: session.user.email },
+    const userEmail = session.user.email?.toLowerCase().trim();
+    let dbUser = null;
+
+    if (userEmail) {
+      dbUser = await prisma.user.findUnique({
+        where: { email: userEmail },
         select: { id: true },
       });
-      if (dbUser) {
-        userId = dbUser.id;
-      }
     }
 
-    if (!userId) {
+    if (!dbUser && (session.user as { id?: string })?.id) {
+      dbUser = await prisma.user.findUnique({
+        where: { id: (session.user as { id: string }).id },
+        select: { id: true },
+      });
+    }
+
+    const userId = dbUser?.id || (session.user as { id?: string })?.id;
+
+    if (!userId && !userEmail) {
       return NextResponse.json(
         { error: "User record not found" },
         { status: 401 }
@@ -42,7 +50,12 @@ export async function GET() {
     }
 
     const orders = await prisma.order.findMany({
-      where: { userId },
+      where: {
+        OR: [
+          ...(userId ? [{ userId }] : []),
+          ...(userEmail ? [{ user: { email: { equals: userEmail, mode: "insensitive" as const } } }] : []),
+        ],
+      },
       include: {
         items: {
           include: {

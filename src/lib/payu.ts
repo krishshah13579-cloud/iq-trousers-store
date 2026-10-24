@@ -93,32 +93,56 @@ export function verifyPayUResponseHash(
   response: Record<string, string>,
   salt: string
 ): boolean {
-  const {
-    key = "",
-    txnid = "",
-    amount = "",
-    productinfo = "",
-    firstname = "",
-    email = "",
-    status = "",
-    hash = "",
-    additionalCharges,
-    udf1 = "",
-    udf2 = "",
-    udf3 = "",
-    udf4 = "",
-    udf5 = "",
-  } = response;
-
+  const hash = response.hash?.trim()?.toLowerCase();
   if (!hash) return false;
 
-  let hashSequence = "";
-  if (additionalCharges && additionalCharges.trim()) {
-    hashSequence = `${additionalCharges}|${salt}|${status}||||||${udf5}|${udf4}|${udf3}|${udf2}|${udf1}|${email}|${firstname}|${productinfo}|${amount}|${txnid}|${key}`;
-  } else {
-    hashSequence = `${salt}|${status}||||||${udf5}|${udf4}|${udf3}|${udf2}|${udf1}|${email}|${firstname}|${productinfo}|${amount}|${txnid}|${key}`;
+  const key = response.key || "";
+  const txnid = response.txnid || "";
+  const amount = response.amount || "";
+  const productinfo = response.productinfo || "";
+  const firstname = response.firstname || "";
+  const email = response.email || "";
+  const status = response.status || "";
+  const udf1 = response.udf1 || "";
+  const udf2 = response.udf2 || "";
+  const udf3 = response.udf3 || "";
+  const udf4 = response.udf4 || "";
+  const udf5 = response.udf5 || "";
+  const addCharges = (response.additionalCharges || response.additional_charges || "").trim();
+  const netAmount = (response.net_amount_debit || "").trim();
+
+  // PayU may format the amount with 2 decimals, 1 decimal, or no decimals. Test all variations.
+  const amountsToTest = new Set<string>([amount]);
+  const parsedNum = parseFloat(amount);
+  if (!isNaN(parsedNum)) {
+    amountsToTest.add(parsedNum.toFixed(2));
+    amountsToTest.add(parsedNum.toFixed(1));
+    amountsToTest.add(parsedNum.toString());
+  }
+  if (netAmount) amountsToTest.add(netAmount);
+
+  const candidateStrings: string[] = [];
+
+  for (const amt of amountsToTest) {
+    // 1. Standard formula without additional charges
+    candidateStrings.push(
+      `${salt}|${status}||||||${udf5}|${udf4}|${udf3}|${udf2}|${udf1}|${email}|${firstname}|${productinfo}|${amt}|${txnid}|${key}`
+    );
+
+    // 2. Formula with additional charges if present
+    if (addCharges) {
+      candidateStrings.push(
+        `${addCharges}|${salt}|${status}||||||${udf5}|${udf4}|${udf3}|${udf2}|${udf1}|${email}|${firstname}|${productinfo}|${amt}|${txnid}|${key}`
+      );
+    }
   }
 
-  const calculatedHash = crypto.createHash("sha512").update(hashSequence).digest("hex");
-  return calculatedHash.toLowerCase() === hash.toLowerCase();
+  for (const seq of candidateStrings) {
+    const calc = crypto.createHash("sha512").update(seq).digest("hex").toLowerCase();
+    if (calc === hash) {
+      return true;
+    }
+  }
+
+  return false;
 }

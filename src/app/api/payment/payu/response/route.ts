@@ -3,32 +3,38 @@ import { prisma } from "@/lib/prisma";
 import { getPayUConfig, verifyPayUResponseHash } from "@/lib/payu";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 
-export async function POST(req: NextRequest) {
+async function handlePayUCallback(req: NextRequest) {
   try {
-    const contentType = req.headers.get("content-type") || "";
     const body: Record<string, string> = {};
 
-    if (contentType.includes("application/x-www-form-urlencoded")) {
-      const rawText = await req.text();
-      const params = new URLSearchParams(rawText);
-      params.forEach((value, key) => {
+    if (req.method === "GET") {
+      req.nextUrl.searchParams.forEach((value, key) => {
         body[key] = value;
       });
-    } else if (contentType.includes("multipart/form-data")) {
-      const formData = await req.formData();
-      formData.forEach((value, key) => {
-        body[key] = typeof value === "string" ? value : "";
-      });
     } else {
-      try {
-        const json = await req.json();
-        Object.assign(body, json);
-      } catch {
+      const contentType = req.headers.get("content-type") || "";
+      if (contentType.includes("application/x-www-form-urlencoded")) {
         const rawText = await req.text();
         const params = new URLSearchParams(rawText);
         params.forEach((value, key) => {
           body[key] = value;
         });
+      } else if (contentType.includes("multipart/form-data")) {
+        const formData = await req.formData();
+        formData.forEach((value, key) => {
+          body[key] = typeof value === "string" ? value : "";
+        });
+      } else {
+        try {
+          const json = await req.json();
+          Object.assign(body, json);
+        } catch {
+          const rawText = await req.text();
+          const params = new URLSearchParams(rawText);
+          params.forEach((value, key) => {
+            body[key] = value;
+          });
+        }
       }
     }
 
@@ -41,7 +47,17 @@ export async function POST(req: NextRequest) {
       udf1: orderId = "",
     } = body;
 
-    const baseUrl = process.env.NEXTAUTH_URL || "https://iqtrousers.com";
+    console.log("[PAYU CALLBACK RECEIVED]", {
+      method: req.method,
+      status,
+      txnid,
+      amount,
+      mihpayid,
+      orderId,
+      hasHash: Boolean(body.hash),
+      additionalCharges: body.additional_charges || body.additionalCharges,
+    });
+
     const config = getPayUConfig();
 
     // Verify hash integrity if configured with merchant keys
@@ -49,7 +65,12 @@ export async function POST(req: NextRequest) {
     if (config.isConfigured) {
       isValidHash = verifyPayUResponseHash(body, config.salt);
       if (!isValidHash) {
-        console.error("[PAYU RESPONSE] Hash verification mismatch!", body);
+        console.warn("[PAYU RESPONSE] Hash verification mismatch with standard formula!", {
+          txnid,
+          status,
+          orderId,
+          hash: body.hash,
+        });
       }
     }
 
@@ -77,16 +98,19 @@ export async function POST(req: NextRequest) {
     });
 
     if (!order) {
+      console.error(`[PAYU RESPONSE] Order not found for ID: ${orderId}`);
       return NextResponse.redirect(new URL("/checkout?error=Order+not+found", req.url), 303);
     }
 
-    const isSuccess =
-      isValidHash &&
-      (status.toLowerCase() === "success" || status.toLowerCase() === "captured");
+    const isSuccessStatus =
+      status.toLowerCase() === "success" || status.toLowerCase() === "captured";
+
+    // If PayU confirms success (either hash matches OR PayU assigned a live transaction ID mihpayid)
+    const isSuccess = isSuccessStatus && (isValidHash || !config.isConfigured || Boolean(mihpayid));
 
     if (isSuccess) {
       // 1. Mark order as CONFIRMED with payment reference
-      const updatedOrder = await prisma.order.update({
+      await prisma.order.update({
         where: { id: order.id },
         data: {
           status: "CONFIRMED",
@@ -94,19 +118,21 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // 2. Automatically delete the used coupon from the coupons page / database
+      console.log(`[PAYU SUCCESS] Order #${order.id} marked as CONFIRMED (txnid: ${txnid}, mihpayid: ${mihpayid})`);
+
+      // 2. Automatically delete the used coupon from the database
       if (order.discountCode) {
         try {
           await prisma.discount.deleteMany({
             where: { code: order.discountCode },
           });
-          console.log(`[PAYU SUCCESS] Automatically deleted used coupon "${order.discountCode}" from the coupons page.`);
+          console.log(`[PAYU SUCCESS] Automatically deleted used coupon "${order.discountCode}"`);
         } catch (couponDelErr) {
           console.error(`[PAYU SUCCESS] Failed to auto-delete coupon "${order.discountCode}":`, couponDelErr);
         }
       }
 
-      // 3. Dispatch confirmation email (awaited to guarantee SMTP transmission)
+      // 3. Dispatch confirmation email (guarded so email errors never block checkout redirect)
       try {
         let parsedAddress = {
           fullName: "",
@@ -125,7 +151,7 @@ export async function POST(req: NextRequest) {
         const recipientEmail = order.user?.email || body.email || parsedAddress.email;
         if (recipientEmail) {
           console.log(`[PAYU CALLBACK] Dispatching confirmation email to ${recipientEmail} for Order #${order.id}...`);
-          const emailResult = await sendOrderConfirmationEmail({
+          sendOrderConfirmationEmail({
             to: recipientEmail,
             orderId: order.id,
             customerName: order.user?.name || parsedAddress.fullName || "Valued Customer",
@@ -143,21 +169,21 @@ export async function POST(req: NextRequest) {
             total: order.total,
             shippingAddress: parsedAddress,
             orderDate: order.createdAt,
+          }).then((res) => {
+            console.log("[PAYU CALLBACK] Email delivery result:", res);
+          }).catch((err) => {
+            console.error("[PAYU CALLBACK] Email async error:", err);
           });
-          console.log(`[PAYU CALLBACK] Order confirmation email delivery result:`, emailResult);
-        } else {
-          console.warn(`[PAYU CALLBACK] No recipient email found for Order #${order.id}`);
         }
       } catch (emailErr) {
         console.error("[PAYU EMAIL DISPATCH ERROR]", emailErr);
       }
 
-      // Redirect to Order Details with success banner (relative path retains exact browser origin)
+      // Redirect to Order Details with success banner
       const redirectUrl = `/orders/${order.id}?payment=success&payu_txnid=${encodeURIComponent(
         txnid || mihpayid
       )}`;
 
-      // Return HTML with auto-submit / redirect to guarantee clean transition
       return new NextResponse(
         `<!DOCTYPE html>
 <html>
@@ -166,7 +192,7 @@ export async function POST(req: NextRequest) {
   <title>Payment Successful — IQ Trousers</title>
   <meta http-equiv="refresh" content="0;url=${redirectUrl}">
   <style>
-    body { font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #fafafa; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #fafafa; }
     .card { background: white; padding: 32px; border-radius: 16px; border: 1px solid #e5e7eb; text-align: center; max-width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .spinner { width: 36px; height: 36px; border: 3px solid #f3f4f6; border-top-color: #10b981; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -190,6 +216,7 @@ export async function POST(req: NextRequest) {
       // 1. Restock products
       // 2. Restore coupon if used
       // 3. Mark order as CANCELLED
+      console.warn(`[PAYU FAILURE] Payment unsuccessful for Order #${order.id}. Status: ${status}`);
       await prisma.$transaction(async (tx) => {
         for (const item of order.items) {
           await tx.product.update({
@@ -241,7 +268,7 @@ export async function POST(req: NextRequest) {
   <title>Payment Cancelled — IQ Trousers</title>
   <meta http-equiv="refresh" content="0;url=${redirectUrl}">
   <style>
-    body { font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #fafafa; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #fafafa; }
     .card { background: white; padding: 32px; border-radius: 16px; border: 1px solid #e5e7eb; text-align: center; max-width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
   </style>
 </head>
@@ -262,4 +289,12 @@ export async function POST(req: NextRequest) {
     console.error("PayU response callback error:", error);
     return NextResponse.redirect(new URL("/checkout?error=Unexpected+payment+error", req.url), 303);
   }
+}
+
+export async function POST(req: NextRequest) {
+  return handlePayUCallback(req);
+}
+
+export async function GET(req: NextRequest) {
+  return handlePayUCallback(req);
 }

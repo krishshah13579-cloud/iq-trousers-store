@@ -80,6 +80,9 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
     notFound();
   }
 
+  const shipping = parseAddress(order.shippingAddress);
+  const shippingEmail = (shipping as { email?: string } | null)?.email?.toLowerCase()?.trim();
+
   // Security check: only order owner or admin can view
   if (!session) {
     redirect(`/login?callbackUrl=/orders/${id}`);
@@ -90,14 +93,13 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
   const currentUserRole = (session.user as { role?: string })?.role;
   const isOwner =
     (currentUserId && order.userId === currentUserId) ||
-    (currentUserEmail && order.user?.email?.toLowerCase().trim() === currentUserEmail);
+    (currentUserEmail && order.user?.email?.toLowerCase().trim() === currentUserEmail) ||
+    (currentUserEmail && shippingEmail && shippingEmail === currentUserEmail);
   const isAdmin = isAdminRole(currentUserRole);
 
   if (!isOwner && !isAdmin) {
     notFound();
   }
-
-  const shipping = parseAddress(order.shippingAddress);
   const itemsSubtotal = order.items.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
