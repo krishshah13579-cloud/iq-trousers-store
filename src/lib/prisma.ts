@@ -19,9 +19,12 @@ function createPrismaClient(): PrismaClient {
     dbUrl = dbUrl.slice(1, -1).trim();
   }
 
-  // Clean and ensure sslmode=require and connect_timeout=30
+  // Clean and ensure sslmode=require, schema=public, and connection timeouts
   try {
     const urlObj = new URL(dbUrl);
+    if (!urlObj.searchParams.has("schema")) {
+      urlObj.searchParams.set("schema", "public");
+    }
     if (!urlObj.searchParams.has("sslmode")) {
       urlObj.searchParams.set("sslmode", "require");
     }
@@ -36,6 +39,10 @@ function createPrismaClient(): PrismaClient {
     }
     dbUrl = urlObj.toString();
   } catch {
+    if (!dbUrl.includes("schema=")) {
+      const sep = dbUrl.includes("?") ? "&" : "?";
+      dbUrl = `${dbUrl}${sep}schema=public`;
+    }
     if (!dbUrl.includes("sslmode=")) {
       const sep = dbUrl.includes("?") ? "&" : "?";
       dbUrl = `${dbUrl}${sep}sslmode=require&connect_timeout=15&connection_limit=10&pool_timeout=15`;
