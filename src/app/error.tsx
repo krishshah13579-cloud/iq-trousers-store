@@ -15,6 +15,11 @@ export default function ErrorBoundary({
     console.error("Storefront Application Error:", error);
   }, [error]);
 
+  // If this is a Next.js notFound() trigger, re-throw it so Next.js renders not-found.tsx
+  if (error?.digest === "NEXT_NOT_FOUND" || error?.message?.includes("NEXT_NOT_FOUND")) {
+    throw error;
+  }
+
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4 py-16 bg-white">
       <div className="max-w-md w-full text-center space-y-6">

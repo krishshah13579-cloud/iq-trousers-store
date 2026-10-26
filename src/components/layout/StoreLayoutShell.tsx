@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import MobilePhoneNavbar from "@/components/layout/MobilePhoneNavbar";
 
 export default function StoreLayoutShell({
   children,
@@ -25,8 +26,9 @@ export default function StoreLayoutShell({
   return (
     <>
       <Navbar />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 pb-16 lg:pb-0">{children}</main>
       <Footer />
+      <MobilePhoneNavbar />
     </>
   );
 }

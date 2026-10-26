@@ -110,13 +110,13 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   const [dbProduct, dbRelated] = (await withDbTimeout(
     Promise.all([productQuery, relatedQuery]),
     [fallbackProduct, relatedFallback] as any,
-    2500
+    15000
   )) || [fallbackProduct, relatedFallback];
 
   const product = (dbProduct || fallbackProduct) as any;
   let relatedProducts: any[] = dbRelated && dbRelated.length > 0 ? dbRelated : relatedFallback;
 
-  if (!product || !product.active || (product.stock !== undefined && product.stock <= 0)) {
+  if (!product || !product.active) {
     notFound();
   }
 

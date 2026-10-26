@@ -19,7 +19,6 @@ import {
   Ruler,
   ShieldCheck,
 } from "lucide-react";
-import AdminNotificationBell from "@/app/admin/AdminNotificationBell";
 
 export default function Navbar() {
   const { totalItems } = useCart();
@@ -135,10 +134,9 @@ export default function Navbar() {
               <span className="text-xs font-semibold">Cart</span>
             </Link>
 
-            {/* Direct Admin Panel shortcut & Notifications for administrators */}
+            {/* Direct Admin Panel shortcut for administrators */}
             {isAdmin && (
               <div className="hidden lg:flex items-center gap-1.5">
-                <AdminNotificationBell />
                 <Link
                   href="/admin"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 text-white text-xs font-semibold rounded-full shadow-xs transition-colors"

@@ -16,7 +16,9 @@ export default function ProductReviewsSection({
   initialReviews,
 }: ProductReviewsSectionProps) {
   const { data: session } = useSession();
-  const [reviews, setReviews] = useState<Review[]>(initialReviews);
+  const [reviews, setReviews] = useState<Review[]>(
+    Array.isArray(initialReviews) ? initialReviews : []
+  );
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState("");

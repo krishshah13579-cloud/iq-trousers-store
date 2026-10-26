@@ -125,7 +125,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const [rawProducts, rawCategories, selectedCategoryObj] = ((await withDbTimeout(
     queryPromise,
     fallbackResults,
-    2000
+    15000
   )) || fallbackResults) as any;
 
   const rawProductList = rawProducts && rawProducts.length > 0 ? rawProducts : ALL_FALLBACK_PRODUCTS;
