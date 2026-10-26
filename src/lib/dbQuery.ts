@@ -7,6 +7,11 @@ export async function withDbTimeout<T>(
   fallback: T,
   timeoutMs: number = 2500
 ): Promise<T> {
+  // During build phase, do not wait for remote DB timeouts
+  if (process.env.IS_BUILD_PHASE === "true" || process.env.NEXT_PHASE === "phase-production-build") {
+    return fallback;
+  }
+
   let timerId: NodeJS.Timeout | undefined;
 
   const timeoutPromise = new Promise<T>((resolve) => {

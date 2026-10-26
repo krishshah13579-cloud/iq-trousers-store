@@ -1,8 +1,13 @@
 import type { NextConfig } from "next";
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
-const nextConfig: NextConfig = {
+const nextConfig = (phase: string): NextConfig => ({
+  output: "standalone",
   typescript: {
     ignoreBuildErrors: false,
+  },
+  env: {
+    IS_BUILD_PHASE: phase === PHASE_PRODUCTION_BUILD ? "true" : "false",
   },
   experimental: {
     serverActions: {
@@ -51,6 +56,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-};
+});
 
 export default nextConfig;
