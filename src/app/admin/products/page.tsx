@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import ProductTable from "./ProductTable";
-
+import SyncStockButton from "./SyncStockButton";
 
 export const dynamic = "force-dynamic";
 
@@ -32,16 +32,19 @@ export default async function AdminProductsPage() {
             Products
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Manage your store inventory, pricing, and availability.
+            Manage your store inventory, pricing, and availability. Synchronize live with wholesale stock.
           </p>
         </div>
-        <Link
-          href="/admin/products/new"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-black hover:bg-gray-800 transition-colors shadow-xs"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add New Product</span>
-        </Link>
+        <div className="flex items-center gap-3">
+          <SyncStockButton />
+          <Link
+            href="/admin/products/new"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-black hover:bg-gray-800 transition-colors shadow-xs"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add New Product</span>
+          </Link>
+        </div>
       </div>
 
       <ProductTable products={products} />

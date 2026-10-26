@@ -71,16 +71,44 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
     return null;
   })();
 
+  // Helper to match color across case, spacing, and standard menswear aliases
+  const matchColorKey = (targetColor: string, keys: string[]): string | undefined => {
+    const clean = targetColor.trim().toLowerCase();
+    // 1. Direct case-insensitive match
+    const direct = keys.find((k) => k.trim().toLowerCase() === clean);
+    if (direct) return direct;
+
+    // 2. Keyword/Alias match
+    const aliasGroups: string[][] = [
+      ["black", "classic black", "jet black", "pitch black"],
+      ["navy", "navy blue", "deep navy", "dark navy", "vibrant navy blue"],
+      ["grey", "gray", "dark grey", "dark gray", "slate grey", "slate gray", "charcoal", "medium grey"],
+      ["blue", "denim blue", "royal blue", "ice blue"],
+      ["green", "olive green", "olive", "forest green", "mehndi green"],
+      ["brown", "dark brown", "coffee", "chocolate", "tan", "mocha brown"],
+      ["cream", "beige", "sand", "off white", "white"],
+    ];
+
+    for (const group of aliasGroups) {
+      if (group.some((a) => clean === a || clean.includes(a))) {
+        const found = keys.find((k) => {
+          const kClean = k.trim().toLowerCase();
+          return group.some((a) => kClean === a || kClean.includes(a));
+        });
+        if (found) return found;
+      }
+    }
+    return undefined;
+  };
+
   const getVariantStock = (size?: string | null, color?: string | null): number => {
     if (!inventoryMap || Object.keys(inventoryMap).length === 0) {
       return product.stock;
     }
-    const targetColor = (color || selectedColor || "").trim().toLowerCase();
+    const targetColor = (color || selectedColor || "").trim();
 
-    // Match color in inventoryMap (case-insensitive & trimmed)
-    const matchedColorKey = Object.keys(inventoryMap).find(
-      (k) => k.trim().toLowerCase() === targetColor
-    );
+    // Match color in inventoryMap (direct or alias)
+    const matchedColorKey = matchColorKey(targetColor, Object.keys(inventoryMap));
 
     if (matchedColorKey && inventoryMap[matchedColorKey]) {
       const colSizes = inventoryMap[matchedColorKey];
@@ -129,22 +157,19 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
       }
     }
 
-    // Filter out any color variant that has 0 stock in inventoryMap
-    if (inventoryMap && Object.keys(inventoryMap).length > 0 && colorsList.length > 0) {
-      const inStockList = colorsList.filter((col) => {
-        const colStock = getVariantStock(null, col);
-        return colStock > 0;
-      });
-      return inStockList;
+    // If product.colors is empty but inventoryMap has keys, fallback to inventory keys
+    if (colorsList.length === 0 && inventoryMap && Object.keys(inventoryMap).length > 0) {
+      colorsList = Object.keys(inventoryMap);
     }
 
     return colorsList;
   })();
 
-  // Auto-select first available color if none is selected
+  // Auto-select first in-stock color if available, or first color
   useEffect(() => {
     if (!selectedColor && availableColors.length > 0) {
-      setSelectedColor(availableColors[0]);
+      const firstInStock = availableColors.find((col) => getVariantStock(null, col) > 0);
+      setSelectedColor(firstInStock || availableColors[0]);
     }
   }, [availableColors, selectedColor]);
 
@@ -330,6 +355,9 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                 {availableColors.map((color) => {
                   const isSelected = selectedColor === color;
                   const { hex, isLight } = getColorHex(color);
+                  const colorStock = getVariantStock(null, color);
+                  const isColorOutOfStock = colorStock <= 0;
+
                   return (
                     <button
                       key={color}
@@ -341,13 +369,13 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                           setSelectedSize(null);
                         }
                       }}
-                      title={color}
+                      title={isColorOutOfStock ? `${color} (Sold Out)` : color}
                       aria-label={`Select color ${color}`}
                       className={`group relative w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer ${
                         isSelected
                           ? "ring-2 ring-offset-2 ring-gray-950 scale-110 shadow-sm"
                           : "hover:scale-105 hover:shadow-xs ring-1 ring-black/10"
-                      }`}
+                      } ${isColorOutOfStock && !isSelected ? "opacity-60" : ""}`}
                       style={{
                         backgroundColor: hex,
                       }}
@@ -367,9 +395,16 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                         />
                       )}
 
+                      {/* Diagonal strikethrough for out-of-stock color */}
+                      {isColorOutOfStock && !isSelected && (
+                        <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <span className="w-full h-0.5 bg-rose-500/80 rotate-45 transform" />
+                        </span>
+                      )}
+
                       {/* Tooltip on hover */}
                       <span className="absolute -bottom-7 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-gray-900 text-white text-[10px] font-medium rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 shadow-xs">
-                        {color}
+                        {color} {isColorOutOfStock ? "(Sold Out)" : ""}
                       </span>
                     </button>
                   );

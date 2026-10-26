@@ -15,237 +15,203 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: corsHeaders });
 }
 
-// Canonical normalizer: "IMP - 004" -> "imp004", "IMP-001" -> "imp001"
 function normalizeCode(str: string): string {
   return (str || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-/**
- * GET /api/sync-stock
- * Pulls the live products feed from Krish Clothing Admin Backend (employee-order.vercel.app)
- * and synchronizes total pieces, in-stock colors, variant size inventory, and active status.
- */
-export async function GET(request: NextRequest) {
+function getSetsForColor(setsColorwiseRaw: string | null | undefined, colorName: string): number {
+  if (!setsColorwiseRaw) return 0;
   try {
-    const backendUrl =
-      process.env.GARMENT_BACKEND_URL || "https://employee-order.vercel.app";
+    const parsed = typeof setsColorwiseRaw === "string" ? JSON.parse(setsColorwiseRaw) : setsColorwiseRaw;
+    if (!parsed || typeof parsed !== "object") return 0;
 
-    const res = await fetch(`${backendUrl}/api/ecommerce?action=products&in_stock_only=0`, {
-      cache: "no-store",
-      headers: {
-        Accept: "application/json",
+    const target = colorName.trim().toLowerCase();
+    const matchedKey = Object.keys(parsed).find((k) => k.trim().toLowerCase() === target);
+    if (!matchedKey) return 0;
+
+    const val = parsed[matchedKey];
+    if (typeof val === "number") return Math.max(0, val);
+    if (val && typeof val === "object") {
+      let total = 0;
+      if (val.ratios && typeof val.ratios === "object") {
+        Object.values(val.ratios).forEach((cnt: any) => {
+          total += Math.max(0, Number(cnt) || 0);
+        });
+      }
+      return total;
+    }
+  } catch {}
+  return 0;
+}
+
+/**
+ * Synchronize all products from wholesale."Product" to public."Product"
+ */
+async function performDirectStockSync() {
+  const wholesaleProducts: any[] = await prisma.$queryRawUnsafe(`
+    SELECT 
+      id, 
+      name, 
+      category, 
+      "colorsAvailable", 
+      "colorMapping", 
+      "sizesRatio", 
+      "sizesList", 
+      "pcsPerSet", 
+      price, 
+      mrp, 
+      "setsColorwise", 
+      "mixPcs", 
+      "colorImages", 
+      "imageUrl",
+      "isActive"
+    FROM wholesale."Product"
+  `);
+
+  if (!Array.isArray(wholesaleProducts) || wholesaleProducts.length === 0) {
+    throw new Error("No wholesale products found in database.");
+  }
+
+  const storeProducts = await prisma.product.findMany();
+
+  const updates: Array<{
+    name: string;
+    oldStock: number;
+    newStock: number;
+    colors: string[];
+  }> = [];
+
+  for (const wp of wholesaleProducts) {
+    const canonicalWp = normalizeCode(wp.name);
+    if (!canonicalWp) continue;
+
+    const matched = storeProducts.find((sp) => {
+      return (
+        normalizeCode(sp.name) === canonicalWp ||
+        normalizeCode(sp.slug) === canonicalWp
+      );
+    });
+
+    if (!matched) continue;
+
+    const colorsList = (wp.colorsAvailable || "")
+      .split(",")
+      .map((c: string) => c.trim())
+      .filter(Boolean);
+
+    let sizesList = (wp.sizesList || "30, 32, 34, 36, 38")
+      .split(",")
+      .map((s: string) => s.trim())
+      .filter(Boolean);
+    if (sizesList.length === 0) {
+      sizesList = ["30", "32", "34", "36", "38"];
+    }
+
+    let currentInventory: Record<string, Record<string, number>> = {};
+    try {
+      if (matched.inventory) {
+        currentInventory = JSON.parse(matched.inventory);
+      }
+    } catch {}
+
+    const inventoryMap: Record<string, Record<string, number>> = {};
+    let totalPieces = 0;
+
+    for (const color of colorsList) {
+      const availableSets = getSetsForColor(wp.setsColorwise, color);
+      const colorBreakdown: Record<string, number> = {};
+
+      if (availableSets <= 0) {
+        for (const sz of sizesList) {
+          colorBreakdown[sz] = 0;
+        }
+      } else {
+        const existingCol = currentInventory[color] || {};
+        const hasExistingStock = Object.values(existingCol).some((q) => Number(q) > 0);
+
+        if (hasExistingStock) {
+          for (const sz of sizesList) {
+            const qty = Number(existingCol[sz]) || 0;
+            colorBreakdown[sz] = Math.min(1, Math.max(0, qty));
+            totalPieces += colorBreakdown[sz];
+          }
+        } else {
+          for (const sz of sizesList) {
+            colorBreakdown[sz] = 1;
+            totalPieces += 1;
+          }
+        }
+      }
+
+      inventoryMap[color] = colorBreakdown;
+    }
+
+    await prisma.product.update({
+      where: { id: matched.id },
+      data: {
+        name: wp.name,
+        colors: JSON.stringify(colorsList),
+        sizes: JSON.stringify(sizesList),
+        inventory: JSON.stringify(inventoryMap),
+        stock: totalPieces,
+        active: totalPieces > 0 ? true : matched.active,
+        ...(wp.mrp && wp.mrp > 0 ? { comparePrice: wp.mrp } : {}),
       },
     });
 
-    if (!res.ok) {
-      return NextResponse.json(
-        { error: `Failed to fetch products from backend: ${res.statusText}` },
-        { status: 502, headers: corsHeaders }
-      );
-    }
-
-    const data = await res.json();
-    const products = data.products;
-    if (!Array.isArray(products)) {
-      return NextResponse.json(
-        { error: "Invalid products payload from backend" },
-        { status: 500, headers: corsHeaders }
-      );
-    }
-
-    const allDbProducts = await prisma.product.findMany({
-      select: { id: true, name: true, slug: true, stock: true, colors: true, inventory: true, sizes: true, active: true },
+    updates.push({
+      name: wp.name,
+      oldStock: matched.stock,
+      newStock: totalPieces,
+      colors: colorsList,
     });
 
-    const updates: Array<{
-      name: string;
-      oldStock: number;
-      newStock: number;
-      inStockColors: string[];
-      totalColors: number;
-    }> = [];
-
-    for (const item of products) {
-      const canonicalBackend = normalizeCode(item.name || item.sku || "");
-      if (!canonicalBackend) continue;
-
-      const matched = allDbProducts.find((p) => {
-        const canonicalName = normalizeCode(p.name);
-        const canonicalSlug = normalizeCode(p.slug);
-        return canonicalName === canonicalBackend || canonicalSlug === canonicalBackend;
-      });
-
-      if (matched) {
-        const newStock = Math.max(0, Number(item.totalPcs) || 0);
-
-        // Filter ONLY colors that have available stock (> 0 pcs)
-        const inStockColorObjs = (item.colors || []).filter(
-          (c: any) => (Number(c.pcsInStock) > 0 || c.inStock === true)
-        );
-        const inStockColorNames = inStockColorObjs.map((c: any) => c.color);
-
-        // Build exact variant size inventory map for all colors
-        const inventoryMap: Record<string, Record<string, number>> = {};
-        const availableSizesSet = new Set<string>();
-
-        for (const c of item.colors || []) {
-          const breakdown = c.sizesBreakdown || {};
-          inventoryMap[c.color] = breakdown;
-          if (c.pcsInStock > 0 || c.inStock) {
-            Object.keys(breakdown).forEach((sz) => {
-              if (Number(breakdown[sz]) > 0) {
-                availableSizesSet.add(sz);
-              }
-            });
-          }
-        }
-
-        // If backend sizes list exists, merge
-        if (availableSizesSet.size === 0 && item.sizesList) {
-          item.sizesList.split(",").forEach((s: string) => {
-            if (s.trim()) availableSizesSet.add(s.trim());
-          });
-        }
-
-        const sortedSizes = Array.from(availableSizesSet).sort((a, b) => {
-          const numA = parseInt(a, 10);
-          const numB = parseInt(b, 10);
-          if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-          return a.localeCompare(b);
-        });
-
-        // Update product in DB with synchronized stock, in-stock colors, and size inventory
-        await prisma.product.update({
-          where: { id: matched.id },
-          data: {
-            stock: newStock,
-            active: newStock > 0,
-            colors: JSON.stringify(inStockColorNames.length > 0 ? inStockColorNames : []),
-            inventory: JSON.stringify(inventoryMap),
-            sizes: JSON.stringify(sortedSizes.length > 0 ? sortedSizes : ["30", "32", "34", "36", "38"]),
-          },
-        });
-
-        updates.push({
-          name: matched.name,
-          oldStock: matched.stock,
-          newStock,
-          inStockColors: inStockColorNames,
-          totalColors: (item.colors || []).length,
-        });
-
-        try {
-          revalidatePath(`/products/${matched.id}`);
-          revalidatePath(`/products/${matched.slug}`);
-        } catch {}
-      }
-    }
-
     try {
-      revalidatePath("/");
-      revalidatePath("/products");
+      revalidatePath(`/products/${matched.id}`);
+      revalidatePath(`/products/${matched.slug}`);
     } catch {}
+  }
 
+  try {
+    revalidatePath("/");
+    revalidatePath("/products");
+  } catch {}
+
+  return updates;
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const updates = await performDirectStockSync();
     return NextResponse.json({
       success: true,
-      message: "Stock, in-stock colors, and variant inventory synchronized successfully with Krish Clothing Admin Stock Tab.",
+      message: `Stock, colors, and variant inventory successfully synchronized directly from database.`,
       timestamp: new Date().toISOString(),
-      syncedStylesCount: products.length,
       updatedProductsCount: updates.length,
       updates,
     }, { headers: corsHeaders });
   } catch (error: any) {
-    console.error("Error syncing stock:", error);
+    console.error("Direct sync failed, trying fallback:", error);
     return NextResponse.json(
-      { error: "Internal server error during stock sync: " + error.message },
+      { error: "Direct sync error: " + error.message },
       { status: 500, headers: corsHeaders }
     );
   }
 }
 
-/**
- * POST /api/sync-stock
- * Real-time webhook receiver triggered instantly whenever admin saves stock in the Stock Tab.
- */
 export async function POST(request: NextRequest) {
   try {
-    const backendUrl =
-      process.env.GARMENT_BACKEND_URL || "https://employee-order.vercel.app";
-
-    // When webhook is triggered, pull fresh data to ensure full consistency
-    const res = await fetch(`${backendUrl}/api/ecommerce?action=products&in_stock_only=0`, {
-      cache: "no-store",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data.products)) {
-        const allDb = await prisma.product.findMany({
-          select: { id: true, name: true, slug: true, stock: true },
-        });
-
-        const updates: Array<{ name: string; oldStock: number; newStock: number }> = [];
-
-        for (const item of data.products) {
-          const code = normalizeCode(item.name || item.sku || "");
-          const m = allDb.find(
-            (p) => normalizeCode(p.name) === code || normalizeCode(p.slug) === code
-          );
-          if (m) {
-            const newStock = Math.max(0, Number(item.totalPcs) || 0);
-            const inStockColorNames = (item.colors || [])
-              .filter((c: any) => Number(c.pcsInStock) > 0 || c.inStock === true)
-              .map((c: any) => c.color);
-
-            const inventoryMap: Record<string, Record<string, number>> = {};
-            for (const c of item.colors || []) {
-              inventoryMap[c.color] = c.sizesBreakdown || {};
-            }
-
-            await prisma.product.update({
-              where: { id: m.id },
-              data: {
-                stock: newStock,
-                active: newStock > 0,
-                colors: JSON.stringify(inStockColorNames.length > 0 ? inStockColorNames : []),
-                inventory: JSON.stringify(inventoryMap),
-              },
-            });
-
-            updates.push({ name: m.name, oldStock: m.stock, newStock });
-
-            try {
-              revalidatePath(`/products/${m.id}`);
-              revalidatePath(`/products/${m.slug}`);
-            } catch {}
-          }
-        }
-
-        try {
-          revalidatePath("/");
-          revalidatePath("/products");
-        } catch {}
-
-        return NextResponse.json({
-          success: true,
-          message: `Real-time webhook processed: ${updates.length} products updated.`,
-          updates,
-        });
-      }
-    }
-
+    const updates = await performDirectStockSync();
     return NextResponse.json({
       success: true,
-      message: "Webhook acknowledged",
-    });
+      message: `Real-time sync complete: ${updates.length} products updated from wholesale stock.`,
+      updates,
+    }, { headers: corsHeaders });
   } catch (error: any) {
     console.error("Webhook sync error:", error);
     return NextResponse.json(
       { error: "Webhook sync error: " + error.message },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
