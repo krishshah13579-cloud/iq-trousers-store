@@ -19,14 +19,20 @@ function createPrismaClient(): PrismaClient {
     dbUrl = dbUrl.slice(1, -1).trim();
   }
 
-  // Clean and ensure sslmode=require, schema=public, and connection timeouts
+  // Clean and ensure schema=public, correct sslmode, and connection timeouts
   try {
     const urlObj = new URL(dbUrl);
     if (!urlObj.searchParams.has("schema")) {
       urlObj.searchParams.set("schema", "public");
     }
+    const isLocalOrContainer =
+      urlObj.hostname === "localhost" ||
+      urlObj.hostname === "127.0.0.1" ||
+      urlObj.hostname.includes("internal") ||
+      !urlObj.hostname.includes(".");
+
     if (!urlObj.searchParams.has("sslmode")) {
-      urlObj.searchParams.set("sslmode", "require");
+      urlObj.searchParams.set("sslmode", isLocalOrContainer ? "disable" : "require");
     }
     if (!urlObj.searchParams.has("connect_timeout")) {
       urlObj.searchParams.set("connect_timeout", "15");
@@ -39,13 +45,17 @@ function createPrismaClient(): PrismaClient {
     }
     dbUrl = urlObj.toString();
   } catch {
+    const isLocal =
+      dbUrl.includes("localhost") ||
+      dbUrl.includes("127.0.0.1") ||
+      !dbUrl.split("@")[1]?.split("/")[0]?.includes(".");
     if (!dbUrl.includes("schema=")) {
       const sep = dbUrl.includes("?") ? "&" : "?";
       dbUrl = `${dbUrl}${sep}schema=public`;
     }
     if (!dbUrl.includes("sslmode=")) {
       const sep = dbUrl.includes("?") ? "&" : "?";
-      dbUrl = `${dbUrl}${sep}sslmode=require&connect_timeout=15&connection_limit=10&pool_timeout=15`;
+      dbUrl = `${dbUrl}${sep}sslmode=${isLocal ? "disable" : "require"}&connect_timeout=15&connection_limit=10&pool_timeout=15`;
     }
   }
 
