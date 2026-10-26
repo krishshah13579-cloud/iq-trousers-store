@@ -149,7 +149,7 @@ export default function ProductImageGallery({
   return (
     <>
       <div className="flex flex-col gap-4">
-        {/* Main Image Display with Hover Zoom Lens */}
+        {/* Main Image Display with Hover Zoom Lens - Box sizes dynamically to fit the image edge-to-edge */}
         <div
           onClick={() => {
             setIsModalOpen(true);
@@ -161,7 +161,7 @@ export default function ProductImageGallery({
             setMousePosition({ x: 50, y: 50 });
           }}
           onMouseMove={handleMouseMove}
-          className="relative aspect-square sm:aspect-[4/5] w-full overflow-hidden rounded-2xl bg-white border border-gray-200/90 shadow-xs cursor-zoom-in group select-none flex items-center justify-center p-2 sm:p-4"
+          className="relative w-full overflow-hidden rounded-2xl bg-gray-50 border border-gray-200/90 shadow-xs cursor-zoom-in group select-none flex items-center justify-center"
         >
           <img
             src={currentImage}
@@ -170,7 +170,7 @@ export default function ProductImageGallery({
               transformOrigin: `${mousePosition.x}% ${mousePosition.y}%`,
               transform: isHovering ? "scale(2.2)" : "scale(1)",
             }}
-            className="h-full w-full max-h-full max-w-full object-contain object-center transition-transform duration-100 ease-out pointer-events-none"
+            className="w-full h-auto max-h-[750px] object-cover transition-transform duration-100 ease-out pointer-events-none block"
           />
 
           {/* Hover Lens Helper Badge */}
