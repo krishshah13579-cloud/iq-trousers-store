@@ -11,6 +11,7 @@ import {
 import { useSession } from "next-auth/react";
 import type { Session } from "next-auth";
 import { CartItemType } from "@/types";
+import { getProductCoverImage } from "@/lib/utils";
 
 interface CartContextType {
   items: CartItemType[];
@@ -47,24 +48,7 @@ function getUserCartKey(session: Session | null | undefined): string | null {
 function sanitizeCartProduct(product: CartItemType["product"]): CartItemType["product"] {
   if (!product) return product;
 
-  let thumbnail = "";
-  try {
-    const parsed = JSON.parse(product.images);
-    if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]) {
-      thumbnail = String(parsed[0]).trim();
-    } else if (typeof parsed === "string" && parsed.trim()) {
-      thumbnail = parsed.trim();
-    }
-  } catch {
-    if (typeof product.images === "string" && product.images.trim()) {
-      if (product.images.startsWith("data:")) {
-        thumbnail = product.images.trim();
-      } else {
-        const split = product.images.split(",")[0]?.trim();
-        if (split) thumbnail = split;
-      }
-    }
-  }
+  const thumbnail = getProductCoverImage(product.images);
 
   return {
     id: product.id,

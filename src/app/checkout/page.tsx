@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useCart } from "@/context/CartContext";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, getProductCoverImage } from "@/lib/utils";
 import { ShippingAddress } from "@/types";
 import {
   calculateShippingFee,
@@ -37,17 +37,7 @@ interface AppliedDiscount {
 }
 
 function getProductImage(images: string): string {
-  try {
-    const parsed = JSON.parse(images);
-    if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
-    if (typeof parsed === "string" && parsed.trim().length > 0) return parsed;
-  } catch {
-    // string fallback
-  }
-  if (images && typeof images === "string") {
-    return images.split(",")[0].trim();
-  }
-  return "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400";
+  return getProductCoverImage(images);
 }
 
 function CheckoutContent() {

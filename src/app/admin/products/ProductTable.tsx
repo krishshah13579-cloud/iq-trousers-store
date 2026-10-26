@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Edit2, Trash2, AlertTriangle, Eye, EyeOff, Package, Plus, Boxes, X } from "lucide-react";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, getProductCoverImage, getProductAllImages } from "@/lib/utils";
 
 interface ProductItem {
   id: string;
@@ -68,36 +68,11 @@ export default function ProductTable({ products }: { products: ProductItem[] }) 
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   const getFirstImage = (imagesStr?: string | null): string => {
-    if (!imagesStr) return "";
-    try {
-      const parsed = JSON.parse(imagesStr);
-      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]) {
-        return String(parsed[0]).trim();
-      }
-      if (typeof parsed === "string" && parsed.trim()) {
-        return parsed.trim();
-      }
-    } catch {
-      // not JSON array
-    }
-    if (typeof imagesStr === "string" && imagesStr.trim()) {
-      if (imagesStr.startsWith("data:")) {
-        return imagesStr.trim();
-      }
-      const split = imagesStr.split(",")[0]?.trim();
-      if (split) return split;
-    }
-    return "";
+    return getProductCoverImage(imagesStr, "");
   };
 
   const getImageCount = (imagesStr?: string | null): number => {
-    if (!imagesStr) return 0;
-    try {
-      const parsed = JSON.parse(imagesStr);
-      if (Array.isArray(parsed)) return parsed.filter(Boolean).length;
-    } catch {}
-    if (imagesStr.startsWith("data:")) return 1;
-    return imagesStr.split(",").map((s) => s.trim()).filter(Boolean).length;
+    return getProductAllImages(imagesStr).length;
   };
 
   const isValidImageSrc = (src: string): boolean => {

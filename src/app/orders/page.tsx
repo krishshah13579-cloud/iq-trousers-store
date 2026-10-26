@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
-import { formatPrice, getOrderStatusColor, getStepIndex } from "@/lib/utils";
+import { formatPrice, getOrderStatusColor, getStepIndex, getProductCoverImage } from "@/lib/utils";
 import { Package, Calendar, ChevronRight, ArrowRight, ShoppingBag, Tag } from "lucide-react";
 import { CancelOrderButton } from "@/components/orders/CancelOrderButton";
 
@@ -233,17 +233,7 @@ export default async function OrdersPage() {
                       <div className="flex items-center gap-3 overflow-hidden">
                         <div className="flex -space-x-2 overflow-hidden py-1">
                           {(order.items || []).slice(0, 4).map((item: any) => {
-                            let imageUrl = "/placeholder.png";
-                            try {
-                              const parsed = JSON.parse(item.product?.images || "[]");
-                              if (Array.isArray(parsed) && parsed.length > 0) {
-                                imageUrl = parsed[0];
-                              }
-                            } catch {
-                              if (item.product?.images) {
-                                imageUrl = item.product.images;
-                              }
-                            }
+                            const imageUrl = getProductCoverImage(item.product?.images, "/placeholder.png");
 
                             return (
                               <div

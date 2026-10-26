@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, getProductCoverImage } from "@/lib/utils";
 import { Heart, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 
 export default function WishlistPage() {
@@ -21,14 +21,7 @@ export default function WishlistPage() {
   }, [status, router]);
 
   const getProductImage = (imagesStr: string) => {
-    try {
-      const parsed = JSON.parse(imagesStr);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
-    } catch {}
-    if (imagesStr && typeof imagesStr === "string") {
-      return imagesStr.split(",")[0].trim();
-    }
-    return "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=600";
+    return getProductCoverImage(imagesStr);
   };
 
   return (

@@ -4,7 +4,7 @@ import Image from "next/image";
 import { getServerSession } from "next-auth";
 import { authOptions, isAdminRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { formatPrice, getOrderStatusColor } from "@/lib/utils";
+import { formatPrice, getOrderStatusColor, getProductCoverImage } from "@/lib/utils";
 import { ShippingAddress } from "@/types";
 import { CheckCircle2, Package, MapPin, ArrowRight, XCircle, Truck, Tag } from "lucide-react";
 import { CancelOrderButton } from "@/components/orders/CancelOrderButton";
@@ -25,18 +25,7 @@ function parseAddress(shippingAddress: string): ShippingAddress | null {
 }
 
 function getProductImage(images?: string | null): string {
-  if (!images) return "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400";
-  try {
-    const parsed = JSON.parse(images);
-    if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
-    if (typeof parsed === "string") return parsed;
-  } catch {
-    // string fallback
-  }
-  if (typeof images === "string") {
-    return images.split(",")[0].trim();
-  }
-  return "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400";
+  return getProductCoverImage(images);
 }
 
 export const dynamic = "force-dynamic";

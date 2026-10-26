@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getProductAllImages } from "@/lib/utils";
 
 function normalizeCode(str: string): string {
   return (str || "").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -148,18 +149,50 @@ export async function performDirectStockSync() {
       inventoryMap[color] = colorBreakdown;
     }
 
+    // Extract all uploaded images from wholesale product using getProductAllImages
+    const imagesArr: string[] = [];
+    if (wp.imageUrl) {
+      imagesArr.push(...getProductAllImages(wp.imageUrl));
+    }
+    if (wp.colorImages) {
+      try {
+        const parsedImgs = typeof wp.colorImages === "string" ? JSON.parse(wp.colorImages) : wp.colorImages;
+        if (Array.isArray(parsedImgs)) {
+          for (const item of parsedImgs) {
+            if (typeof item === "string" && item.trim()) {
+              imagesArr.push(...getProductAllImages(item));
+            }
+          }
+        } else if (typeof parsedImgs === "object" && parsedImgs !== null) {
+          Object.values(parsedImgs).forEach((img: any) => {
+            if (typeof img === "string" && img.trim()) {
+              imagesArr.push(...getProductAllImages(img));
+            }
+          });
+        }
+      } catch {}
+    }
+    const uniqueImages = Array.from(new Set(imagesArr.filter(Boolean)));
+
     if (matched) {
+      const updateData: any = {
+        name: wp.name,
+        colors: JSON.stringify(colorsList),
+        sizes: JSON.stringify(sizesList),
+        inventory: JSON.stringify(inventoryMap),
+        stock: totalPieces,
+        active: totalPieces > 0 ? true : matched.active,
+        ...(wp.mrp && wp.mrp > 0 ? { comparePrice: wp.mrp } : {}),
+      };
+
+      // When products are matched with stock, sync the exact uploaded image(s) from wholesale stock
+      if (uniqueImages.length > 0) {
+        updateData.images = JSON.stringify(uniqueImages);
+      }
+
       await prisma.product.update({
         where: { id: matched.id },
-        data: {
-          name: wp.name,
-          colors: JSON.stringify(colorsList),
-          sizes: JSON.stringify(sizesList),
-          inventory: JSON.stringify(inventoryMap),
-          stock: totalPieces,
-          active: totalPieces > 0 ? true : matched.active,
-          ...(wp.mrp && wp.mrp > 0 ? { comparePrice: wp.mrp } : {}),
-        },
+        data: updateData,
       });
 
       updates.push({
@@ -189,25 +222,9 @@ export async function performDirectStockSync() {
       const comparePrice = wp.mrp && wp.mrp > 0 ? wp.mrp : Math.round((wp.price || 800) * 1.33);
       const price = Math.round(comparePrice * 0.75);
 
-      let imagesArr: string[] = [];
-      if (wp.imageUrl) {
-        imagesArr.push(wp.imageUrl);
-      }
-      if (wp.colorImages) {
-        try {
-          const parsedImgs = typeof wp.colorImages === "string" ? JSON.parse(wp.colorImages) : wp.colorImages;
-          if (Array.isArray(parsedImgs)) {
-            imagesArr.push(...parsedImgs.filter(Boolean));
-          } else if (typeof parsedImgs === "object") {
-            Object.values(parsedImgs).forEach((img: any) => {
-              if (typeof img === "string" && img) imagesArr.push(img);
-            });
-          }
-        } catch {}
-      }
-      if (imagesArr.length === 0) {
-        imagesArr = ["https://images.unsplash.com/photo-1542272604-780c96856592?w=800"];
-      }
+      const finalImages = uniqueImages.length > 0
+        ? uniqueImages
+        : ["https://images.unsplash.com/photo-1542272604-780c96856592?w=800"];
 
       const created = await prisma.product.create({
         data: {
@@ -217,7 +234,7 @@ export async function performDirectStockSync() {
           careInstructions: "Machine wash cold with like colors. Line dry in shade. Warm iron.",
           price,
           comparePrice,
-          images: JSON.stringify(imagesArr),
+          images: JSON.stringify(finalImages),
           sizes: JSON.stringify(sizesList),
           colors: JSON.stringify(colorsList),
           inventory: JSON.stringify(inventoryMap),

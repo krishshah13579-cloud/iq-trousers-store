@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Star, ShieldCheck, Truck, RotateCcw, ChevronRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, getProductAllImages } from "@/lib/utils";
 import ProductImageGallery from "@/components/products/ProductImageGallery";
 import AddToCartSection from "@/components/products/AddToCartSection";
 import DeliveryPincodeChecker from "@/components/products/DeliveryPincodeChecker";
@@ -126,27 +126,8 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
       .slice(0, 4);
   }
 
-  // Parse images
-  let images: string[] = [];
-  try {
-    const parsed = JSON.parse(product.images || "[]");
-    if (Array.isArray(parsed)) {
-      images = parsed.map((img) => String(img).trim()).filter(Boolean);
-    } else if (typeof parsed === "string" && parsed.trim()) {
-      images = [parsed.trim()];
-    }
-  } catch {
-    if (typeof product.images === "string" && product.images.trim()) {
-      if (product.images.startsWith("data:")) {
-        images = [product.images.trim()];
-      } else {
-        images = product.images
-          .split(",")
-          .map((img: string) => img.trim())
-          .filter(Boolean);
-      }
-    }
-  }
+  // Parse images using getProductAllImages
+  const images: string[] = getProductAllImages(product.images);
 
   // Parse available sizes for size guide filtering
   let availableSizes: string[] = [];

@@ -21,6 +21,7 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import SizeGuideModal, { SizeGuideTable } from "./SizeGuideModal";
 import { getColorHex } from "@/lib/colors";
+import { getProductCoverImage } from "@/lib/utils";
 
 interface AddToCartSectionProps {
   product: Product;
@@ -271,13 +272,7 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
     if (status === "unauthenticated" || !session) {
       if (typeof window !== "undefined") {
         try {
-          let firstImage = "";
-          try {
-            const parsedImgs = JSON.parse(product.images);
-            if (Array.isArray(parsedImgs) && parsedImgs.length > 0) firstImage = parsedImgs[0];
-          } catch {
-            if (product.images?.startsWith("data:")) firstImage = product.images;
-          }
+          const firstImage = getProductCoverImage(product.images);
 
           localStorage.setItem(
             "iq_pending_cart_item",
@@ -326,13 +321,7 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
     if (status === "unauthenticated" || !session) {
       if (typeof window !== "undefined") {
         try {
-          let firstImage = "";
-          try {
-            const parsedImgs = JSON.parse(product.images);
-            if (Array.isArray(parsedImgs) && parsedImgs.length > 0) firstImage = parsedImgs[0];
-          } catch {
-            if (product.images?.startsWith("data:")) firstImage = product.images;
-          }
+          const firstImage = getProductCoverImage(product.images);
 
           localStorage.setItem(
             "iq_pending_cart_item",

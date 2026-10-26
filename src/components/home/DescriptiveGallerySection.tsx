@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Product } from "@/types";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, getProductCoverImage } from "@/lib/utils";
 import { Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
@@ -120,26 +120,8 @@ export default function DescriptiveGallerySection({
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7 animate-fadeIn"
             >
               {currentFaceProducts.map((product) => {
-                // Parse image
-                let imageUrl =
-                  "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600";
-                try {
-                  const parsed = JSON.parse(product.images);
-                  if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]) {
-                    imageUrl = String(parsed[0]).trim();
-                  } else if (typeof parsed === "string" && parsed.trim()) {
-                    imageUrl = parsed.trim();
-                  }
-                } catch {
-                  if (typeof product.images === "string" && product.images.trim()) {
-                    if (product.images.startsWith("data:")) {
-                      imageUrl = product.images.trim();
-                    } else {
-                      const split = product.images.split(",")[0]?.trim();
-                      if (split) imageUrl = split;
-                    }
-                  }
-                }
+                // Parse image using getProductCoverImage
+                const imageUrl = getProductCoverImage(product.images);
 
                 const isWish = isInWishlist(product.id);
                 const isCardOpening = navigatingProductId === product.id;

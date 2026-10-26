@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Star, ShoppingCart, Check, Heart } from "lucide-react";
 import { Product } from "@/types";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, getProductCoverImage } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 
@@ -28,24 +28,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   };
 
   // Parse product images
-  let imageUrl = "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600";
-  try {
-    const parsed = JSON.parse(product.images);
-    if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]) {
-      imageUrl = parsed[0];
-    } else if (typeof parsed === "string" && parsed) {
-      imageUrl = parsed;
-    }
-  } catch {
-    if (product.images) {
-      if (product.images.startsWith("data:")) {
-        imageUrl = product.images;
-      } else {
-        const split = product.images.split(",")[0]?.trim();
-        if (split) imageUrl = split;
-      }
-    }
-  }
+  const imageUrl = getProductCoverImage(product.images);
 
   // Parse available clothing sizes
   const availableSizes: string[] = (() => {
@@ -101,13 +84,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     if (status === "unauthenticated" || !session) {
       if (typeof window !== "undefined") {
         try {
-          let firstImage = "";
-          try {
-            const parsedImgs = JSON.parse(product.images);
-            if (Array.isArray(parsedImgs) && parsedImgs.length > 0) firstImage = parsedImgs[0];
-          } catch {
-            if (product.images?.startsWith("data:")) firstImage = product.images;
-          }
+          const firstImage = getProductCoverImage(product.images);
 
           localStorage.setItem(
             "iq_pending_cart_item",
