@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Star, ShoppingCart, Check, Heart } from "lucide-react";
 import { Product } from "@/types";
-import { formatPrice, getProductCoverImage } from "@/lib/utils";
+import { formatPrice, getProductCoverImage, GARMENT_PHOTO_FALLBACK } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 
@@ -168,8 +168,8 @@ export default function ProductCard({ product }: ProductCardProps) {
           loading="lazy"
           onError={(e) => {
             const target = e.currentTarget as HTMLImageElement;
-            if (!target.src.includes("/products/imp-001.jpg")) {
-              target.src = "/products/imp-001.jpg";
+            if (!target.src.startsWith("data:image/svg+xml")) {
+              target.src = GARMENT_PHOTO_FALLBACK;
             }
           }}
         />

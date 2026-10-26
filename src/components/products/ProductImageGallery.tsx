@@ -11,6 +11,7 @@ import {
   RotateCcw,
   Sparkles,
 } from "lucide-react";
+import { GARMENT_PHOTO_FALLBACK } from "@/lib/utils";
 
 interface ProductImageGalleryProps {
   images: string[];
@@ -21,10 +22,8 @@ export default function ProductImageGallery({
   images,
   name,
 }: ProductImageGalleryProps) {
-  const validImages =
-    images.length > 0
-      ? images.map((img) => img.includes("photo-1542272604-780c96856592") ? "/products/imp-001.jpg" : img)
-      : ["/products/imp-001.jpg"];
+  const cleaned = images.filter((img) => img && !img.includes("photo-1542272604-780c96856592"));
+  const validImages = cleaned.length > 0 ? cleaned : [GARMENT_PHOTO_FALLBACK];
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const currentImage = validImages[selectedIndex] || validImages[0];

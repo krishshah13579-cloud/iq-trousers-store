@@ -186,12 +186,11 @@ export async function performDirectStockSync() {
       };
 
       // When products are matched with stock, sync the exact uploaded image(s) from wholesale stock
+      // If wholesale stock has no uploaded images, keep them empty ("[]")
       if (uniqueImages.length > 0) {
         updateData.images = JSON.stringify(uniqueImages);
-      } else if (matched.images && matched.images.includes("photo-1542272604-780c96856592")) {
-        const fallbackList = ["/products/imp-001.jpg", "/products/imp-002.jpg", "/products/imp-003.jpg", "/products/imp-004.jpg"];
-        const selectedImg = fallbackList[Math.abs(canonicalWp.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)) % fallbackList.length];
-        updateData.images = JSON.stringify([selectedImg]);
+      } else {
+        updateData.images = "[]";
       }
 
       await prisma.product.update({
@@ -226,12 +225,7 @@ export async function performDirectStockSync() {
       const comparePrice = wp.mrp && wp.mrp > 0 ? wp.mrp : Math.round((wp.price || 800) * 1.33);
       const price = Math.round(comparePrice * 0.75);
 
-      const fallbackList = ["/products/imp-001.jpg", "/products/imp-002.jpg", "/products/imp-003.jpg", "/products/imp-004.jpg"];
-      const selectedImg = fallbackList[Math.abs(canonicalWp.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)) % fallbackList.length];
-
-      const finalImages = uniqueImages.length > 0
-        ? uniqueImages
-        : [selectedImg];
+      const finalImages = uniqueImages.length > 0 ? uniqueImages : [];
 
       const created = await prisma.product.create({
         data: {
