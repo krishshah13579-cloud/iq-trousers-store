@@ -5,10 +5,13 @@
 export async function withDbTimeout<T>(
   promise: Promise<T>,
   fallback: T,
-  timeoutMs: number = 2500
+  timeoutMs: number = 3000
 ): Promise<T> {
   // During build phase, do not wait for remote DB timeouts
-  if (process.env.IS_BUILD_PHASE === "true" || process.env.NEXT_PHASE === "phase-production-build") {
+  if (
+    process.env.npm_lifecycle_event === "build" ||
+    process.env.NEXT_PHASE === "phase-production-build"
+  ) {
     return fallback;
   }
 
