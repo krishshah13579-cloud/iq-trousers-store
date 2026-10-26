@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import HeroCarousel from "@/components/home/HeroCarousel";
 import BrandValueProps from "@/components/home/BrandValueProps";
+import OccasionFitCards from "@/components/home/OccasionFitCards";
 import DescriptiveGallerySection from "@/components/home/DescriptiveGallerySection";
 import { withDbTimeout } from "@/lib/dbQuery";
 import { FALLBACK_CATEGORIES } from "@/lib/fallbackData";
@@ -31,6 +32,8 @@ export default async function HomePage() {
       id: true,
       name: true,
       slug: true,
+      description: true,
+      image: true,
       products: {
         where: { active: true, stock: { gt: 0 } },
         take: 12,
@@ -74,12 +77,16 @@ export default async function HomePage() {
       {/* 2. Brand Value Props Ribbon */}
       <BrandValueProps />
 
-      {/* 3. Dynamic Descriptive Galleries for Every Category */}
+      {/* 3. Descriptive Category Overview Showroom */}
+      <OccasionFitCards />
+
+      {/* 4. Dynamic Descriptive Galleries for Every Category */}
       {categories.map((category: any) => (
         <DescriptiveGallerySection
           key={category.id || category.slug}
           title={category.name}
           slug={category.slug}
+          description={category.description}
           products={getCategoryProducts(category.products || [], 8)}
         />
       ))}
