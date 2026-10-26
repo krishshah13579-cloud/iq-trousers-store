@@ -4,56 +4,21 @@ import Link from "next/link";
 import { useState } from "react";
 import { Product } from "@/types";
 import { formatPrice } from "@/lib/utils";
-import { Heart, ChevronLeft, ChevronRight, ArrowRight, Sparkles, Layers, Tag } from "lucide-react";
+import { Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
 
 interface CategoryShowcaseProps {
   title: string;
   slug: string;
-  description?: string;
+  customHref?: string;
   products: Product[];
-}
-
-const CATEGORY_DEFAULTS: Record<
-  string,
-  { desc: string; highlights: string[]; subtitle: string }
-> = {
-  "formal-wear": {
-    subtitle: "BOARDROOM & EXECUTIVE ATTIRE",
-    desc: "Precision-tailored trousers crafted with premium poly-viscose blend, comfort flex waistband, and crease-resistant finish for sharp executive elegance.",
-    highlights: ["Permanent Crease", "Flex Comfort Waist", "Wrinkle-Resistant", "Poly-Viscose Blend"],
-  },
-  "everyday-casual": {
-    subtitle: "SMART CHINOS & DAILY COMFORT",
-    desc: "Engineered 4-way stretch chinos and casual trousers designed for effortless mobility, breathable comfort, and seamless desk-to-dinner style.",
-    highlights: ["4-Way Stretch", "Breathable Twill", "All-Day Comfort", "Narrow Tapered Fit"],
-  },
-  "winter-2026": {
-    subtitle: "SEASONAL FLANNEL & CORDUROY",
-    desc: "Heavyweight worsted flannels and ribbed corduroys tailored for seasonal warmth, rich drape, and timeless cold-weather sophistication.",
-    highlights: ["Warm Flannel", "Heavyweight Drape", "Thermal Weave", "Rich Texture"],
-  },
-};
-
-function cleanDescription(desc?: string): string {
-  if (!desc) return "Premium 4-way stretch fabric with tailored silhouette and all-day comfort.";
-  // Strip markdown headings and extra symbols
-  const cleaned = desc
-    .replace(/^#+\s+/gm, "")
-    .replace(/[*_~`]/g, "")
-    .replace(/\n+/g, " ")
-    .trim();
-  if (cleaned.length > 95) {
-    return cleaned.substring(0, 95).trim() + "...";
-  }
-  return cleaned;
 }
 
 export default function DescriptiveGallerySection({
   title,
   slug,
-  description,
+  customHref,
   products,
 }: CategoryShowcaseProps) {
   const { isInWishlist, toggleWishlist } = useWishlist();
@@ -100,91 +65,40 @@ export default function DescriptiveGallerySection({
   const face2 = displayProducts.slice(4, 8);
   const currentFaceProducts = activeFace === 0 ? face1 : face2.length > 0 ? face2 : face1;
 
-  // Curated category defaults
-  const defaults = CATEGORY_DEFAULTS[slug] || {
-    subtitle: "FACTORY DIRECT COLLECTION",
-    desc: description || "Handcrafted with factory-direct precision, premium fabrics, and tailored silhouettes for the modern wardrobe.",
-    highlights: ["Tailored Silhouette", "Factory Direct Pricing", "Superior Stitching"],
-  };
-
-  const categoryDesc = description || defaults.desc;
+  const targetLink = customHref || `/products?category=${slug}`;
 
   return (
-    <section className="py-8 sm:py-12 bg-white select-none border-b border-gray-100 last:border-b-0">
+    <section className="py-2.5 sm:py-4 bg-white select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Descriptive Category Header */}
-        <div className="mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-gray-200/80 pb-5">
-            <div className="max-w-3xl space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase bg-indigo-50 text-[#162082] border border-indigo-100">
-                  <Sparkles className="w-3 h-3 text-[#162082]" />
-                  {defaults.subtitle}
-                </span>
-                <span className="text-xs text-gray-400 font-medium">
-                  {totalItems > 0 ? `${totalItems}+ Styles Available` : "Curated Collection"}
-                </span>
-              </div>
+        {/* Centered Royal Navy Title with Carousel Controls */}
+        <div className="relative flex items-center justify-between sm:justify-center mb-3 sm:mb-4">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-sans font-normal text-[#162082] tracking-tight text-left sm:text-center">
+            {title}
+          </h2>
 
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-sans font-normal text-[#162082] tracking-tight">
-                {title}
-              </h2>
-
-              <p className="text-sm sm:text-base text-gray-600 font-light leading-relaxed">
-                {categoryDesc}
-              </p>
-
-              {/* Category Feature Highlights */}
-              <div className="flex flex-wrap gap-2 pt-1">
-                {defaults.highlights.map((tag, idx) => (
-                  <span
-                    key={idx}
-                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-gray-50 text-gray-700 border border-gray-200/70"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#162082]" />
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Loop Carousel Controls & Direct Category Link */}
-            <div className="flex items-center gap-3 sm:self-center shrink-0">
-              <Link
-                href={`/products?category=${slug}`}
-                className="hidden md:inline-flex items-center gap-1.5 text-xs font-semibold text-[#162082] hover:text-black transition-colors"
+          {/* Loop Carousel Controls - 2 Faces only */}
+          {hasTwoFaces && (
+            <div className="sm:absolute sm:right-0 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handlePrev}
+                aria-label={`Previous ${title} items`}
+                title="Previous Face (Loops)"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-gray-300 hover:border-gray-900 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 hover:text-black transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
               >
-                <span>View Full Category</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-
-              {hasTwoFaces && (
-                <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-full border border-gray-200">
-                  <button
-                    type="button"
-                    onClick={handlePrev}
-                    aria-label={`Previous ${title} items`}
-                    title="Previous Slide"
-                    className="w-8 h-8 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center text-gray-700 hover:text-black transition-all cursor-pointer shadow-xs active:scale-95"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <span className="text-[11px] font-semibold text-gray-600 px-1">
-                    {activeFace + 1} / 2
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    aria-label={`Next ${title} items`}
-                    title="Next Slide"
-                    className="w-8 h-8 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center text-gray-700 hover:text-black transition-all cursor-pointer shadow-xs active:scale-95"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
+                <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                aria-label={`Next ${title} items`}
+                title="Next Face (Loops)"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-gray-300 hover:border-gray-900 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 hover:text-black transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+              >
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Product Cards Grid for Active Face */}
@@ -227,40 +141,18 @@ export default function DescriptiveGallerySection({
                   }
                 }
 
-                // Parse colors
-                let colorCount = 0;
-                try {
-                  if (product.colors) {
-                    const parsedColors = JSON.parse(product.colors);
-                    if (Array.isArray(parsedColors)) {
-                      colorCount = parsedColors.length;
-                    }
-                  }
-                } catch {}
-
                 const isWish = isInWishlist(product.id);
                 const isCardOpening = navigatingProductId === product.id;
-
-                // Discount calculation
-                const hasDiscount =
-                  product.comparePrice && product.comparePrice > product.price;
-                const discountPercent = hasDiscount
-                  ? Math.round(
-                      ((product.comparePrice! - product.price) / product.comparePrice!) * 100
-                    )
-                  : 0;
-
-                const productDescSnippet = cleanDescription(product.description);
 
                 return (
                   <div
                     key={product.id}
                     onMouseEnter={() => setHoveredCard(product.id)}
                     onMouseLeave={() => setHoveredCard(null)}
-                    className={`group relative flex flex-col bg-white rounded-xl border transition-all duration-300 overflow-hidden shadow-2xs hover:shadow-md ${
+                    className={`group relative flex flex-col bg-white border transition-all duration-300 overflow-hidden ${
                       isCardOpening
                         ? "border-gray-900 ring-2 ring-gray-900/15 shadow-md scale-[0.985]"
-                        : "border-gray-200 hover:border-gray-400"
+                        : "border-gray-300 hover:border-gray-400"
                     }`}
                   >
                     {/* Top progress line when selected */}
@@ -284,7 +176,7 @@ export default function DescriptiveGallerySection({
                     )}
 
                     {/* 1:1 Square Image Container */}
-                    <div className="relative aspect-square w-full overflow-hidden bg-gray-50 border-b border-gray-100">
+                    <div className="relative aspect-square w-full overflow-hidden bg-gray-50 border-b border-gray-200">
                       <Link
                         href={`/products/${product.id}`}
                         onClick={() => setNavigatingProductId(product.id)}
@@ -293,23 +185,10 @@ export default function DescriptiveGallerySection({
                         <img
                           src={imageUrl}
                           alt={product.name}
-                          className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                          className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-102"
                           loading="lazy"
                         />
                       </Link>
-
-                      {/* Discount Badge */}
-                      {hasDiscount && discountPercent > 0 && (
-                        <div className="absolute top-2.5 left-2.5 z-10">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-tight text-white shadow-xs ${
-                              discountPercent >= 35 ? "bg-rose-600" : "bg-emerald-600"
-                            }`}
-                          >
-                            {discountPercent}% OFF
-                          </span>
-                        </div>
-                      )}
 
                       {/* Wishlist Button (Top-Right) */}
                       <button
@@ -335,56 +214,29 @@ export default function DescriptiveGallerySection({
                       </button>
                     </div>
 
-                    {/* Descriptive Card Details Below Image */}
-                    <div className="p-3.5 sm:p-4 bg-white flex flex-col justify-between flex-1 gap-2.5">
+                    {/* Card Text Area Below Image */}
+                    <div className="p-3.5 sm:p-4 bg-white flex flex-col justify-between flex-1">
                       <div>
-                        {/* Title and Category info */}
-                        <div className="flex items-center justify-between gap-1 mb-1">
-                          <span className="text-[10px] font-bold tracking-wider uppercase text-gray-400">
-                            {title}
-                          </span>
-                          {colorCount > 0 && (
-                            <span className="text-[10px] font-medium text-gray-500">
-                              {colorCount} {colorCount === 1 ? "color" : "colors"}
-                            </span>
-                          )}
-                        </div>
-
                         <Link
                           href={`/products/${product.id}`}
                           onClick={() => setNavigatingProductId(product.id)}
-                          className="block text-[#162082] hover:text-[#0a1250] text-sm font-semibold tracking-tight transition-colors line-clamp-1"
+                          className="block text-[#284898] hover:text-[#162082] text-sm font-normal tracking-wide transition-colors line-clamp-1"
                         >
                           {product.name}
                         </Link>
 
-                        {/* Product Descriptive Summary */}
-                        <p className="mt-1 text-xs text-gray-500 font-light leading-relaxed line-clamp-2">
-                          {productDescSnippet}
-                        </p>
-                      </div>
-
-                      {/* Price Line & Quick CTA */}
-                      <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-sm sm:text-base font-bold text-gray-900">
+                        {/* Price Line: Strikethrough compare price + sale price */}
+                        <div className="mt-1 flex items-baseline gap-2 text-xs sm:text-sm">
+                          {product.comparePrice &&
+                            product.comparePrice > product.price && (
+                              <span className="line-through text-gray-400 font-light">
+                                {formatPrice(product.comparePrice)}
+                              </span>
+                            )}
+                          <span className="text-gray-900 font-normal">
                             {formatPrice(product.price)}
                           </span>
-                          {hasDiscount && (
-                            <span className="line-through text-xs text-gray-400 font-light">
-                              {formatPrice(product.comparePrice!)}
-                            </span>
-                          )}
                         </div>
-
-                        <Link
-                          href={`/products/${product.id}`}
-                          onClick={() => setNavigatingProductId(product.id)}
-                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#162082] hover:underline"
-                        >
-                          <span>Details</span>
-                          <ArrowRight className="w-3 h-3" />
-                        </Link>
                       </div>
                     </div>
                   </div>
@@ -395,13 +247,12 @@ export default function DescriptiveGallerySection({
         )}
 
         {/* Centered Royal Navy "Shop Now" Button */}
-        <div className="mt-6 sm:mt-8 flex justify-center">
+        <div className="mt-3.5 sm:mt-4 flex justify-center">
           <Link
-            href={`/products?category=${slug}`}
-            className="inline-flex items-center justify-center gap-2 px-8 py-2.5 bg-[#0d1b74] hover:bg-[#081254] text-white text-xs sm:text-sm font-medium tracking-wide rounded-md transition-colors shadow-xs active:scale-98 cursor-pointer"
+            href={targetLink}
+            className="inline-flex items-center justify-center px-10 py-2 sm:py-2.5 bg-[#0d1b74] hover:bg-[#081254] text-white text-xs sm:text-sm font-medium tracking-wide transition-colors shadow-xs active:scale-98 cursor-pointer"
           >
-            <span>Explore All {title}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            Shop Now
           </Link>
         </div>
       </div>
