@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import ProductCard from "@/components/products/ProductCard";
 import ProductFilters from "@/components/products/ProductFilters";
 import SortDropdown from "@/components/products/SortDropdown";
-import { PackageSearch } from "lucide-react";
+import { PackageSearch, Sparkles, Flame, Layers } from "lucide-react";
 import Link from "next/link";
 import { withDbTimeout } from "@/lib/dbQuery";
 import { ALL_FALLBACK_PRODUCTS, FALLBACK_CATEGORIES } from "@/lib/fallbackData";
@@ -17,6 +17,7 @@ interface ProductsPageProps {
     minPrice?: string;
     maxPrice?: string;
     featured?: string;
+    tab?: string; // "all" | "new-arrivals" | "discounts"
   }>;
 }
 
@@ -25,7 +26,7 @@ export const revalidate = 60;
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const resolvedParams = await searchParams;
-  const { search, category, sort, minPrice, maxPrice, featured } = resolvedParams || {};
+  const { search, category, sort, minPrice, maxPrice, featured, tab } = resolvedParams || {};
 
   // Build Prisma where query - Only show active and in-stock products to customers
   const where: Prisma.ProductWhereInput = {
@@ -79,6 +80,8 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     orderBy = { price: "desc" };
   } else if (sort === "name") {
     orderBy = { name: "asc" };
+  } else if (tab === "new-arrivals") {
+    orderBy = { createdAt: "desc" };
   }
 
   const fallbackResults = [ALL_FALLBACK_PRODUCTS, FALLBACK_CATEGORIES, null] as any;
@@ -124,10 +127,37 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   )) || fallbackResults) as any;
 
   const rawProductList = rawProducts && rawProducts.length > 0 ? rawProducts : ALL_FALLBACK_PRODUCTS;
-  const products = (rawProductList as any[]).filter(
+  
+  // Filter in-stock items
+  let inStockProducts = (rawProductList as any[]).filter(
     (p: any) => p && (p.stock === undefined || p.stock > 0)
   );
+
+  // Tab Filtering:
+  // 1. "discounts": Only show products with discount >= 35%
+  // 2. "new-arrivals": Standard catalog ordered with newest first
+  if (tab === "discounts") {
+    inStockProducts = inStockProducts.filter((p: any) => {
+      if (!p.comparePrice || p.comparePrice <= p.price) return false;
+      const discountPct = ((p.comparePrice - p.price) / p.comparePrice) * 100;
+      return discountPct >= 34.5;
+    });
+  }
+
+  const products = inStockProducts;
   const categories = rawCategories && rawCategories.length > 0 ? rawCategories : FALLBACK_CATEGORIES;
+
+  // Active Tab Title
+  const activeTabTitle =
+    tab === "discounts"
+      ? "Clearance Offers (≥35% OFF)"
+      : tab === "new-arrivals"
+      ? "New Arrivals"
+      : selectedCategoryObj
+      ? selectedCategoryObj.name
+      : search
+      ? `Search results for "${search}"`
+      : "All Products";
 
   return (
     <div className="min-h-screen bg-white">
@@ -140,22 +170,38 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             </Link>
             <span>/</span>
             <span className="text-gray-900 font-medium">
-              {selectedCategoryObj ? selectedCategoryObj.name : "All Products"}
+              {activeTabTitle}
             </span>
           </nav>
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h1 className="text-3xl sm:text-4xl font-light text-gray-900 tracking-tight">
-                {selectedCategoryObj
-                  ? selectedCategoryObj.name
-                  : search
-                  ? `Search results for "${search}"`
-                  : "All Products"}
+              <h1 className="text-3xl sm:text-4xl font-light text-gray-900 tracking-tight flex items-center gap-3">
+                <span>{activeTabTitle}</span>
+                {tab === "discounts" && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold uppercase tracking-wider bg-rose-500 text-white rounded-full shadow-xs">
+                    <Flame className="w-3.5 h-3.5 fill-white" />
+                    Special 35%+ Clearance
+                  </span>
+                )}
+                {tab === "new-arrivals" && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold uppercase tracking-wider bg-indigo-600 text-white rounded-full shadow-xs">
+                    <Sparkles className="w-3.5 h-3.5 fill-white" />
+                    Just In
+                  </span>
+                )}
               </h1>
               {selectedCategoryObj?.description ? (
                 <p className="text-sm text-gray-500 mt-2 max-w-xl">
                   {selectedCategoryObj.description}
+                </p>
+              ) : tab === "discounts" ? (
+                <p className="text-sm text-rose-600 font-medium mt-2">
+                  Showing exclusive clearance trousers with discounts of 35% and higher. Regular discount is 25%.
+                </p>
+              ) : tab === "new-arrivals" ? (
+                <p className="text-sm text-gray-600 mt-2">
+                  Browse our newest trousers freshly synced from stock.
                 </p>
               ) : (
                 <p className="text-sm text-gray-500 mt-2">
@@ -169,6 +215,46 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        {/* Modern Filter Tab Bar (All Products | New Arrivals | Clearance 35%+ OFF) */}
+        <div className="flex items-center gap-2 border-b border-gray-100 pb-5 mb-8 overflow-x-auto no-scrollbar">
+          <Link
+            href={category ? `/products?category=${encodeURIComponent(category)}` : "/products"}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shadow-xs ${
+              !tab || tab === "all"
+                ? "bg-gray-950 text-white ring-2 ring-gray-950/20"
+                : "bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200"
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>All Products</span>
+          </Link>
+
+          <Link
+            href={category ? `/products?tab=new-arrivals&category=${encodeURIComponent(category)}` : "/products?tab=new-arrivals"}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shadow-xs ${
+              tab === "new-arrivals"
+                ? "bg-indigo-600 text-white ring-2 ring-indigo-400/40"
+                : "bg-indigo-50/70 text-indigo-700 hover:bg-indigo-100 border border-indigo-200/80"
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400 fill-indigo-400" />
+            <span>New Arrivals</span>
+          </Link>
+
+          <Link
+            href={category ? `/products?tab=discounts&category=${encodeURIComponent(category)}` : "/products?tab=discounts"}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shadow-xs ${
+              tab === "discounts"
+                ? "bg-rose-600 text-white ring-2 ring-rose-400/40"
+                : "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200"
+            }`}
+          >
+            <Flame className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
+            <span>Discount Offers (≥35% OFF)</span>
+            <span className="ml-1 px-1.5 py-0.2 bg-rose-500 text-white text-[10px] rounded-full">Sale</span>
+          </Link>
+        </div>
+
         <div className="lg:grid lg:grid-cols-4 lg:gap-8">
           {/* Sidebar Filters */}
           <aside className="lg:col-span-1">
@@ -189,7 +275,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             {/* Header controls (desktop count & sort) */}
             <div className="hidden lg:flex items-center justify-between pb-6 mb-6 border-b border-gray-100">
               <span className="text-sm text-gray-500">
-                Found <strong className="text-gray-900 font-semibold">{products.length}</strong> items
+                Found <strong className="text-gray-900 font-semibold">{products.length}</strong> {tab === "discounts" ? "clearance items (≥35% OFF)" : "items"}
               </span>
               <Suspense fallback={<div className="w-32 h-8 bg-gray-50 rounded" />}>
                 <SortDropdown currentSort={sort} />
@@ -203,16 +289,18 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                   <PackageSearch className="w-7 h-7" />
                 </div>
                 <h3 className="text-base font-semibold text-gray-900 mb-1">
-                  No products found
+                  {tab === "discounts" ? "No clearance products with ≥35% discount" : "No products found"}
                 </h3>
                 <p className="text-sm text-gray-500 max-w-sm mb-6">
-                  We couldn&apos;t find any products matching your filters. Try clearing some filters or searching for something else.
+                  {tab === "discounts"
+                    ? "Check back soon for new special clearance deals or view all our products with standard 25% discounts."
+                    : "We couldn't find any products matching your filters. Try clearing some filters or searching for something else."}
                 </p>
                 <Link
                   href="/products"
                   className="px-5 py-2.5 rounded-full bg-gray-900 text-white text-xs font-medium hover:bg-gray-800 transition-colors shadow-xs"
                 >
-                  Clear all filters
+                  View All Products
                 </Link>
               </div>
             ) : (

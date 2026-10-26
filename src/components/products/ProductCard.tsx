@@ -194,8 +194,14 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
           {discountPercent && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500 text-white tracking-wide">
-              -{discountPercent}%
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide shadow-xs ${
+                discountPercent >= 35
+                  ? "bg-rose-600 text-white ring-2 ring-rose-300"
+                  : "bg-rose-500 text-white"
+              }`}
+            >
+              {discountPercent >= 35 ? `🔥 -${discountPercent}% OFF` : `-${discountPercent}%`}
             </span>
           )}
           {product.featured && (

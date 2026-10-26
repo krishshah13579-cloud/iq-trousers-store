@@ -18,6 +18,8 @@ import {
   Heart,
   Ruler,
   ShieldCheck,
+  Flame,
+  Sparkles,
 } from "lucide-react";
 import AdminNotificationBell from "@/app/admin/AdminNotificationBell";
 
@@ -64,12 +66,26 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Navigation Links */}
-          <div className="hidden lg:flex items-center space-x-8">
+          <div className="hidden lg:flex items-center space-x-7">
             <Link
               href="/products"
               className="text-gray-700 hover:text-black transition-colors text-sm font-medium"
             >
               Shop All
+            </Link>
+            <Link
+              href="/products?tab=new-arrivals"
+              className="text-gray-700 hover:text-indigo-600 transition-colors text-sm font-medium flex items-center gap-1"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-indigo-500 fill-indigo-500" />
+              <span>New Arrivals</span>
+            </Link>
+            <Link
+              href="/products?tab=discounts"
+              className="text-rose-600 hover:text-rose-700 transition-colors text-sm font-bold flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 border border-rose-200/80 hover:bg-rose-100"
+            >
+              <Flame className="w-3.5 h-3.5 fill-rose-500 text-rose-500" />
+              <span>Deals (≥35% OFF)</span>
             </Link>
             <Link
               href="/size-guide"
@@ -270,6 +286,22 @@ export default function Navbar() {
               onClick={() => setMobileOpen(false)}
             >
               Shop All
+            </Link>
+            <Link
+              href="/products?tab=new-arrivals"
+              className="flex items-center gap-2 px-3 py-2.5 text-indigo-700 hover:text-indigo-900 text-sm font-medium rounded-lg hover:bg-indigo-50"
+              onClick={() => setMobileOpen(false)}
+            >
+              <Sparkles className="w-4 h-4 text-indigo-500 fill-indigo-500" />
+              <span>New Arrivals</span>
+            </Link>
+            <Link
+              href="/products?tab=discounts"
+              className="flex items-center gap-2 px-3 py-2.5 text-rose-700 hover:text-rose-900 text-sm font-bold rounded-lg bg-rose-50 border border-rose-200"
+              onClick={() => setMobileOpen(false)}
+            >
+              <Flame className="w-4 h-4 text-rose-500 fill-rose-500" />
+              <span>Discount Offers (≥35% OFF)</span>
             </Link>
             <Link
               href="/size-guide"
