@@ -169,6 +169,12 @@ export default function DescriptiveGallerySection({
                           alt={product.name}
                           className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-102"
                           loading="lazy"
+                          onError={(e) => {
+                            const target = e.currentTarget as HTMLImageElement;
+                            if (!target.src.includes("/products/imp-001.jpg")) {
+                              target.src = "/products/imp-001.jpg";
+                            }
+                          }}
                         />
                       </Link>
 

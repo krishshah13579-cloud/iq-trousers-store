@@ -166,6 +166,12 @@ export default function ProductCard({ product }: ProductCardProps) {
           alt={product.name}
           className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
+          onError={(e) => {
+            const target = e.currentTarget as HTMLImageElement;
+            if (!target.src.includes("/products/imp-001.jpg")) {
+              target.src = "/products/imp-001.jpg";
+            }
+          }}
         />
 
         {/* Badges */}

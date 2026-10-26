@@ -18,6 +18,8 @@ interface ProductsPageProps {
     maxPrice?: string;
     featured?: string;
     tab?: string; // "all" | "new-arrivals" | "discounts"
+    color?: string;
+    size?: string;
   }>;
 }
 
@@ -26,7 +28,7 @@ export const revalidate = 60;
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const resolvedParams = await searchParams;
-  const { search, category, sort, minPrice, maxPrice, featured, tab } = resolvedParams || {};
+  const { search, category, sort, minPrice, maxPrice, featured, tab, color, size } = resolvedParams || {};
 
   // Build Prisma where query - Only show active and in-stock products to customers
   const where: Prisma.ProductWhereInput = {
@@ -127,11 +129,97 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   )) || fallbackResults) as any;
 
   const rawProductList = rawProducts && rawProducts.length > 0 ? rawProducts : ALL_FALLBACK_PRODUCTS;
+
+  // Dynamically extract all available colors and sizes across the active catalog
+  const colorSet = new Set<string>();
+  const sizeSet = new Set<string>();
+
+  for (const p of rawProductList as any[]) {
+    if (!p) continue;
+
+    // Parse colors
+    try {
+      const parsed = typeof p.colors === "string" ? JSON.parse(p.colors) : p.colors;
+      if (Array.isArray(parsed)) {
+        parsed.forEach((c: any) => {
+          if (c && typeof c === "string" && c.trim()) colorSet.add(c.trim());
+        });
+      }
+    } catch {
+      if (typeof p.colors === "string") {
+        p.colors.split(",").forEach((c: string) => {
+          if (c.trim()) colorSet.add(c.trim());
+        });
+      }
+    }
+
+    // Parse sizes
+    try {
+      const parsed = typeof p.sizes === "string" ? JSON.parse(p.sizes) : p.sizes;
+      if (Array.isArray(parsed)) {
+        parsed.forEach((s: any) => {
+          if (s && (typeof s === "string" || typeof s === "number")) {
+            const str = String(s).trim();
+            if (str) sizeSet.add(str);
+          }
+        });
+      }
+    } catch {
+      if (typeof p.sizes === "string") {
+        p.sizes.split(",").forEach((s: string) => {
+          if (s.trim()) sizeSet.add(s.trim());
+        });
+      }
+    }
+  }
+
+  const availableSizes = Array.from(sizeSet).sort((a, b) => {
+    const numA = parseInt(a, 10);
+    const numB = parseInt(b, 10);
+    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+    return a.localeCompare(b);
+  });
+
+  const availableColors = Array.from(colorSet).sort((a, b) => a.localeCompare(b));
   
   // Filter in-stock items
   let inStockProducts = (rawProductList as any[]).filter(
     (p: any) => p && (p.stock === undefined || p.stock > 0)
   );
+
+  // Filter by Color
+  if (color && color.trim() !== "") {
+    const targetColor = color.trim().toLowerCase();
+    inStockProducts = inStockProducts.filter((p: any) => {
+      try {
+        const parsedCols = typeof p.colors === "string" ? JSON.parse(p.colors) : p.colors;
+        if (Array.isArray(parsedCols)) {
+          return parsedCols.some((c: string) => String(c).trim().toLowerCase() === targetColor);
+        }
+      } catch {}
+      if (typeof p.colors === "string") {
+        return p.colors.toLowerCase().includes(targetColor);
+      }
+      return false;
+    });
+  }
+
+  // Filter by Size
+  if (size && size.trim() !== "") {
+    const targetSize = size.trim().toLowerCase();
+    inStockProducts = inStockProducts.filter((p: any) => {
+      try {
+        const parsedSz = typeof p.sizes === "string" ? JSON.parse(p.sizes) : p.sizes;
+        if (Array.isArray(parsedSz)) {
+          return parsedSz.some((s: string) => String(s).trim().toLowerCase() === targetSize);
+        }
+      } catch {}
+      if (typeof p.sizes === "string") {
+        return p.sizes.toLowerCase().includes(targetSize);
+      }
+      return false;
+    });
+  }
 
   // Tab Filtering:
   // 1. "discounts": Only show products with discount >= 35%
@@ -266,6 +354,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                 currentMinPrice={minPrice}
                 currentMaxPrice={maxPrice}
                 currentSearch={search}
+                availableColors={availableColors}
+                availableSizes={availableSizes}
+                currentColor={color}
+                currentSize={size}
               />
             </Suspense>
           </aside>

@@ -23,8 +23,8 @@ export default function ProductImageGallery({
 }: ProductImageGalleryProps) {
   const validImages =
     images.length > 0
-      ? images
-      : ["https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800"];
+      ? images.map((img) => img.includes("photo-1542272604-780c96856592") ? "/products/imp-001.jpg" : img)
+      : ["/products/imp-001.jpg"];
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const currentImage = validImages[selectedIndex] || validImages[0];

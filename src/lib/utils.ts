@@ -103,6 +103,11 @@ export function getProductAllImages(imageUrl: string | null | undefined): string
   const trimmed = imageUrl.trim();
   if (!trimmed) return [];
 
+  // Replace dead / broken unsplash link with bundled valid local trouser product photo
+  if (trimmed.includes("photo-1542272604-780c96856592")) {
+    return ["/products/imp-001.jpg"];
+  }
+
   // 1. JSON Array format
   if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
     try {
@@ -114,6 +119,8 @@ export function getProductAllImages(imageUrl: string | null | undefined): string
             const itemTrimmed = item.trim();
             if (itemTrimmed.startsWith("[") && itemTrimmed.endsWith("]")) {
               result.push(...getProductAllImages(itemTrimmed));
+            } else if (itemTrimmed.includes("photo-1542272604-780c96856592")) {
+              result.push("/products/imp-001.jpg");
             } else {
               result.push(itemTrimmed);
             }
@@ -134,7 +141,8 @@ export function getProductAllImages(imageUrl: string | null | undefined): string
     return trimmed
       .split(",")
       .map((s) => s.trim())
-      .filter((s) => s.startsWith("http://") || s.startsWith("https://") || s.startsWith("/"));
+      .filter((s) => s.startsWith("http://") || s.startsWith("https://") || s.startsWith("/"))
+      .map((s) => s.includes("photo-1542272604-780c96856592") ? "/products/imp-001.jpg" : s);
   }
 
   return [trimmed];
@@ -146,9 +154,16 @@ export function getProductAllImages(imageUrl: string | null | undefined): string
  */
 export function getProductCoverImage(
   imageUrl: string | null | undefined,
-  fallback: string = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'><rect width='400' height='400' fill='%23f1f5f9'/><path d='M160 120 L240 120 L225 280 L205 280 L200 190 L195 280 L175 280 Z' fill='%23cbd5e1' stroke='%2394a3b8' stroke-width='2'/><text x='50%25' y='78%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14' font-weight='600' fill='%2364748b'>Garment Photo</text></svg>"
+  fallback: string = "/products/imp-001.jpg"
 ): string {
   const images = getProductAllImages(imageUrl);
-  return images.length > 0 ? images[0] : fallback;
+  if (images.length > 0 && images[0]) {
+    const primary = images[0];
+    if (primary.includes("photo-1542272604-780c96856592")) {
+      return fallback;
+    }
+    return primary;
+  }
+  return fallback;
 }
 
