@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
   experimental: {
+    agentUpgrade: "security",
     serverActions: {
       bodySizeLimit: "10mb",
     },
