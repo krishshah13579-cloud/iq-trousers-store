@@ -387,25 +387,27 @@ export async function sendWelcomeRegistrationEmail({
       <div class="sublogo">KRISH CLOTHING CO. • MEMBERSHIP</div>
     </div>
     <div class="content">
-      <div class="greeting">Welcome to IQ Trousers, ${name}!</div>
-      <p class="message">
-        Thank you for joining our community and verifying your mobile number (<strong>${phone}</strong>). As a special welcome gift, here is your exclusive, one-time <strong>10% registration discount coupon</strong>:
+      <div class="greeting" style="color: #09090b; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.5; margin-bottom: 12px;">
+        CONGRATULATIONS YOUR ACCOUNT WAS CREATED SUCESSFULLY.
+      </div>
+      <p class="message" style="font-size: 15px; font-weight: 600; color: #18181b; line-height: 1.6; margin-bottom: 24px;">
+        YOU HAVE UNLOCKED 10% DISCOUNT COUPON ATTACHED BELOW. VALIDITY OF THIS COUPON IS 7 DAYS.
       </p>
       
       <div class="code-box">
-        <div class="code-label">Your Unique First-Order Coupon</div>
+        <div class="code-label">Your Unique 10% Discount Coupon</div>
         <div class="code">${discountCode}</div>
         <div class="badge">⏰ Valid for 7 Days • Expires on ${expiryFormatted}</div>
         <div class="code-instruction">Apply this code on the Checkout page to receive 10% off your purchase.</div>
       </div>
 
       <div class="info-list">
-        <p>🔒 <strong>Account Security:</strong> This coupon is linked to your verified phone number (<code>${phone}</code>) and your account email.</p>
+        <p>🔒 <strong>Account Security:</strong> This coupon is linked to your account email and verified phone number (<code>${phone}</code>).</p>
         <p>⚡ <strong>One-Click Redeem:</strong> This coupon will also appear automatically in your checkout page under &quot;Available Offers&quot; when you are signed in!</p>
       </div>
 
       <div class="btn-container">
-        <a href="https://iq-trousers-store-uge4.vercel.app/products" class="btn">Shop New Arrivals</a>
+        <a href="https://iqtrousers.in/products" class="btn">Shop New Arrivals</a>
       </div>
     </div>
     <div class="footer">
@@ -417,22 +419,17 @@ export async function sendWelcomeRegistrationEmail({
 </html>
 `;
 
-  const textContent = `WELCOME TO IQ TROUSERS!
-Hello ${name},
+  const textContent = `CONGRATULATIONS YOUR ACCOUNT WAS CREATED SUCESSFULLY. YOU HAVE UNLOCKED 10% DISCOUNT COUPON ATTACHED BELOW. VALIDITY OF THIS COUPON IS 7 DAYS.
 
-Thank you for registering your account and verifying your mobile number (${phone}).
-Here is your unique 10% first-order discount code:
+Coupon Code: ${discountCode}
+Validity: 7 Days (Expires: ${expiryFormatted})
+Discount: 10% OFF on your order
 
->>> ${discountCode} <<<
+Apply at checkout on IQ Trousers:
+https://iqtrousers.in/products
 
-• Valid for: 7 Days (Expires: ${expiryFormatted})
-• Usage: 1-time redemption exclusively for your account.
-
-Shop our collections and redeem at checkout:
-https://iq-trousers-store-uge4.vercel.app/products
-
-- The IQ Trousers Team
-Krish Clothing Co.`;
+Best Regards,
+IQ Trousers - Krish Clothing Co.`;
 
   const transporter = getTransporter();
 
