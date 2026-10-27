@@ -33,14 +33,14 @@ export default function MobilePhoneNavbar() {
     },
     {
       label: "Wishlist",
-      href: session ? "/wishlist" : "/login?callbackUrl=/wishlist",
+      href: session ? "/wishlist" : "/login",
       icon: Heart,
       badge: session && totalWishlist > 0 ? totalWishlist : null,
       isActive: pathname === "/wishlist",
     },
     {
       label: "Cart",
-      href: session ? "/cart" : "/login?callbackUrl=/cart",
+      href: session ? "/cart" : "/login",
       icon: ShoppingCart,
       badge: session && totalItems > 0 ? totalItems : null,
       isActive: pathname === "/cart",
@@ -56,7 +56,7 @@ export default function MobilePhoneNavbar() {
   return (
     <nav
       aria-label="Phone Navigation Bar"
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-gray-200/90 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-1.5"
+      className="mobile-bottom-bar hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-gray-200/90 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-1.5"
     >
       <div className="max-w-md mx-auto px-4 flex items-center justify-around">
         {navItems.map((item) => {

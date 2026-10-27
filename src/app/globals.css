@@ -22,3 +22,32 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
+
+/* Tablet Landscape, Laptop, and Desktop (Standard desktop navbar, no bottom navbar) */
+@media (min-width: 1025px), (min-width: 768px) and (orientation: landscape) and (min-height: 501px) {
+  .desktop-header-nav {
+    display: flex !important;
+  }
+  .mobile-header-nav {
+    display: none !important;
+  }
+  .mobile-bottom-bar {
+    display: none !important;
+  }
+}
+
+/* Mobile phones and Tablet Portrait (Mobile header with searchbar & bottom navbar) */
+@media (max-width: 767px), (max-height: 500px), (max-width: 1024px) and (orientation: portrait) {
+  .desktop-header-nav {
+    display: none !important;
+  }
+  .mobile-header-nav {
+    display: flex !important;
+  }
+  .mobile-bottom-bar {
+    display: block !important;
+  }
+  .mobile-bottom-pad {
+    padding-bottom: 5rem !important;
+  }
+}
