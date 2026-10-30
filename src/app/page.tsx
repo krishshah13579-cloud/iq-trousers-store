@@ -80,8 +80,8 @@ export default async function HomePage() {
   });
 
   const [rawCategories, rawAllActive] = await Promise.all([
-    withDbTimeout(categoriesQuery, FALLBACK_CATEGORIES as any, 15000) as any,
-    withDbTimeout(allActiveQuery, [] as any, 15000) as any,
+    withDbTimeout(categoriesQuery, FALLBACK_CATEGORIES as any, 3000) as any,
+    withDbTimeout(allActiveQuery, [] as any, 3000) as any,
   ]);
 
   const baseCategories =

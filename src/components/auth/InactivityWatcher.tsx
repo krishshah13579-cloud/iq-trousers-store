@@ -23,18 +23,16 @@ export default function InactivityWatcher() {
   const isLoggingOutRef = useRef<boolean>(false);
 
   useEffect(() => {
-    // Only monitor when a user or admin is actively authenticated
-    if (status !== "authenticated" || !session?.user) {
+    // Only monitor admin routes for inactivity timeout (customers shouldn't be logged out while browsing or switching tabs)
+    const isAdmin =
+      pathname?.startsWith("/admin") ||
+      (session?.user as { role?: string })?.role === "ADMIN";
+
+    if (!isAdmin || status !== "authenticated" || !session?.user) {
       return;
     }
 
-    const isAdmin =
-      pathname?.startsWith("/admin") ||
-      (session.user as { role?: string })?.role === "ADMIN";
-
-    const logoutRedirectUrl = isAdmin
-      ? "/admin/login?reason=inactivity"
-      : "/login?reason=inactivity";
+    const logoutRedirectUrl = "/admin/login?reason=inactivity";
 
     /**
      * Executes universal auto-logout and redirects with inactivity feedback

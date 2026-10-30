@@ -26,7 +26,7 @@ export default function StoreLayoutShell({
   return (
     <>
       <Navbar />
-      <main className="flex-1 mobile-bottom-pad pb-16 lg:pb-0">{children}</main>
+      <main className="flex-1 min-h-[calc(100dvh-72px)] mobile-bottom-pad pb-16 lg:pb-0">{children}</main>
       <Footer />
       <MobilePhoneNavbar />
     </>

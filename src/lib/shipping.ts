@@ -9,8 +9,9 @@
  *    - All other locations in India: DTDC Express Courier tariff
  */
 
-// Temporary limit: 100 for testing / 1st order verification (will restore to 1499 after first order)
-export const FREE_SHIPPING_THRESHOLD = 100;
+export const FREE_SHIPPING_THRESHOLD = 1499;
+
+export const TEST_USER_EMAIL = "testuser@iqtrousers.com";
 
 export interface ShippingQuote {
   amount: number;
@@ -196,18 +197,22 @@ export function getDTDCCourierRate(state?: string | null, zipCode?: string | nul
 export function calculateShippingFee(
   subtotal: number,
   state?: string | null,
-  zipCode?: string | null
+  zipCode?: string | null,
+  customerEmail?: string | null
 ): ShippingQuote {
   const roundedSubtotal = Math.round(subtotal * 100) / 100;
+  const isTestAccount = Boolean(
+    customerEmail && customerEmail.trim().toLowerCase() === TEST_USER_EMAIL.toLowerCase()
+  );
 
-  // 1. Free Shipping if cart >= ₹1,499
-  if (roundedSubtotal >= FREE_SHIPPING_THRESHOLD) {
+  // 1. Free Shipping if test user OR cart >= ₹1,499
+  if (isTestAccount || roundedSubtotal >= FREE_SHIPPING_THRESHOLD) {
     return {
       amount: 0,
       isFree: true,
       threshold: FREE_SHIPPING_THRESHOLD,
       shortfall: 0,
-      partner: "Pan-India Free Express",
+      partner: isTestAccount ? "Test User Free Delivery" : "Pan-India Free Express",
       zone: "GUJARAT",
       estimatedDays: "2–4 Business Days",
       locationLabel: state || "All India",

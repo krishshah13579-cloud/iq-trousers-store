@@ -134,9 +134,11 @@ function CheckoutContent() {
       sessionStorage.removeItem("activeDiscount");
     }
   }, [subtotal, appliedDiscount, isLoaded, status]);
+  const customerEmail = session?.user?.email?.trim().toLowerCase();
+  const isTestAccount = customerEmail === "testuser@iqtrousers.com";
   const hasEnteredLocation = Boolean(formData.state.trim() || formData.zipCode.trim());
-  const shippingQuote = calculateShippingFee(subtotal, formData.state, formData.zipCode);
-  const isFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
+  const shippingQuote = calculateShippingFee(subtotal, formData.state, formData.zipCode, customerEmail);
+  const isFreeShipping = isTestAccount || subtotal >= FREE_SHIPPING_THRESHOLD;
   const shipping = items.length === 0 ? 0 : isFreeShipping ? 0 : hasEnteredLocation ? shippingQuote.amount : 0;
   const shortfall = Math.max(0, Math.round((FREE_SHIPPING_THRESHOLD - subtotal) * 100) / 100);
   // Estimated tax (5%) rounded off to nearest rupee

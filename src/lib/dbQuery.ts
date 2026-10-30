@@ -5,7 +5,7 @@
 export async function withDbTimeout<T>(
   promise: Promise<T>,
   fallback: T,
-  timeoutMs: number = 15000
+  timeoutMs: number = 3000
 ): Promise<T> {
   // During build phase, do not wait for remote DB timeouts
   if (

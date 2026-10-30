@@ -11,12 +11,14 @@ export default function MobilePhoneNavbar() {
   const pathname = usePathname();
   const { totalItems } = useCart();
   const { totalWishlist } = useWishlist();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   // Don't show on admin routes or checkout
   if (pathname?.startsWith("/admin") || pathname?.startsWith("/checkout")) {
     return null;
   }
+
+  const isLoading = status === "loading";
 
   const navItems = [
     {
@@ -46,7 +48,7 @@ export default function MobilePhoneNavbar() {
       isActive: pathname === "/cart",
     },
     {
-      label: session ? "Account" : "Login",
+      label: isLoading ? "..." : session ? "Account" : "Login",
       href: session ? "/orders" : "/login",
       icon: User,
       isActive: pathname === "/orders" || pathname === "/login",

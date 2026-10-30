@@ -21,7 +21,7 @@ import {
 export default function Navbar() {
   const { totalItems } = useCart();
   const { totalWishlist } = useWishlist();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [searchQuery, setSearchQuery] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -146,7 +146,9 @@ export default function Navbar() {
             )}
 
             {/* Login / Sign Up or Account Menu */}
-            {session ? (
+            {status === "loading" ? (
+              <div className="h-8 w-24 rounded-full bg-gray-100 animate-pulse" />
+            ) : session ? (
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}

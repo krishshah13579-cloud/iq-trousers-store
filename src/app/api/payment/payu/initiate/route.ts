@@ -159,7 +159,8 @@ export async function POST(req: NextRequest) {
     const shippingQuote = calculateShippingFee(
       roundedSubtotal,
       shippingAddress.state,
-      shippingAddress.zipCode
+      shippingAddress.zipCode,
+      dbUser?.email || userEmail
     );
     const shipping = shippingQuote.amount;
     // Estimated tax (5%) rounded off to nearest rupee
