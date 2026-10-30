@@ -218,175 +218,73 @@ export default function HeroCarousel() {
                 <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/70 via-transparent to-transparent" />
               </div>
 
-              {/* Poster Foreground Content */}
+              {/* Poster Foreground Content - Minimal Luxury Branded Aesthetic */}
               <div className="relative h-full max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 flex items-center">
-                <div className="max-w-xl lg:max-w-2xl py-6 sm:py-8 space-y-2.5 sm:space-y-3">
-                  {/* 1. Official Company Branding Lockup */}
-                  <div className="flex items-center gap-2.5">
-                    <div className="bg-[#b91c1c] text-white font-black text-xs px-2.5 py-1 tracking-widest uppercase rounded-xs shadow-md font-sans">
-                      IQ
-                    </div>
-                    <div className="flex flex-col text-left">
-                      <span className="text-xs sm:text-sm font-black tracking-widest text-white uppercase font-sans">
-                        IQ TROUSERS
-                      </span>
-                      <span className="text-[9px] sm:text-[10px] tracking-widest text-neutral-400 uppercase font-medium">
-                        THE ORIGINAL FIT • PREMIUM TROUSERS &amp; FORMAL PANTS
-                      </span>
-                    </div>
+                <div className="max-w-lg lg:max-w-xl py-6 sm:py-8 space-y-3 sm:space-y-4">
+                  {/* Subtle Brand Pill */}
+                  <div>
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-bold tracking-[0.2em] uppercase bg-white/10 backdrop-blur-md text-white/90 border border-white/15">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#ef4444]" />
+                      <span>IQ TROUSERS • {slide.type === "festival" ? "SIGNATURE BESPOKE" : slide.type === "discount" ? "EXCLUSIVE PRIVILEGE" : "ORIGINAL FIT"}</span>
+                    </span>
                   </div>
 
-                  {/* 2. Distinctive Poster Badge */}
+                  {/* Clean, High-Fashion Headline */}
                   <div>
                     {slide.type === "festival" && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-amber-400/20 text-amber-300 border border-amber-400/40 shadow-xs">
-                        <Flame className="w-3.5 h-3.5 text-amber-400" />
-                        <span>SIGNATURE BESPOKE • LUXURY FORMAL PANTS</span>
-                      </span>
-                    )}
-
-                    {slide.type === "discount" && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-xs">
-                        <Tag className="w-3.5 h-3.5 text-rose-400" />
-                        <span>ACCOUNT PRIVILEGE • {couponForSlide.type === "PERCENTAGE" ? `${couponForSlide.value}% OFF` : `₹${couponForSlide.value} OFF`} ON ORDERS OVER ₹{couponForSlide.minOrder.toLocaleString("en-IN")}</span>
-                      </span>
-                    )}
-
-                    {slide.type === "new-arrival" && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black tracking-widest uppercase bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-xs">
-                        <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-                        <span>SIGNATURE CASUALS • 4-WAY ADAPTIVE FLEX</span>
-                      </span>
-                    )}
-                  </div>
-
-                  {/* 3. Bold, Punchy Billboard Headline */}
-                  <div>
-                    {slide.type === "festival" && (
-                      <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[42px] font-black tracking-tighter text-white uppercase leading-[0.95] font-sans drop-shadow-2xl">
-                        MASTER-CRAFTED FORMAL PANTS. <br />
-                        <span className="text-amber-400">CUT TO COMMAND THE ROOM.</span>
+                      <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-bold tracking-tight text-white uppercase leading-[1.05] drop-shadow-md">
+                        Master-Crafted Formals. <br />
+                        <span className="text-neutral-300 font-light">Cut to Command.</span>
                       </h2>
                     )}
 
                     {slide.type === "discount" && (
-                      <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-[34px] font-black tracking-tighter text-white uppercase leading-[0.96] font-sans drop-shadow-2xl">
-                        PREMIUM DESIGN SHOULDN&apos;T REQUIRE <br />
-                        <span className="text-[#ef4444]">A PREMIUM MARKUP.</span>
+                      <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-bold tracking-tight text-white uppercase leading-[1.05] drop-shadow-md">
+                        Luxury Design. <br />
+                        <span className="text-rose-400 font-light">Honest Pricing.</span>
                       </h2>
                     )}
 
                     {slide.type === "new-arrival" && (
-                      <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[42px] font-black tracking-tighter text-white uppercase leading-[0.95] font-sans drop-shadow-2xl">
-                        WE DON&apos;T MAKE EVERYTHING. <br />
-                        <span className="text-sky-400">WE PERFECT TROUSERS.</span>
+                      <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-bold tracking-tight text-white uppercase leading-[1.05] drop-shadow-md">
+                        We Don&apos;t Make Everything. <br />
+                        <span className="text-sky-300 font-light">We Perfect Trousers.</span>
                       </h2>
                     )}
                   </div>
 
-                  {/* 4. Subtitle */}
-                  <p className="text-xs sm:text-[13px] md:text-sm font-bold text-amber-100/90 tracking-tight leading-snug drop-shadow-sm max-w-md sm:max-w-lg line-clamp-2">
-                    {slide.type === "festival" && (
-                      <>When your trousers drape this flawlessly, walking in isn&apos;t an arrival — it&apos;s a statement. Tailored for black-tie elegance.</>
-                    )}
-                    {slide.type === "discount" && (
-                      <>{couponForSlide.description || `${couponForSlide.type === "PERCENTAGE" ? `${couponForSlide.value}% off` : `₹${couponForSlide.value} off`} your order`}. Applied automatically at checkout on orders over ₹{couponForSlide.minOrder.toLocaleString("en-IN")}.</>
-                    )}
-                    {slide.type === "new-arrival" && (
-                      <>Engineered with 360° adaptive stretch. Moves with you all day, never wrinkles, and holds its razor-sharp fit.</>
-                    )}
+                  {/* Minimal Subtitle */}
+                  <p className="text-xs sm:text-sm text-neutral-300/90 font-normal tracking-normal max-w-md line-clamp-1">
+                    {slide.type === "festival" && "Tailored precision for elevated everyday and formal elegance."}
+                    {slide.type === "discount" && (couponForSlide.description || `${couponForSlide.type === "PERCENTAGE" ? `${couponForSlide.value}% off` : `₹${couponForSlide.value} off`} orders over ₹${couponForSlide.minOrder.toLocaleString("en-IN")}`)}
+                    {slide.type === "new-arrival" && "360° adaptive flex mobility with permanent razor-creased drape."}
                   </p>
 
-                  {/* 5. Festival Poster: Formal Spec Badges */}
-                  {slide.type === "festival" && (
-                    <div className="pt-0.5 flex flex-wrap gap-1.5">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide">
-                        ✦ 100% Fine Worsted Weave
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide">
-                        ★ Precision Tailored Silhouette
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide">
-                        ⚡ Permanent Razor-Creased Drape
-                      </span>
-                    </div>
-                  )}
-
-                  {/* 5b. Discount Poster: Perforated Luxury Voucher Ticket */}
-                  {slide.type === "discount" && (
-                    <div className="pt-0.5 space-y-1.5">
-                      <div className="inline-flex flex-wrap items-center gap-2.5 p-2 rounded-lg bg-black/60 backdrop-blur-md border border-dashed border-rose-500/80 shadow-md">
-                        <div className="flex flex-col text-left pr-2 border-r border-white/15">
-                          <span className="text-[8px] font-black uppercase tracking-widest text-neutral-400">
-                            ACCOUNT VOUCHER
-                          </span>
-                          <span className="text-sm sm:text-base font-black tracking-widest text-amber-300 font-mono">
-                            {couponForSlide.code}
-                          </span>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => handleCopyCoupon(couponForSlide.code)}
-                          className={`px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 ${
-                            copiedCouponCode === couponForSlide.code
-                              ? "bg-emerald-500 text-white font-black"
-                              : "bg-white text-neutral-950 hover:bg-neutral-200"
-                          }`}
-                        >
-                          {copiedCouponCode === couponForSlide.code ? (
-                            <>
-                              <Check className="w-3 h-3 stroke-[3]" />
-                              <span>COPIED!</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3 h-3" />
-                              <span>TAP TO COPY</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-
-                      <p className="text-[11px] text-neutral-300 font-medium">
-                        ⚡ Applied automatically to your account at checkout on orders over ₹{couponForSlide.minOrder.toLocaleString("en-IN")}.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* 6. New Arrival Poster: Technical Feature Pills */}
-                  {slide.type === "new-arrival" && (
-                    <div className="flex flex-wrap gap-1.5 pt-0.5">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide shadow-xs">
-                        ⚡ 360° Flex Mobility
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide shadow-xs">
-                        ✦ Zero-Iron Memory Crease
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white tracking-wide shadow-xs">
-                        ★ Tailored Ankle Break
-                      </span>
-                    </div>
-                  )}
-
-                  {/* 7. CTA Action Button */}
-                  <div className="pt-1.5 sm:pt-2 flex flex-wrap items-center gap-3">
+                  {/* Clean CTA Button */}
+                  <div className="pt-2 flex items-center gap-4">
                     <Link
                       href={slide.ctaLink}
-                      className="inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-2.5 sm:py-3 rounded-full bg-white text-neutral-950 font-black text-xs uppercase tracking-widest hover:bg-neutral-200 active:scale-95 transition-all shadow-xl cursor-pointer"
+                      className="inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-2.5 sm:py-3 rounded-full bg-white text-neutral-950 font-bold text-xs uppercase tracking-wider hover:bg-neutral-100 active:scale-95 transition-all shadow-lg cursor-pointer"
                     >
-                      <span>
-                        {slide.type === "festival" && "EXPLORE FORMAL PANTS"}
-                        {slide.type === "discount" && "SNAG YOUR FIT"}
-                        {slide.type === "new-arrival" && "EXPLORE SIGNATURE FITS"}
-                      </span>
+                      <span>Explore Collection</span>
                       <ArrowRight className="w-4 h-4" />
                     </Link>
 
-                    <span className="text-xs font-bold tracking-widest text-neutral-400 uppercase hidden sm:inline-flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Pan-India DTDC Express</span>
-                    </span>
+                    {slide.type === "discount" && couponForSlide.code && (
+                      <button
+                        type="button"
+                        onClick={() => handleCopyCoupon(couponForSlide.code)}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-xs font-mono text-amber-300 hover:bg-black/60 transition-all cursor-pointer"
+                        title="Copy coupon code"
+                      >
+                        <span>{couponForSlide.code}</span>
+                        {copiedCouponCode === couponForSlide.code ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5 text-neutral-400" />
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

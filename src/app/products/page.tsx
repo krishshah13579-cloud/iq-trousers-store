@@ -232,6 +232,18 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     });
   }
 
+  // Natural sequence sorting helper for product codes (e.g. IMP - 001, IMP - 002, IMP - 010...)
+  const getNaturalSortKey = (str: string) => {
+    return (str || "").replace(/\d+/g, (n) => n.padStart(6, "0")).toLowerCase();
+  };
+
+  // If user has not chosen an explicit custom sort, default to natural sequential order by product name/code
+  if (!sort && tab !== "new-arrivals") {
+    inStockProducts.sort((a: any, b: any) =>
+      getNaturalSortKey(a.name || "").localeCompare(getNaturalSortKey(b.name || ""))
+    );
+  }
+
   const products = inStockProducts;
   const categories = rawCategories && rawCategories.length > 0 ? rawCategories : FALLBACK_CATEGORIES;
 

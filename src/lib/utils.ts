@@ -90,8 +90,102 @@ export function isAdminRole(role?: string | null): boolean {
   return role === "ADMIN" || role === "SUPER_ADMIN";
 }
 
-export const GARMENT_PHOTO_FALLBACK =
-  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'><rect width='400' height='400' fill='%23f1f5f9'/><path d='M160 120 L240 120 L225 280 L205 280 L200 190 L195 280 L175 280 Z' fill='%23cbd5e1' stroke='%2394a3b8' stroke-width='2'/><text x='50%25' y='78%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14' font-weight='600' fill='%2364748b'>Garment Photo</text></svg>";
+export const GARMENT_PHOTO_FALLBACK = "/products/center-trouser-banner-crop.jpg";
+
+/**
+ * Matches a color name against inventory map keys with case-insensitivity and alias support
+ */
+export function matchColorKey(targetColor: string, keys: string[]): string | undefined {
+  if (!targetColor || !keys || keys.length === 0) return undefined;
+  const clean = targetColor.trim().toLowerCase();
+  const direct = keys.find((k) => k.trim().toLowerCase() === clean);
+  if (direct) return direct;
+
+  const aliasGroups: string[][] = [
+    ["black", "classic black", "jet black", "pitch black"],
+    ["navy", "navy blue", "deep navy", "dark navy", "vibrant navy blue"],
+    ["grey", "gray", "dark grey", "dark gray", "slate grey", "slate gray", "charcoal", "medium grey"],
+    ["blue", "denim blue", "royal blue", "ice blue"],
+    ["green", "olive green", "olive", "forest green", "mehndi green"],
+    ["brown", "dark brown", "coffee", "chocolate", "tan", "mocha brown"],
+    ["cream", "beige", "sand", "off white", "white"],
+  ];
+
+  for (const group of aliasGroups) {
+    if (group.some((a) => clean === a || clean.includes(a))) {
+      const found = keys.find((k) => {
+        const kClean = k.trim().toLowerCase();
+        return group.some((a) => kClean === a || kClean.includes(a));
+      });
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Resolves available stock for a specific size and color from a product's inventory JSON or total stock.
+ */
+export function getProductVariantStock(
+  product: { stock: number; inventory?: string | null | Record<string, any> },
+  size?: string | null,
+  color?: string | null
+): number {
+  if (!product) return 0;
+  let inventoryMap: Record<string, Record<string, number>> | null = null;
+  if (product.inventory) {
+    try {
+      inventoryMap =
+        typeof product.inventory === "string"
+          ? JSON.parse(product.inventory)
+          : product.inventory;
+    } catch {}
+  }
+
+  if (!inventoryMap || Object.keys(inventoryMap).length === 0) {
+    return Math.max(0, product.stock || 0);
+  }
+
+  const targetColor = (color || "").trim();
+  const matchedColorKey = targetColor ? matchColorKey(targetColor, Object.keys(inventoryMap)) : undefined;
+
+  if (matchedColorKey && inventoryMap[matchedColorKey]) {
+    const colSizes = inventoryMap[matchedColorKey];
+    if (size) {
+      const matchedSizeKey = Object.keys(colSizes).find(
+        (sz) => sz.trim().toLowerCase() === size.trim().toLowerCase()
+      );
+      return matchedSizeKey !== undefined ? Math.max(0, Number(colSizes[matchedSizeKey]) || 0) : 0;
+    }
+    return Math.max(
+      0,
+      Object.values(colSizes).reduce((a: number, b: any) => a + Number(b || 0), 0)
+    );
+  }
+
+  if (targetColor) {
+    return 0;
+  }
+
+  if (size) {
+    let sizeSum = 0;
+    let found = false;
+    Object.values(inventoryMap).forEach((colMap) => {
+      if (typeof colMap === "object" && colMap) {
+        const matchedSizeKey = Object.keys(colMap).find(
+          (sz) => sz.trim().toLowerCase() === size.trim().toLowerCase()
+        );
+        if (matchedSizeKey !== undefined) {
+          sizeSum += Math.max(0, Number(colMap[matchedSizeKey]) || 0);
+          found = true;
+        }
+      }
+    });
+    if (found) return sizeSum;
+  }
+
+  return Math.max(0, product.stock || 0);
+}
 
 /**
  * Returns an array of all image URLs for a product.

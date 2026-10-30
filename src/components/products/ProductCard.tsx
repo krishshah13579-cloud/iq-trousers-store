@@ -168,7 +168,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           loading="lazy"
           onError={(e) => {
             const target = e.currentTarget as HTMLImageElement;
-            if (!target.src.startsWith("data:image/svg+xml")) {
+            if (target.src !== GARMENT_PHOTO_FALLBACK && !target.src.endsWith(GARMENT_PHOTO_FALLBACK)) {
               target.src = GARMENT_PHOTO_FALLBACK;
             }
           }}

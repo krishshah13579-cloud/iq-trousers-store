@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCart } from "@/context/CartContext";
-import { formatPrice, getProductCoverImage } from "@/lib/utils";
+import { formatPrice, getProductCoverImage, getProductVariantStock } from "@/lib/utils";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/shipping";
 import {
   Minus,
@@ -58,7 +58,7 @@ function getProductImage(images: string): string {
 export default function CartPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const { items, updateQuantity, removeItem, totalPrice, totalItems, isLoaded } = useCart();
+  const { items, updateQuantity, updateVariant, removeItem, totalPrice, totalItems, isLoaded } = useCart();
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -67,6 +67,7 @@ export default function CartPage() {
   }, [status, router]);
 
   const [discountCodeInput, setDiscountCodeInput] = useState("");
+  const [productDetailsMap, setProductDetailsMap] = useState<Record<string, any>>({});
   const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscount | null>(() => {
     if (typeof window !== "undefined") {
       const saved = sessionStorage.getItem("activeDiscount");
@@ -85,6 +86,32 @@ export default function CartPage() {
   const [discountSuccess, setDiscountSuccess] = useState<string | null>(null);
   const [availableCoupons, setAvailableCoupons] = useState<AvailableCoupon[]>([]);
   const [fetchingCoupons, setFetchingCoupons] = useState(false);
+
+  // Fetch live product details (colors, sizes, inventory) for all cart items
+  useEffect(() => {
+    if (!isLoaded || items.length === 0) return;
+    const missingIds = items
+      .map((it) => it.product.id)
+      .filter((id) => !productDetailsMap[id]);
+
+    if (missingIds.length === 0) return;
+
+    missingIds.forEach(async (prodId) => {
+      try {
+        const res = await fetch(`/api/products/${prodId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.id) {
+          setProductDetailsMap((prev) => ({
+            ...prev,
+            [data.id]: data,
+          }));
+        }
+      } catch (err) {
+        console.warn("Could not fetch product details for cart item:", prodId, err);
+      }
+    });
+  }, [items, isLoaded, productDetailsMap]);
 
   // Financial calculations
   const subtotal = totalPrice;
@@ -283,13 +310,22 @@ export default function CartPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
-          Shopping Cart
-        </h1>
-        <p className="text-neutral-500 text-sm mt-1">
-          {totalItems} {totalItems === 1 ? "item" : "items"} in your cart
-        </p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
+            Shopping Cart
+          </h1>
+          <p className="text-neutral-500 text-sm mt-1">
+            {totalItems} {totalItems === 1 ? "item" : "items"} in your cart
+          </p>
+        </div>
+        <Link
+          href="/products"
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-neutral-300 bg-white hover:bg-neutral-50 text-neutral-800 text-sm font-semibold transition-all shadow-xs active:scale-95 cursor-pointer w-fit"
+        >
+          <ShoppingBag className="w-4 h-4 text-neutral-600" />
+          <span>Add More Products</span>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
@@ -297,15 +333,59 @@ export default function CartPage() {
         <div className="lg:col-span-8 divide-y divide-neutral-200 border-t border-b border-neutral-200">
           {items.map((item) => {
             const imageUrl = getProductImage(item.product.images);
-            const isOutOfStock = item.product.stock <= 0;
-            const isLowStock = item.product.stock > 0 && item.product.stock < item.quantity;
+            const liveDetails = productDetailsMap[item.product.id] || item.product;
+
+            // Parse available sizes for this product
+            const itemSizes: string[] = (() => {
+              if (liveDetails.sizes) {
+                try {
+                  const parsed = JSON.parse(liveDetails.sizes);
+                  if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                } catch {}
+                if (typeof liveDetails.sizes === "string") {
+                  return liveDetails.sizes.split(",").map((s: string) => s.trim()).filter(Boolean);
+                }
+              }
+              return ["28", "30", "32", "34", "36", "38", "40", "42", "44"];
+            })();
+
+            // Parse available colors for this product
+            const itemColors: string[] = (() => {
+              if (liveDetails.colors) {
+                try {
+                  const parsed = JSON.parse(liveDetails.colors);
+                  if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                } catch {}
+                if (typeof liveDetails.colors === "string") {
+                  return liveDetails.colors.split(",").map((c: string) => c.trim()).filter(Boolean);
+                }
+              }
+              if (liveDetails.inventory) {
+                try {
+                  const inv = typeof liveDetails.inventory === "string" ? JSON.parse(liveDetails.inventory) : liveDetails.inventory;
+                  if (inv && typeof inv === "object") return Object.keys(inv);
+                } catch {}
+              }
+              return item.color ? [item.color] : [];
+            })();
+
+            // Calculate variant-specific authorized stock
+            const variantStock = getProductVariantStock(
+              liveDetails,
+              item.size,
+              item.color
+            );
+
+            const isOutOfStock = variantStock <= 0;
+            const isLowStock = variantStock > 0 && variantStock < item.quantity;
+            const maxAllowedQty = Math.max(0, variantStock);
 
             return (
               <div
                 key={item.id}
                 className="py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
               >
-                <div className="flex items-center gap-4 w-full sm:w-auto">
+                <div className="flex items-start sm:items-center gap-4 w-full sm:w-auto">
                   <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-neutral-100 overflow-hidden shrink-0 border border-neutral-200">
                     <Image
                       src={imageUrl}
@@ -324,39 +404,87 @@ export default function CartPage() {
                     >
                       {item.product.name}
                     </Link>
-                    <div className="flex flex-wrap items-center gap-2 mt-1">
-                      <p className="text-sm text-neutral-500">
-                        {formatPrice(item.product.price)} each
-                      </p>
-                      {item.color && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200">
-                          Color: {item.color}
-                        </span>
+                    <p className="text-sm text-neutral-500 mt-0.5">
+                      {formatPrice(item.product.price)} each
+                    </p>
+
+                    {/* Interactive Dropdowns for Color and Size */}
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      {/* Color Dropdown */}
+                      {itemColors.length > 0 && (
+                        <div className="flex items-center gap-1.5 text-xs bg-neutral-100/80 px-2 py-1 rounded-lg border border-neutral-200">
+                          <label htmlFor={`color-select-${item.id}`} className="text-neutral-500 font-medium text-[11px]">
+                            Color:
+                          </label>
+                          <select
+                            id={`color-select-${item.id}`}
+                            value={item.color || ""}
+                            onChange={(e) => updateVariant(item.id, item.size, e.target.value)}
+                            className="bg-transparent font-semibold text-neutral-800 text-xs focus:outline-none cursor-pointer pr-1"
+                          >
+                            {itemColors.map((col) => {
+                              const stockForCol = getProductVariantStock(liveDetails, item.size, col);
+                              return (
+                                <option key={col} value={col}>
+                                  {col} {stockForCol <= 0 ? "(Out of stock)" : ""}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
                       )}
-                      {item.size && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200">
-                          Size: {item.size}
-                        </span>
+
+                      {/* Size Dropdown */}
+                      {itemSizes.length > 0 && (
+                        <div className="flex items-center gap-1.5 text-xs bg-neutral-100/80 px-2 py-1 rounded-lg border border-neutral-200">
+                          <label htmlFor={`size-select-${item.id}`} className="text-neutral-500 font-medium text-[11px]">
+                            Size:
+                          </label>
+                          <select
+                            id={`size-select-${item.id}`}
+                            value={item.size || ""}
+                            onChange={(e) => updateVariant(item.id, e.target.value, item.color)}
+                            className="bg-transparent font-semibold text-neutral-800 text-xs focus:outline-none cursor-pointer pr-1"
+                          >
+                            {itemSizes.map((sz) => {
+                              const stockForSz = getProductVariantStock(liveDetails, sz, item.color);
+                              return (
+                                <option key={sz} value={sz}>
+                                  {sz} {stockForSz <= 0 ? "(Out of stock)" : `(${stockForSz} left)`}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
                       )}
                     </div>
+
+                    {/* Stock Status Indicator */}
                     {isOutOfStock ? (
-                      <p className="text-xs text-red-600 font-medium mt-1">Out of stock</p>
-                    ) : isLowStock ? (
-                      <p className="text-xs text-amber-600 font-medium mt-1">
-                        Only {item.product.stock} available
+                      <p className="text-xs text-red-600 font-medium mt-1.5 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-600 inline-block" />
+                        Selected size/color is out of stock. Please select another variant.
                       </p>
-                    ) : null}
+                    ) : isLowStock ? (
+                      <p className="text-xs text-amber-600 font-medium mt-1.5">
+                        Only {maxAllowedQty} piece{maxAllowedQty === 1 ? "" : "s"} available in stock for this size
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-emerald-700 font-medium mt-1">
+                        ✓ In Stock ({maxAllowedQty} available)
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto mt-2 sm:mt-0">
-                  {/* Quantity Controls */}
-                  <div className="flex items-center border border-neutral-200 rounded-lg overflow-hidden bg-neutral-50">
+                  {/* Quantity Controls - strictly authorized to available pieces */}
+                  <div className="flex items-center border border-neutral-200 rounded-lg overflow-hidden bg-neutral-50 shadow-xs">
                     <button
                       type="button"
                       aria-label="Decrease quantity"
                       onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      className="p-2 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors disabled:opacity-40"
+                      className="p-2 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors disabled:opacity-40 cursor-pointer"
                     >
                       <Minus className="w-3.5 h-3.5" />
                     </button>
@@ -366,9 +494,14 @@ export default function CartPage() {
                     <button
                       type="button"
                       aria-label="Increase quantity"
-                      disabled={item.quantity >= item.product.stock}
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="p-2 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      disabled={item.quantity >= maxAllowedQty || isOutOfStock}
+                      onClick={() => {
+                        if (item.quantity < maxAllowedQty) {
+                          updateQuantity(item.id, item.quantity + 1);
+                        }
+                      }}
+                      title={item.quantity >= maxAllowedQty ? `Max available in stock (${maxAllowedQty}) reached` : "Add 1 piece"}
+                      className="p-2 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
@@ -386,7 +519,7 @@ export default function CartPage() {
                     type="button"
                     aria-label="Remove item"
                     onClick={() => removeItem(item.id)}
-                    className="p-2 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

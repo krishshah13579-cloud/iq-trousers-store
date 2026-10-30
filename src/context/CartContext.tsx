@@ -23,6 +23,7 @@ interface CartContextType {
   ) => void;
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
+  updateVariant: (itemId: string, newSize?: string, newColor?: string) => void;
   clearCart: () => void;
   totalItems: number;
   totalPrice: number;
@@ -58,6 +59,9 @@ function sanitizeCartProduct(product: CartItemType["product"]): CartItemType["pr
     comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
     stock: Number(product.stock) || 0,
     images: thumbnail ? JSON.stringify([thumbnail]) : "[]",
+    colors: product.colors || null,
+    sizes: product.sizes || null,
+    inventory: product.inventory || null,
     categoryId: product.categoryId,
   } as any;
 }
@@ -276,6 +280,39 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const updateVariant = (itemId: string, newSize?: string, newColor?: string) => {
+    setItems((prev) => {
+      const targetItem = prev.find((it) => it.id === itemId);
+      if (!targetItem) return prev;
+
+      const size = newSize !== undefined ? newSize : targetItem.size;
+      const color = newColor !== undefined ? newColor : targetItem.color;
+
+      // Check if there is already an item in the cart with the new size & color
+      const existingOther = prev.find(
+        (it) => it.id !== itemId && it.productId === targetItem.productId && it.size === size && it.color === color
+      );
+
+      if (existingOther) {
+        // Merge quantities and remove current item
+        return prev
+          .filter((it) => it.id !== itemId)
+          .map((it) =>
+            it.id === existingOther.id
+              ? { ...it, quantity: it.quantity + targetItem.quantity }
+              : it
+          );
+      }
+
+      // Update variant on current item
+      return prev.map((it) =>
+        it.id === itemId
+          ? { ...it, size, color }
+          : it
+      );
+    });
+  };
+
   const clearCart = () => {
     setItems([]);
   };
@@ -297,6 +334,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         addItem,
         removeItem,
         updateQuantity,
+        updateVariant,
         clearCart,
         totalItems,
         totalPrice,
