@@ -123,8 +123,6 @@ function CustomerLoginForm() {
       }
       if (data.devCode) {
         setDevCode(data.devCode);
-      } else if (email.trim().toLowerCase() === "testuser@iqtrousers.com") {
-        setDevCode("123456");
       }
       setStep("twoFactor");
       setCountdown(60);
@@ -345,24 +343,12 @@ function CustomerLoginForm() {
           {step === "credentials" ? (
             <form onSubmit={handleRequestOtp} className="space-y-5">
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label
-                    htmlFor="email"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Email address
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail("testuser@iqtrousers.com");
-                      setPassword("Test@1234");
-                    }}
-                    className="text-[11px] font-semibold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md transition-colors cursor-pointer"
-                  >
-                    Fill Test User
-                  </button>
-                </div>
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700 mb-1.5"
+                >
+                  Email address
+                </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                     <Mail className="w-4 h-4" />
