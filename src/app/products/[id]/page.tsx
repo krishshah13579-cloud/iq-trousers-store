@@ -120,6 +120,26 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     notFound();
   }
 
+  // Automatic wholesale set replenishment if any color is out of stock (Rules 3 & 4)
+  if (product && dbProduct) {
+    try {
+      const { autoUnsetOutOfStockColors } = await import("@/lib/autoUnset");
+      const didUnset = await autoUnsetOutOfStockColors(product.id);
+      if (didUnset) {
+        const fresh = await prisma.product.findUnique({
+          where: { id: product.id },
+          select: { inventory: true, stock: true },
+        });
+        if (fresh) {
+          product.inventory = fresh.inventory;
+          product.stock = fresh.stock;
+        }
+      }
+    } catch (autoErr) {
+      console.warn("[PRODUCT PAGE] Auto-unset check notice:", autoErr);
+    }
+  }
+
   if (product && relatedProducts.length === 0 && product.categoryId) {
     relatedProducts = (ALL_FALLBACK_PRODUCTS as any[])
       .filter((p: any) => p.id !== product.id && p.categoryId === product.categoryId)

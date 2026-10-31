@@ -127,22 +127,11 @@ export function CancelOrderButton({
                 <h3 className="text-lg font-bold text-neutral-900">
                   Cancel Order #{shortId}?
                 </h3>
-                <p className="text-sm text-neutral-600 mt-1 leading-relaxed">
-                  Are you sure you want to cancel this order? This action cannot be undone. All reserved items will be released back to inventory.
+                <p className="text-sm text-neutral-600 mt-1">
+                  Are you sure you want to cancel order?
                 </p>
               </div>
             </div>
-
-            {/* Restored Coupon Notice */}
-            {discountCode && (
-              <div className="mt-4 p-3.5 bg-emerald-50/80 border border-emerald-200 rounded-xl flex items-start gap-2.5 text-xs text-emerald-900">
-                <Tag className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-semibold block">Coupon will be restored:</span>
-                  Your coupon code <strong className="font-mono uppercase bg-emerald-100 px-1 py-0.5 rounded text-emerald-950">{discountCode}</strong> will be immediately reactivated so you can use it on your next purchase!
-                </div>
-              </div>
-            )}
 
             {error && (
               <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">

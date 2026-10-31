@@ -4,6 +4,7 @@ import { authOptions, isAdminRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendOrderCancellationEmail } from "@/lib/email";
 import { getClientIp, checkRateLimit, createRateLimitResponse } from "@/lib/rateLimit";
+import { initiatePayURefund } from "@/lib/payu";
 
 const CANCELLABLE_STATUSES = ["PENDING", "CONFIRMED", "PROCESSING"];
 
@@ -167,7 +168,32 @@ export async function POST(
       return { updatedOrder, restoredCouponCode };
     });
 
-    // 4. Dispatch cancellation confirmation email (awaited to guarantee delivery)
+    // 4. Automated PayU Payment Gateway Refund for Prepaid Orders
+    let refundInfo: { success: boolean; message: string; refundId?: string } | null = null;
+    const paymentId = order.paymentIntent?.split("|")[0]?.trim();
+    if (paymentId && paymentId !== "COD" && order.total > 0) {
+      try {
+        console.log(`[ORDER CANCEL] Processing automated refund for Order #${order.id} (txnid/paymentId: ${paymentId}, total: ₹${order.total})...`);
+        refundInfo = await initiatePayURefund({
+          paymentId,
+          orderId: order.id,
+          amount: order.total,
+        });
+
+        if (refundInfo?.refundId) {
+          await prisma.order.update({
+            where: { id: order.id },
+            data: {
+              paymentIntent: `${order.paymentIntent}|REFUND_INITIATED:${refundInfo.refundId}`,
+            },
+          });
+        }
+      } catch (refundErr) {
+        console.error("[ORDER CANCEL] Automated refund execution error:", refundErr);
+      }
+    }
+
+    // 5. Dispatch cancellation confirmation email (awaited to guarantee delivery)
     try {
       const recipientEmail = order.user?.email || session.user?.email;
       if (recipientEmail) {
@@ -184,6 +210,8 @@ export async function POST(
           total: order.total,
           restoredDiscountCode: result.restoredCouponCode,
           cancellationDate: new Date(),
+          refundAmount: refundInfo ? order.total : undefined,
+          refundId: refundInfo?.refundId,
         });
       }
     } catch (emailPrepErr) {

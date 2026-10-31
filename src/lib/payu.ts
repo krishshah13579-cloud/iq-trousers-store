@@ -146,3 +146,78 @@ export function verifyPayUResponseHash(
 
   return false;
 }
+
+/**
+ * Initiates an automated refund through PayU's Web Service API for cancelled orders.
+ * Command: cancel_refund_transaction
+ * Hash formula: sha512(key|command|var1|salt)
+ */
+export async function initiatePayURefund({
+  paymentId,
+  orderId,
+  amount,
+}: {
+  paymentId: string;
+  orderId: string;
+  amount: number;
+}): Promise<{ success: boolean; message: string; refundId?: string }> {
+  const config = getPayUConfig();
+  if (!config.isConfigured) {
+    console.log("[PAYU REFUND SIMULATED - DEV MODE]", { paymentId, orderId, amount });
+    return {
+      success: true,
+      message: "Refund simulated (PayU test mode)",
+      refundId: `SIM_REF_${Date.now()}`,
+    };
+  }
+
+  const endpoint = config.isLive
+    ? "https://info.payu.in/merchant/postservice?form=2"
+    : "https://test.payu.in/merchant/postservice?form=2";
+
+  const command = "cancel_refund_transaction";
+  const refundRequestId = `ref_${orderId.slice(-8)}_${Date.now()}`;
+  const formattedAmount = Number(amount || 0).toFixed(2);
+
+  // PayU web service hash: sha512(key|command|var1|salt)
+  const hashString = `${config.key}|${command}|${paymentId}|${config.salt}`;
+  const hash = crypto.createHash("sha512").update(hashString).digest("hex");
+
+  const formData = new URLSearchParams();
+  formData.append("key", config.key);
+  formData.append("command", command);
+  formData.append("var1", paymentId); // mihpayid or txnid
+  formData.append("var2", refundRequestId);
+  formData.append("var3", formattedAmount);
+  formData.append("hash", hash);
+
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: formData.toString(),
+    });
+
+    const data = await res.json().catch(async () => {
+      const text = await res.text().catch(() => "");
+      return { raw: text };
+    });
+
+    console.log("[PAYU REFUND RESPONSE]", data);
+    const isSuccess = data?.status === 1 || data?.status === "1" || data?.status === "success";
+
+    return {
+      success: isSuccess,
+      message: data?.msg || data?.message || (isSuccess ? "Refund initiated successfully" : "Refund request submitted to PayU"),
+      refundId: data?.request_id || refundRequestId,
+    };
+  } catch (err: any) {
+    console.error("[PAYU REFUND SERVICE ERROR]", err);
+    return {
+      success: false,
+      message: err.message || "Failed to reach PayU refund service",
+    };
+  }
+}

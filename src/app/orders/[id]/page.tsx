@@ -104,19 +104,8 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
               <XCircle className="w-8 h-8" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
-              Order Cancelled
+              Your order has been cancelled.
             </h1>
-            <p className="text-neutral-500 text-sm mt-1 max-w-md mx-auto">
-              This order has been cancelled and all reserved items have been restocked.
-            </p>
-            {order.discountCode && (
-              <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs sm:text-sm font-medium shadow-2xs">
-                <Tag className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>
-                  Coupon <strong className="font-mono">{order.discountCode}</strong> has been restored and is active for your next purchase!
-                </span>
-              </div>
-            )}
           </div>
         ) : order.status === "DELIVERED" ? (
           <div>
@@ -301,9 +290,7 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
         {order.status === "CANCELLED" && (
           <div className="px-6 py-3.5 bg-red-50/60 border-b border-red-100 text-xs text-red-800 flex items-center gap-2">
             <XCircle className="w-4 h-4 text-red-600 shrink-0" />
-            <span>
-              This order was cancelled. {order.discountCode ? `Your coupon code "${order.discountCode}" was restored to your account.` : "All items have been restocked."}
-            </span>
+            <span className="font-medium">Your order has been cancelled.</span>
           </div>
         )}
 
