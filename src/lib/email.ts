@@ -976,10 +976,12 @@ export interface SendOrderCancellationEmailParams {
   total: number;
   restoredDiscountCode?: string | null;
   cancellationDate?: Date | string;
+  refundAmount?: number;
+  refundId?: string;
 }
 
 /**
- * Dispatches an order cancellation email to the customer, highlighting coupon restoration and restocking.
+ * Dispatches an order cancellation email to the customer, highlighting coupon restoration, refund, and restocking.
  */
 export async function sendOrderCancellationEmail({
   to,
@@ -989,6 +991,8 @@ export async function sendOrderCancellationEmail({
   total,
   restoredDiscountCode,
   cancellationDate = new Date(),
+  refundAmount,
+  refundId,
 }: SendOrderCancellationEmailParams): Promise<{ delivered: boolean; info?: string }> {
   const from =
     process.env.EMAIL_FROM ||
@@ -1080,6 +1084,17 @@ export async function sendOrderCancellationEmail({
       </div>
 
       ${restoredCouponSection}
+
+      ${refundAmount && refundAmount > 0 ? `
+      <div style="background: #eff6ff; border: 1px solid #3b82f6; border-radius: 12px; padding: 20px; margin: 24px 0; text-align: left;">
+        <div style="font-size: 13px; font-weight: 700; color: #1d4ed8; text-transform: uppercase; letter-spacing: 0.5px;">
+          💳 100% Refund Initiated (PayU Payment Gateway)
+        </div>
+        <div style="margin-top: 8px; font-size: 14px; color: #1e3a8a; line-height: 1.6;">
+          A full refund of <strong>${formatINR(refundAmount)}</strong> has been initiated back to your original payment method. Depending on your bank's settlement cycle, the funds will reflect within <strong>5 to 7 business days</strong>.
+        </div>
+        ${refundId ? `<div style="margin-top: 8px; font-size: 11px; color: #6b7280; font-family: monospace;">Refund Ref: ${refundId}</div>` : ""}
+      </div>` : ""}
 
       <p style="font-size: 13.5px; color: #52525b; line-height: 1.6;">
         We hope to see you again soon. If you need any assistance finding your perfect fit or have questions, feel free to contact us anytime.
@@ -1565,6 +1580,109 @@ Krish Clothing Co.`;
   );
 
   return { delivered: false, info: "Logged to server console" };
+}
+
+export interface SendSetAutoUnsetNotificationParams {
+  productName: string;
+  color: string;
+  sizesAdded: string[];
+  remainingWholesaleSets: number;
+}
+
+/**
+ * Sends an email notification to the store administrator whenever a wholesale set is
+ * automatically unpacked into loose e-commerce inventory because a color was out of stock.
+ */
+export async function sendSetAutoUnsetNotificationEmail({
+  productName,
+  color,
+  sizesAdded,
+  remainingWholesaleSets,
+}: SendSetAutoUnsetNotificationParams): Promise<{ delivered: boolean; info?: string }> {
+  const adminEmail = process.env.ADMIN_NOTIFY_EMAIL || "iqtrousers@gmail.com";
+  const from =
+    process.env.EMAIL_FROM ||
+    (process.env.SMTP_USER
+      ? `"IQ Inventory Alert" <${process.env.SMTP_USER}>`
+      : '"IQ Inventory Alert" <inventory@iqtrousers.com>');
+
+  const subject = `[IQ Trousers Alert] Wholesale Set Auto-Unpacked: ${productName} (${color})`;
+  const nowStr = new Date().toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Wholesale Set Auto-Unpacked</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f4f4f5; margin: 0; padding: 24px; color: #18181b;">
+  <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e4e4e7; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
+    <div style="background: #09090b; padding: 24px; text-align: center;">
+      <div style="color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: 2px;">IQ TROUSERS INVENTORY ALERT</div>
+      <div style="color: #a1a1aa; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; margin-top: 4px;">Automated Wholesale Set Replenishment</div>
+    </div>
+    <div style="padding: 28px;">
+      <h2 style="font-size: 18px; font-weight: 700; color: #18181b; margin-top: 0;">1 Wholesale Set Automatically Unpacked</h2>
+      <p style="font-size: 14px; color: #52525b; line-height: 1.6;">
+        Color <strong>${color}</strong> for product <strong>${productName}</strong> was completely OUT OF STOCK on the e-commerce storefront.
+      </p>
+      <div style="background: #fefce8; border: 1px solid #fef08a; border-radius: 12px; padding: 16px; margin: 20px 0; font-size: 13px; line-height: 1.7; color: #713f12;">
+        <div><strong>Product:</strong> ${productName}</div>
+        <div><strong>Color:</strong> ${color}</div>
+        <div><strong>Replenished Sizes (+1 pc each):</strong> ${sizesAdded.join(", ")}</div>
+        <div><strong>Remaining Wholesale Sets:</strong> ${remainingWholesaleSets} sets</div>
+        <div><strong>Timestamp:</strong> ${nowStr}</div>
+      </div>
+      <p style="font-size: 13px; color: #71717a; line-height: 1.6;">
+        The e-commerce storefront has been updated live with this inventory.
+      </p>
+    </div>
+    <div style="background: #fafafa; padding: 18px; text-align: center; font-size: 11px; color: #a1a1aa; border-top: 1px solid #f4f4f5;">
+      © ${new Date().getFullYear()} IQ Trousers Automated Inventory Controller
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  const textContent = `[IQ TROUSERS INVENTORY ALERT]
+Wholesale Set Auto-Unpacked
+Product: ${productName}
+Color: ${color}
+Time: ${nowStr}
+Sizes Replenished (+1 pc each): ${sizesAdded.join(", ")}
+Remaining Wholesale Sets: ${remainingWholesaleSets}
+Store inventory has been updated live.`;
+
+  const transporter = getTransporter();
+  if (transporter) {
+    try {
+      const sendPromise = transporter.sendMail({
+        from,
+        to: adminEmail,
+        subject,
+        text: textContent,
+        html: htmlContent,
+      });
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("SMTP timeout after 7 seconds")), 7000)
+      );
+
+      await Promise.race([sendPromise, timeoutPromise]);
+      console.log(`[SET AUTO-UNSET ALERT] Dispatched email to ${adminEmail} for ${productName} (${color})`);
+      return { delivered: true, info: `Sent alert to ${adminEmail}` };
+    } catch (err) {
+      console.error("[SET AUTO-UNSET ALERT] Failed to send email alert:", err);
+    }
+  }
+
+  return { delivered: false, info: "Alert email simulated" };
 }
 
 

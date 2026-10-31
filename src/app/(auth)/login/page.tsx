@@ -345,7 +345,7 @@ function CustomerLoginForm() {
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium mb-1.5 text-gray-700"
+                  className="block text-sm font-medium text-gray-700 mb-1.5"
                 >
                   Email address
                 </label>

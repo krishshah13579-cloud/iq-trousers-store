@@ -11,8 +11,6 @@
 
 export const FREE_SHIPPING_THRESHOLD = 1499;
 
-export const TEST_USER_EMAIL = "testuser@iqtrousers.com";
-
 export interface ShippingQuote {
   amount: number;
   isFree: boolean;
@@ -201,18 +199,15 @@ export function calculateShippingFee(
   customerEmail?: string | null
 ): ShippingQuote {
   const roundedSubtotal = Math.round(subtotal * 100) / 100;
-  const isTestAccount = Boolean(
-    customerEmail && customerEmail.trim().toLowerCase() === TEST_USER_EMAIL.toLowerCase()
-  );
 
-  // 1. Free Shipping if test user OR cart >= ₹1,499
-  if (isTestAccount || roundedSubtotal >= FREE_SHIPPING_THRESHOLD) {
+  // 1. Free Shipping if cart >= ₹1,499
+  if (roundedSubtotal >= FREE_SHIPPING_THRESHOLD) {
     return {
       amount: 0,
       isFree: true,
       threshold: FREE_SHIPPING_THRESHOLD,
       shortfall: 0,
-      partner: isTestAccount ? "Test User Free Delivery" : "Pan-India Free Express",
+      partner: "Pan-India Free Express",
       zone: "GUJARAT",
       estimatedDays: "2–4 Business Days",
       locationLabel: state || "All India",

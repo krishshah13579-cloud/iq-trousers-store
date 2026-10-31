@@ -115,13 +115,10 @@ export default function CartPage() {
 
   // Financial calculations
   const customerEmail = session?.user?.email?.trim().toLowerCase();
-  const isTestAccount = customerEmail === "testuser@iqtrousers.com";
   const subtotal = totalPrice;
-  const isFreeShipping = isTestAccount || subtotal >= FREE_SHIPPING_THRESHOLD;
+  const isFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
   const shortfall = Math.max(0, Math.round((FREE_SHIPPING_THRESHOLD - subtotal) * 100) / 100);
-  const progressPercent = isTestAccount
-    ? 100
-    : Math.min(100, Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100));
+  const progressPercent = Math.min(100, Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100));
   // Estimated tax (5%) rounded off to nearest rupee
   const estimatedTax = Math.round(subtotal * 0.05);
 

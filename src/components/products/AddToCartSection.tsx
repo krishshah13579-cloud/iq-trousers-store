@@ -12,9 +12,6 @@ import {
   Zap,
   Heart,
   Ruler,
-  Boxes,
-  Lock,
-  PackagePlus,
 } from "lucide-react";
 import { Product, SizeGuideRow } from "@/types";
 import { useCart } from "@/context/CartContext";
@@ -84,9 +81,6 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
   })();
 
   const [inventoryMap, setInventoryMap] = useState<Record<string, any> | null>(initialInventory);
-  const [isUnsetting, setIsUnsetting] = useState(false);
-  const [unsetFeedback, setUnsetFeedback] = useState<string | null>(null);
-  const [unsetError, setUnsetError] = useState<string | null>(null);
 
   // Helper to match color across case, spacing, and standard menswear aliases
   const matchColorKey = (targetColor: string, keys: string[]): string | undefined => {
@@ -192,48 +186,30 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
 
   const activeColor = selectedColor || (availableColors.length > 0 ? availableColors[0] : null);
 
-  // Mix Size Availability & 1 Wholesale Set Unset Logic
-  const availableSizesCount = availableSizes.filter(
-    (sz) => getVariantStock(sz, activeColor) > 0
-  ).length;
-  const isAllSizesAvailable = availableSizesCount >= availableSizes.length;
-  const unsetCounts = (inventoryMap?._unsetCounts as Record<string, number> | undefined) || {};
-  const matchedActiveKey = activeColor
-    ? matchColorKey(activeColor, Object.keys(inventoryMap || {})) || activeColor
-    : "";
-  const isUnsetUsed = Boolean(
-    (unsetCounts[matchedActiveKey] || (activeColor ? unsetCounts[activeColor] : 0) || 0) >= 1
-  );
-  const canUnset = availableSizesCount <= 3 && !isUnsetUsed;
-
-  const handleUnsetOneSet = async () => {
-    if (!activeColor) return;
-    setIsUnsetting(true);
-    setUnsetFeedback(null);
-    setUnsetError(null);
-    try {
-      const res = await fetch(`/api/products/${product.id}/unset`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ color: activeColor }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to unset set");
-      }
-      if (data.inventory) {
-        setInventoryMap(data.inventory);
-      }
-      setUnsetFeedback(
-        data.message || "1 Wholesale set successfully unset! All sizes replenished (+1 pc each)."
-      );
-      router.refresh();
-    } catch (err: any) {
-      setUnsetError(err.message || "Failed to unpack wholesale set");
-    } finally {
-      setIsUnsetting(false);
+  // Priority sort: Show available loose size pieces first, followed by sold-out sizes
+  const sortedSizes = [...availableSizes].sort((a, b) => {
+    const stockA = getVariantStock(a, activeColor);
+    const stockB = getVariantStock(b, activeColor);
+    if ((stockA > 0) !== (stockB > 0)) {
+      return stockB > 0 ? 1 : -1;
     }
-  };
+    const numA = parseInt(a.replace(/[^0-9]/g, ""), 10);
+    const numB = parseInt(b.replace(/[^0-9]/g, ""), 10);
+    if (!isNaN(numA) && !isNaN(numB)) {
+      return numA - numB;
+    }
+    return a.localeCompare(b);
+  });
+
+  // Priority sort for colors: Available colors first, followed by sold-out colors
+  const sortedColors = [...availableColors].sort((a, b) => {
+    const stockA = getVariantStock(null, a);
+    const stockB = getVariantStock(null, b);
+    if ((stockA > 0) !== (stockB > 0)) {
+      return stockB > 0 ? 1 : -1;
+    }
+    return 0;
+  });
 
   const currentVariantStock = selectedSize
     ? getVariantStock(selectedSize, activeColor)
@@ -400,7 +376,7 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-3 pt-0.5">
-                {availableColors.map((color) => {
+                {sortedColors.map((color) => {
                   const isSelected = selectedColor === color;
                   const { hex, isLight } = getColorHex(color);
                   const colorStock = getVariantStock(null, color);
@@ -443,10 +419,11 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                         />
                       )}
 
-                      {/* Diagonal strikethrough for out-of-stock color */}
-                      {isColorOutOfStock && !isSelected && (
-                        <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <span className="w-full h-0.5 bg-rose-500/80 rotate-45 transform" />
+                      {/* Cross mark for out-of-stock color */}
+                      {isColorOutOfStock && (
+                        <span className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden rounded-full">
+                          <span className="w-full h-[1.5px] bg-rose-500 rotate-45 transform" />
+                          <span className="w-full h-[1.5px] bg-rose-500 -rotate-45 transform absolute" />
                         </span>
                       )}
 
@@ -483,7 +460,7 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {availableSizes.map((size) => {
+                {sortedSizes.map((size) => {
                   const isSelected = selectedSize === size;
                   const sizeStock = getVariantStock(size, activeColor);
                   const isSoldOut = inventoryMap ? sizeStock <= 0 : false;
@@ -498,15 +475,21 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                         setSelectedSize(size);
                         setSizeError(false);
                       }}
-                      className={`relative min-w-[46px] h-10 px-3 text-xs font-medium rounded-lg border transition-all duration-150 flex items-center justify-center ${
+                      className={`relative min-w-[46px] h-10 px-3 text-xs font-medium rounded-lg border transition-all duration-150 flex items-center justify-center overflow-hidden ${
                         isSelected
                           ? "bg-gray-900 text-white border-gray-900 shadow-xs cursor-pointer"
                           : isSoldOut
-                          ? "bg-gray-50 text-gray-300 border-gray-200 cursor-not-allowed opacity-50"
+                          ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed opacity-60"
                           : "bg-white text-gray-800 border-gray-200 hover:border-gray-900 hover:bg-gray-50 cursor-pointer"
                       }`}
                     >
                       <span className={isSoldOut ? "line-through opacity-60" : ""}>{size}</span>
+                      {isSoldOut && (
+                        <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <span className="w-[140%] h-[1.5px] bg-rose-500/80 rotate-45 transform" />
+                          <span className="w-[140%] h-[1.5px] bg-rose-500/80 -rotate-45 transform absolute" />
+                        </span>
+                      )}
                       {isSoldOut && !isSelected && (
                         <span className="sr-only">(Sold out)</span>
                       )}
@@ -520,63 +503,6 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                   <span>Please choose your size before adding to cart</span>
                 </p>
               )}
-
-              {/* Mix Size Availability & 1 Wholesale Set Unset Control */}
-              <div className="pt-2">
-                {availableSizesCount <= 3 ? (
-                  !isUnsetUsed ? (
-                    <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50/60 border border-amber-200/90 text-amber-950 space-y-2.5 shadow-2xs">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-amber-900 bg-amber-200/70 px-2 py-0.5 rounded-md">
-                              <Zap className="w-3 h-3 text-amber-700" />
-                              Low Size Stock ({availableSizesCount} of {availableSizes.length} sizes in stock)
-                            </span>
-                          </div>
-                          <p className="text-xs text-amber-950 font-medium">
-                            Only {availableSizesCount} distinct {availableSizesCount === 1 ? "size is" : "sizes are"} available for <strong>{activeColor || "this color"}</strong>. You are permitted to unset <strong>1 wholesale set</strong> to replenish +1 piece across all sizes.
-                          </p>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleUnsetOneSet}
-                        disabled={isUnsetting}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white shadow-xs transition-all cursor-pointer disabled:opacity-50"
-                      >
-                        {isUnsetting ? (
-                          <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : (
-                          <Boxes className="w-4 h-4" />
-                        )}
-                        <span>{isUnsetting ? "Unpacking wholesale set..." : "Unset 1 Wholesale Set (Replenish All Sizes)"}</span>
-                      </button>
-
-                      {unsetFeedback && (
-                        <p className="text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl animate-fadeIn flex items-center gap-2">
-                          <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                          <span>{unsetFeedback}</span>
-                        </p>
-                      )}
-                      {unsetError && (
-                        <p className="text-xs font-semibold text-rose-800 bg-rose-50 border border-rose-200 p-2.5 rounded-xl animate-fadeIn flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                          <span>{unsetError}</span>
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 text-xs flex items-center gap-2">
-                      <Lock className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span>
-                        <strong>Mix Size Status:</strong> 1 wholesale set was already unset for <strong>{activeColor || "this color"}</strong>. After this 1 set, no further unsets are permitted.
-                      </span>
-                    </div>
-                  )
-                ) : null}
-              </div>
             </div>
           )}
 

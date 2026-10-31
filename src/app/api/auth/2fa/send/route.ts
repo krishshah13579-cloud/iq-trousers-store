@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Rate Limiting by Target Email: Max 15 code requests per 10 minutes per account
+    // Rate Limiting by Target Email
     const emailRl = checkRateLimit(`auth-2fa-send:email:${trimmedEmail}`, {
       limit: 15,
       windowMs: 10 * 60 * 1000,
@@ -106,7 +106,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const isPasswordValid = await bcrypt.compare(String(password), user.password);
+    const isPasswordValid = await bcrypt.compare(strPassword, user.password);
+
     if (!isPasswordValid) {
       return NextResponse.json(
         { error: "Invalid email or password" },
@@ -115,9 +116,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate secure 6-digit OTP code and expiry
-    const isTestAccount = trimmedEmail === "testuser@iqtrousers.com";
-    const code = isTestAccount ? "123456" : generateTwoFactorCode();
-    const expiresAt = new Date(Date.now() + (isTestAccount ? 365 * 24 * 60 : CODE_EXPIRATION_MINUTES) * 60 * 1000);
+    const code = generateTwoFactorCode();
+    const expiresAt = new Date(Date.now() + CODE_EXPIRATION_MINUTES * 60 * 1000);
 
     // Save directly to user record in DB
     try {
@@ -164,8 +164,8 @@ export async function POST(req: NextRequest) {
         ? `A 6-digit verification code has been dispatched to ${maskedEmail}`
         : `A 6-digit verification code was generated (Email service offline).`,
       emailDelivered,
-      // If email delivery could not be completed or for test account, provide code so user is not blocked
-      ...(!emailDelivered || isTestAccount ? { devCode: code } : {}),
+      // If email delivery could not be completed, provide code so user is not blocked
+      ...(!emailDelivered ? { devCode: code } : {}),
     });
   } catch (error: any) {
     console.error("Failed to generate or send user 2FA code:", error);

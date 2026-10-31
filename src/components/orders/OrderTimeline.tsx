@@ -166,6 +166,19 @@ export function OrderTimeline({
     ? 0
     : Math.round((currentStep / (TIMELINE_STEPS.length - 1)) * 100);
 
+  if (isCancelled) {
+    return (
+      <div className="bg-white border border-neutral-200/90 rounded-2xl shadow-xs overflow-hidden">
+        <div className="p-6 bg-red-50/60 flex items-center gap-3">
+          <XCircle className="w-5 h-5 text-red-600 shrink-0" />
+          <h3 className="text-base sm:text-lg font-bold text-neutral-900">
+            Your order has been cancelled.
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white border border-neutral-200/90 rounded-2xl shadow-xs overflow-hidden">
       {/* Top Header Banner */}
@@ -177,21 +190,17 @@ export function OrderTimeline({
             </span>
             <span
               className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                isCancelled
-                  ? "bg-red-100 text-red-700"
-                  : currentStep === 5
+                currentStep === 5
                   ? "bg-emerald-100 text-emerald-800"
                   : "bg-blue-100 text-blue-800"
               }`}
             >
-              {isCancelled ? "Cancelled" : TIMELINE_STEPS[currentStep].title}
+              {TIMELINE_STEPS[currentStep].title}
             </span>
           </div>
 
           <h3 className="text-lg sm:text-xl font-bold text-neutral-900 mt-1">
-            {isCancelled ? (
-              "Order has been cancelled"
-            ) : currentStep === 5 ? (
+            {currentStep === 5 ? (
               "Package Delivered"
             ) : (
               <>
@@ -207,14 +216,12 @@ export function OrderTimeline({
             )}
           </h3>
           <p className="text-xs sm:text-sm text-neutral-500 mt-0.5">
-            {isCancelled
-              ? "All reserved items have been restocked and any used coupons restored."
-              : TIMELINE_STEPS[currentStep].description}
+            {TIMELINE_STEPS[currentStep].description}
           </p>
         </div>
 
         {/* Tracking Number Pill */}
-        {trackingNumber && !isCancelled && (
+        {trackingNumber && (
           <div className="flex items-center gap-2 bg-neutral-100/90 hover:bg-neutral-100 border border-neutral-200 rounded-xl px-3 py-2 text-xs transition-colors">
             <Truck className="w-4 h-4 text-neutral-500 shrink-0" />
             <div className="text-left">
@@ -240,19 +247,6 @@ export function OrderTimeline({
           </div>
         )}
       </div>
-
-      {/* Cancelled State Alert Banner */}
-      {isCancelled ? (
-        <div className="p-6 bg-red-50/50 border-b border-red-100 flex items-start gap-3">
-          <XCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <h4 className="font-semibold text-red-900">Timeline Stopped</h4>
-            <p className="text-red-700 text-xs mt-0.5 leading-relaxed">
-              This order was cancelled before fulfillment. The delivery timeline is closed and no further courier movements will occur.
-            </p>
-          </div>
-        </div>
-      ) : null}
 
       {/* DESKTOP TIMELINE (Horizontal) */}
       <div className="hidden md:block p-8">
