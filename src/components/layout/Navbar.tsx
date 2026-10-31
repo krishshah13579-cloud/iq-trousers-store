@@ -39,21 +39,21 @@ export default function Navbar() {
   const isAdmin = userRole === "ADMIN" || userRole === "SUPER_ADMIN";
 
   return (
-    <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+    <nav className="bg-white border-b border-gray-100 sticky top-0 z-50 pt-[env(safe-area-inset-top)]">
+      <div className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Brand / Logo */}
-          <Link href="/" className="flex items-center space-x-2 sm:space-x-3 group shrink-0">
+          <Link href="/" className="flex items-center space-x-1.5 xs:space-x-2 sm:space-x-3 group shrink-0">
             <img
               src="/iq-trousers-logo-transparent.png"
               alt="IQ Trousers"
               width={40}
               height={48}
               loading="eager"
-              className="h-9 sm:h-12 w-auto object-contain transition-transform group-hover:scale-105"
+              className="h-8 xs:h-9 sm:h-12 w-auto object-contain transition-transform group-hover:scale-105"
             />
             <div className="flex flex-col">
-              <span className="text-base sm:text-xl font-bold tracking-tight text-gray-950 font-sans uppercase leading-none">
+              <span className="text-sm xs:text-base sm:text-xl font-bold tracking-tight text-gray-950 font-sans uppercase leading-none">
                 IQ Trousers
               </span>
             </div>
@@ -209,17 +209,17 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile & Tablet Portrait Header: Searchbar only (no toggle, cart, or wishlist) */}
-          <div className="hidden mobile-header-nav flex-1 min-w-0 max-w-[170px] xs:max-w-[220px] sm:max-w-xs md:max-w-sm ml-2 sm:ml-3">
+          {/* Mobile & Tablet Portrait Header: Searchbar only (fluid width adapting to screen) */}
+          <div className="hidden mobile-header-nav flex-1 min-w-0 max-w-sm ml-2 xs:ml-3 sm:ml-4">
             <form onSubmit={handleSearch} className="relative w-full">
               <input
                 type="text"
                 placeholder="Search trousers..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3.5 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-full focus:outline-hidden focus:ring-2 focus:ring-black focus:bg-white transition-all shadow-2xs"
+                className="w-full pl-8 xs:pl-9 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-full focus:outline-hidden focus:ring-2 focus:ring-black focus:bg-white transition-all shadow-2xs"
               />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <Search className="absolute left-2.5 xs:left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
             </form>
           </div>
         </div>

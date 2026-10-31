@@ -408,7 +408,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                 </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-2.5 xs:gap-3.5 sm:gap-5 md:gap-6">
                 {products.map((product: any) => (
                   <ProductCard key={product.id} product={product as any} />
                 ))}

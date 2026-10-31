@@ -125,10 +125,10 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   return (
     <div
-      className={`group relative flex flex-col bg-white rounded-2xl border overflow-hidden transition-all duration-300 ${
+      className={`group relative flex flex-col h-full bg-white rounded-2xl sm:rounded-3xl border overflow-hidden transition-all duration-300 shadow-2xs hover:shadow-md ${
         isOpening
           ? "border-gray-900 ring-2 ring-gray-900/15 shadow-xl scale-[0.985]"
-          : "border-gray-100 hover:shadow-md hover:border-gray-200"
+          : "border-gray-100 hover:border-gray-200"
       }`}
     >
       {/* Top indeterminate progress line when user selects product */}
@@ -154,17 +154,17 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
       )}
 
-      {/* Product Image */}
+      {/* Product Image - Uniform 3:4 aspect ratio with object-top so trousers are never cut in half */}
       <Link
         href={`/products/${product.id}`}
         prefetch={true}
         onClick={handleSelectProduct}
-        className="relative block aspect-[4/5] w-full overflow-hidden bg-gray-50 cursor-pointer"
+        className="relative block aspect-[3/4] w-full overflow-hidden bg-neutral-100/70 cursor-pointer"
       >
         <img
           src={imageUrl}
           alt={product.name}
-          className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+          className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
           onError={(e) => {
             const target = e.currentTarget as HTMLImageElement;
@@ -175,12 +175,12 @@ export default function ProductCard({ product }: ProductCardProps) {
         />
 
         {/* Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+        <div className="absolute top-2 left-2 xs:top-2.5 xs:left-2.5 flex flex-col gap-1 z-10">
           {discountPercent && (
             <span
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide shadow-xs ${
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] xs:text-xs font-bold tracking-wide shadow-xs ${
                 discountPercent >= 35
-                  ? "bg-rose-600 text-white ring-2 ring-rose-300"
+                  ? "bg-rose-600 text-white ring-1 ring-rose-300"
                   : "bg-rose-500 text-white"
               }`}
             >
@@ -188,7 +188,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             </span>
           )}
           {product.featured && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-900/80 backdrop-blur-sm text-white">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] xs:text-[10px] font-medium bg-gray-900/80 backdrop-blur-sm text-white">
               Featured
             </span>
           )}
@@ -204,14 +204,14 @@ export default function ProductCard({ product }: ProductCardProps) {
           }}
           aria-label={isWish ? "Remove from wishlist" : "Add to wishlist"}
           title={isWish ? "In Wishlist" : "Add to Wishlist"}
-          className={`absolute top-3 right-3 z-20 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm cursor-pointer ${
+          className={`absolute top-2 right-2 xs:top-2.5 xs:right-2.5 z-20 w-7 h-7 xs:w-8 xs:h-8 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm cursor-pointer ${
             isWish
               ? "bg-white text-rose-500 shadow-md scale-105"
               : "bg-white/90 text-gray-600 hover:text-rose-500 hover:bg-white hover:scale-105"
           }`}
         >
           <Heart
-            className={`w-4 h-4 transition-colors ${
+            className={`w-3.5 h-3.5 xs:w-4 xs:h-4 transition-colors ${
               isWish ? "fill-rose-500 text-rose-500" : ""
             }`}
           />
@@ -219,17 +219,17 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {product.stock <= 0 && (
           <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px] flex items-center justify-center">
-            <span className="px-3 py-1 rounded-full bg-gray-900 text-white text-xs font-medium">
+            <span className="px-2.5 py-1 rounded-full bg-gray-900 text-white text-[10px] xs:text-xs font-medium">
               Out of stock
             </span>
           </div>
         )}
       </Link>
 
-      {/* Card Content */}
-      <div className="flex flex-col flex-1 p-3.5 sm:p-5">
+      {/* Card Content - Device Fluid Spacing */}
+      <div className="flex flex-col flex-1 p-2.5 xs:p-3 sm:p-4">
         {product.category?.name && (
-          <p className="text-[10px] sm:text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">
+          <p className="text-[9px] xs:text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-400 mb-0.5 truncate">
             {product.category.name}
           </p>
         )}
@@ -240,18 +240,18 @@ export default function ProductCard({ product }: ProductCardProps) {
           onClick={handleSelectProduct}
           className="group-hover:text-gray-600 transition-colors"
         >
-          <h3 className="font-medium text-gray-900 line-clamp-1 text-sm sm:text-base">
+          <h3 className="font-semibold text-gray-900 line-clamp-1 text-xs xs:text-sm sm:text-base">
             {product.name}
           </h3>
         </Link>
 
         {/* Rating */}
-        <div className="flex items-center gap-1.5 mt-1.5 sm:mt-2">
+        <div className="flex items-center gap-1 sm:gap-1.5 mt-1 sm:mt-1.5">
           <div className="flex items-center text-amber-400">
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
                 key={star}
-                className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${
+                className={`w-2.5 h-2.5 xs:w-3 xs:h-3 sm:w-3.5 sm:h-3.5 ${
                   star <= Math.round(avgRating)
                     ? "fill-amber-400 text-amber-400"
                     : "text-gray-200 fill-gray-100"
@@ -259,7 +259,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               />
             ))}
           </div>
-          <span className="text-[11px] sm:text-xs text-gray-500">
+          <span className="text-[10px] xs:text-[11px] sm:text-xs text-gray-500">
             {avgRating > 0 ? avgRating.toFixed(1) : "New"}
             {reviewCount > 0 && ` (${reviewCount})`}
           </span>
@@ -267,25 +267,25 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Available Sizes List */}
         {availableSizes.length > 0 && (
-          <div className="flex items-center gap-1 mt-2 text-[11px] sm:text-xs text-gray-500">
-            <span className="text-[10px] sm:text-[11px] font-medium text-gray-400 uppercase tracking-wider">
+          <div className="flex items-center gap-1 mt-1.5 text-[10px] xs:text-[11px] sm:text-xs text-gray-500">
+            <span className="text-[9px] xs:text-[10px] sm:text-[11px] font-semibold text-gray-400 uppercase tracking-wider shrink-0">
               Sizes:
             </span>
-            <span className="text-[11px] sm:text-xs text-gray-700 font-medium truncate">
+            <span className="text-[10px] xs:text-[11px] sm:text-xs text-gray-700 font-medium truncate">
               {availableSizes.slice(0, 3).join(", ")}
               {availableSizes.length > 3 ? ` +${availableSizes.length - 3}` : ""}
             </span>
           </div>
         )}
 
-        {/* Price & Add to Cart */}
-        <div className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-gray-50 flex items-center justify-between">
-          <div className="flex items-baseline gap-1.5 sm:gap-2">
-            <span className="text-base sm:text-lg font-semibold text-gray-900">
+        {/* Price & Add to Cart - Perfectly aligned bottom footer */}
+        <div className="mt-auto pt-2 sm:pt-2.5 border-t border-gray-100/90 flex items-center justify-between gap-1">
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs xs:text-sm sm:text-base font-bold text-gray-900 leading-tight">
               {formatPrice(product.price)}
             </span>
             {product.comparePrice && product.comparePrice > product.price && (
-              <span className="text-[10px] sm:text-xs text-gray-400 line-through">
+              <span className="text-[9px] xs:text-[10px] sm:text-xs text-gray-400 line-through leading-none mt-0.5">
                 {formatPrice(product.comparePrice)}
               </span>
             )}
@@ -296,16 +296,16 @@ export default function ProductCard({ product }: ProductCardProps) {
             prefetch={true}
             onClick={handleSelectProduct}
             aria-label="View product and select size"
-            className={`flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full text-white shadow-sm transition-all duration-200 ${
+            className={`shrink-0 flex items-center justify-center h-7 w-7 xs:h-8 xs:w-8 sm:h-9 sm:w-9 rounded-full text-white shadow-2xs transition-all duration-200 ${
               isOpening
                 ? "bg-gray-800 scale-95"
-                : "bg-gray-900 hover:bg-gray-800 active:scale-95"
+                : "bg-gray-950 hover:bg-black active:scale-95"
             }`}
           >
             {isOpening ? (
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
-              <ShoppingCart className="w-4 h-4" />
+              <ShoppingCart className="w-3.5 h-3.5 xs:w-4 xs:h-4" />
             )}
           </Link>
         </div>
