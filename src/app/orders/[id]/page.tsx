@@ -6,7 +6,18 @@ import { authOptions, isAdminRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatPrice, getOrderStatusColor, getProductCoverImage } from "@/lib/utils";
 import { ShippingAddress } from "@/types";
-import { CheckCircle2, Package, MapPin, ArrowRight, XCircle, Truck, Tag } from "lucide-react";
+import {
+  CheckCircle2,
+  Package,
+  MapPin,
+  ArrowRight,
+  XCircle,
+  Truck,
+  Tag,
+  CreditCard,
+  Clock,
+  RotateCcw,
+} from "lucide-react";
 import { CancelOrderButton } from "@/components/orders/CancelOrderButton";
 import { OrderTimeline } from "@/components/orders/OrderTimeline";
 import { calculateShippingFee, FREE_SHIPPING_THRESHOLD } from "@/lib/shipping";
@@ -93,6 +104,10 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
     (sum, item) => sum + item.price * item.quantity,
     0
   );
+  const isCancelled = order.status === "CANCELLED";
+  const isPrepaid = Boolean(order.paymentIntent && !order.paymentIntent.startsWith("COD") && order.total > 0);
+  const refundMatch = order.paymentIntent?.match(/REFUND_INITIATED:([^|]+)/);
+  const refundId = refundMatch ? refundMatch[1] : null;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
@@ -217,6 +232,69 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
         />
       </div>
 
+      {/* Prominent Refund Status Card for Cancelled Orders */}
+      {isCancelled && (
+        <div className="mb-8 bg-white border border-blue-200/90 rounded-2xl overflow-hidden shadow-xs">
+          <div className="p-5 sm:p-6 bg-gradient-to-r from-blue-50/90 via-indigo-50/40 to-white border-b border-blue-100 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-neutral-900">Refund Status</h3>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-blue-700 bg-blue-100/90 px-2 py-0.5 rounded-md">
+                    <Clock className="w-3 h-3" />
+                    {isPrepaid ? "100% Refund Initiated" : "No Refund Needed"}
+                  </span>
+                </div>
+                <p className="text-xs text-neutral-600 mt-0.5">
+                  {isPrepaid
+                    ? `A full refund of ${formatPrice(order.total)} has been automatically initiated via PayU Payment Gateway.`
+                    : "This was a Cash on Delivery order. No payment was collected, so no refund is required."}
+                </p>
+              </div>
+            </div>
+            {isPrepaid && (
+              <div className="text-left sm:text-right">
+                <span className="text-xs text-neutral-400 uppercase tracking-wider block">Refund Amount</span>
+                <span className="text-xl font-bold text-blue-900">{formatPrice(order.total)}</span>
+              </div>
+            )}
+          </div>
+
+          {isPrepaid && (
+            <div className="p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div className="p-4 rounded-xl bg-neutral-50/80 border border-neutral-200/70 space-y-1">
+                <span className="text-neutral-400 block font-medium">Refund Route</span>
+                <span className="font-semibold text-neutral-900 flex items-center gap-1.5 text-xs">
+                  <RotateCcw className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  Original Payment Method
+                </span>
+                <span className="text-[11px] text-neutral-500 block">Funds return directly to source bank / UPI / Card</span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-neutral-50/80 border border-neutral-200/70 space-y-1">
+                <span className="text-neutral-400 block font-medium">Estimated Settlement</span>
+                <span className="font-semibold text-neutral-900 flex items-center gap-1.5 text-xs">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  5 to 7 Business Days
+                </span>
+                <span className="text-[11px] text-neutral-500 block">Subject to your issuing bank's clearing cycle</span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-neutral-50/80 border border-neutral-200/70 space-y-1">
+                <span className="text-neutral-400 block font-medium">Refund Reference ID</span>
+                <span className="font-mono font-semibold text-neutral-900 text-xs truncate block">
+                  {refundId || order.paymentIntent?.split("|")[0] || order.id}
+                </span>
+                <span className="text-[11px] text-neutral-500 block">PayU Transaction / Refund Reference</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-xs divide-y divide-neutral-200">
         {/* Order Header Meta */}
         <div className="p-6 bg-neutral-50/50 flex flex-wrap items-center justify-between gap-4">
@@ -255,6 +333,22 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
               {order.status}
             </span>
           </div>
+
+          {isCancelled && (
+            <div>
+              <span className="text-xs text-neutral-400 uppercase tracking-wider block">Refund Status</span>
+              {isPrepaid ? (
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+                  Refund Initiated ({formatPrice(order.total)})
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-neutral-100 text-neutral-700 border border-neutral-200">
+                  N/A (Cash on Delivery)
+                </span>
+              )}
+            </div>
+          )}
 
           {order.trackingNumber && (
             <div>
@@ -399,6 +493,15 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
                 {formatPrice(order.total)}
               </span>
             </div>
+            {isCancelled && isPrepaid && (
+              <div className="pt-2 flex justify-between items-baseline text-blue-700 font-semibold text-sm">
+                <span className="flex items-center gap-1.5">
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Refund Initiated</span>
+                </span>
+                <span>{formatPrice(order.total)}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
