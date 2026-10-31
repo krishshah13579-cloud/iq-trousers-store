@@ -21,6 +21,7 @@ import {
 import { CancelOrderButton } from "@/components/orders/CancelOrderButton";
 import { OrderTimeline } from "@/components/orders/OrderTimeline";
 import { calculateShippingFee, FREE_SHIPPING_THRESHOLD } from "@/lib/shipping";
+import { fetchPayURefundStatus, PayURefundStatusResult } from "@/lib/payu";
 
 interface OrderPageProps {
   params: Promise<{ id: string }>;
@@ -108,6 +109,19 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
   const isPrepaid = Boolean(order.paymentIntent && !order.paymentIntent.startsWith("COD") && order.total > 0);
   const refundMatch = order.paymentIntent?.match(/REFUND_INITIATED:([^|]+)/);
   const refundId = refundMatch ? refundMatch[1] : null;
+
+  let liveRefundInfo: PayURefundStatusResult | null = null;
+  if (isCancelled && isPrepaid) {
+    const rawPaymentId = order.paymentIntent?.split("|")[0]?.trim();
+    try {
+      liveRefundInfo = await fetchPayURefundStatus({
+        paymentId: rawPaymentId,
+        refundId,
+      });
+    } catch (e) {
+      console.warn("[ORDER PAGE] Live refund status fetch notice:", e);
+    }
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
@@ -243,14 +257,30 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-bold text-neutral-900">Refund Status</h3>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-blue-700 bg-blue-100/90 px-2 py-0.5 rounded-md">
-                    <Clock className="w-3 h-3" />
-                    {isPrepaid ? "100% Refund Initiated" : "No Refund Needed"}
+                  <span
+                    className={`inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                      !isPrepaid
+                        ? "text-neutral-700 bg-neutral-100"
+                        : liveRefundInfo?.liveStatus === "SUCCESS"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "text-blue-700 bg-blue-100/90"
+                    }`}
+                  >
+                    {liveRefundInfo?.liveStatus === "SUCCESS" ? (
+                      <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                    ) : (
+                      <Clock className="w-3 h-3 text-blue-700" />
+                    )}
+                    {isPrepaid
+                      ? liveRefundInfo?.statusText || "100% Refund Initiated"
+                      : "No Refund Needed"}
                   </span>
                 </div>
                 <p className="text-xs text-neutral-600 mt-0.5">
                   {isPrepaid
-                    ? `A full refund of ${formatPrice(order.total)} has been automatically initiated via PayU Payment Gateway.`
+                    ? `A full refund of ${formatPrice(order.total)} has been automatically initiated via PayU Payment Gateway${
+                        liveRefundInfo?.isAvailable ? " (verified live with PayU)" : ""
+                      }.`
                     : "This was a Cash on Delivery order. No payment was collected, so no refund is required."}
                 </p>
               </div>
@@ -288,7 +318,11 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
                 <span className="font-mono font-semibold text-neutral-900 text-xs truncate block">
                   {refundId || order.paymentIntent?.split("|")[0] || order.id}
                 </span>
-                <span className="text-[11px] text-neutral-500 block">PayU Transaction / Refund Reference</span>
+                <span className="text-[11px] text-neutral-500 block">
+                  {liveRefundInfo?.bankRefNum
+                    ? `Bank Ref: ${liveRefundInfo.bankRefNum}`
+                    : "PayU Transaction / Refund Reference"}
+                </span>
               </div>
             </div>
           )}
@@ -338,9 +372,21 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
             <div>
               <span className="text-xs text-neutral-400 uppercase tracking-wider block">Refund Status</span>
               {isPrepaid ? (
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
-                  Refund Initiated ({formatPrice(order.total)})
+                <span
+                  className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                    liveRefundInfo?.liveStatus === "SUCCESS"
+                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                      : "bg-blue-50 text-blue-800 border border-blue-200"
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      liveRefundInfo?.liveStatus === "SUCCESS"
+                        ? "bg-emerald-600"
+                        : "bg-blue-600 animate-pulse"
+                    }`}
+                  />
+                  {liveRefundInfo?.statusText || `Refund Initiated (${formatPrice(order.total)})`}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-neutral-100 text-neutral-700 border border-neutral-200">

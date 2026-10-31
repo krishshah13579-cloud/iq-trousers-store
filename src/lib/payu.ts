@@ -221,3 +221,159 @@ export async function initiatePayURefund({
     };
   }
 }
+
+export interface PayURefundStatusResult {
+  isAvailable: boolean;
+  liveStatus: "QUEUED" | "PROCESSING" | "SUCCESS" | "FAILED" | "INITIATED";
+  statusText: string;
+  bankRefNum?: string | null;
+  refundAmount?: number | null;
+  raw?: any;
+}
+
+/**
+ * Fetches real-time refund status directly from PayU's Web Service API.
+ * Uses check_action_status (by refund request ID) and verify_payment (by transaction ID).
+ */
+export async function fetchPayURefundStatus({
+  paymentId,
+  refundId,
+}: {
+  paymentId?: string | null;
+  refundId?: string | null;
+}): Promise<PayURefundStatusResult> {
+  const config = getPayUConfig();
+  if (!config.isConfigured || (!paymentId && !refundId)) {
+    return {
+      isAvailable: false,
+      liveStatus: "INITIATED",
+      statusText: "100% Refund Initiated",
+    };
+  }
+
+  const endpoint = config.isLive
+    ? "https://info.payu.in/merchant/postservice?form=2"
+    : "https://test.payu.in/merchant/postservice?form=2";
+
+  // Strategy 1: Check by refund Request ID using check_action_status
+  if (refundId && !refundId.startsWith("SIM_REF")) {
+    try {
+      const command = "check_action_status";
+      const hashString = `${config.key}|${command}|${refundId}|${config.salt}`;
+      const hash = crypto.createHash("sha512").update(hashString).digest("hex");
+
+      const formData = new URLSearchParams();
+      formData.append("key", config.key);
+      formData.append("command", command);
+      formData.append("var1", refundId);
+      formData.append("hash", hash);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formData.toString(),
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const data = await res.json().catch(() => null);
+      if (data && (data.status === 1 || data.status === "1" || data.result)) {
+        const resultStr = String(data.result || data.msg || "").toLowerCase();
+        let liveStatus: PayURefundStatusResult["liveStatus"] = "PROCESSING";
+        if (
+          resultStr.includes("success") ||
+          resultStr.includes("completed") ||
+          resultStr.includes("settled")
+        ) {
+          liveStatus = "SUCCESS";
+        } else if (resultStr.includes("fail") || resultStr.includes("declined")) {
+          liveStatus = "FAILED";
+        } else if (resultStr.includes("queue")) {
+          liveStatus = "QUEUED";
+        }
+
+        return {
+          isAvailable: true,
+          liveStatus,
+          statusText:
+            liveStatus === "SUCCESS"
+              ? "Refund Completed by PayU"
+              : liveStatus === "QUEUED"
+              ? "Queued with PayU"
+              : "Processing with Bank",
+          bankRefNum: data.bank_ref_num || data.bank_ref_no || null,
+          raw: data,
+        };
+      }
+    } catch (err) {
+      console.warn("[PAYU CHECK_ACTION_STATUS NOTICE]", err);
+    }
+  }
+
+  // Strategy 2: Check by Payment ID (txnid/mihpayid) using verify_payment
+  if (paymentId) {
+    try {
+      const command = "verify_payment";
+      const hashString = `${config.key}|${command}|${paymentId}|${config.salt}`;
+      const hash = crypto.createHash("sha512").update(hashString).digest("hex");
+
+      const formData = new URLSearchParams();
+      formData.append("key", config.key);
+      formData.append("command", command);
+      formData.append("var1", paymentId);
+      formData.append("hash", hash);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formData.toString(),
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const data = await res.json().catch(() => null);
+      if (data?.transaction_details) {
+        const tx =
+          data.transaction_details[paymentId] ||
+          Object.values(data.transaction_details)[0];
+        if (tx) {
+          const txStatus = String(tx.status || "").toLowerCase();
+          let liveStatus: PayURefundStatusResult["liveStatus"] = "PROCESSING";
+          if (txStatus === "refunded" || txStatus.includes("success")) {
+            liveStatus = "SUCCESS";
+          } else if (txStatus.includes("fail")) {
+            liveStatus = "FAILED";
+          }
+
+          return {
+            isAvailable: true,
+            liveStatus,
+            statusText:
+              liveStatus === "SUCCESS"
+                ? "Refund Completed by PayU"
+                : "Processing with Bank",
+            bankRefNum: tx.bank_ref_num || tx.bank_ref_no || null,
+            refundAmount: tx.refund_amount ? Number(tx.refund_amount) : null,
+            raw: tx,
+          };
+        }
+      }
+    } catch (err) {
+      console.warn("[PAYU VERIFY_PAYMENT NOTICE]", err);
+    }
+  }
+
+  return {
+    isAvailable: false,
+    liveStatus: "INITIATED",
+    statusText: "100% Refund Initiated",
+  };
+}
