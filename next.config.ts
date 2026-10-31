@@ -55,6 +55,14 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      {
+        source: "/maintenance",
+        destination: "/maintenance.html",
+      },
+    ];
+  },
 };
 
 export default nextConfig;

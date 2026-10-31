@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>Scheduled Maintenance | IQ Trousers</title>
+  <meta name="description" content="IQ Trousers is currently undergoing scheduled nightly maintenance from 1:00 AM to 6:00 AM IST. We will be back online shortly." />
+  <meta name="theme-color" content="#09090b" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: radial-gradient(circle at 50% 15%, #18181b 0%, #09090b 100%);
+      color: #f4f4f5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 680px;
+      margin: auto;
+      text-align: center;
+      padding: 36px 20px;
+    }
+
+    /* Brand Logo */
+    .brand-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+      text-decoration: none;
+    }
+
+    .brand-logo img {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 12px rgba(255,255,255,0.08));
+    }
+
+    .brand-name {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: #ffffff;
+    }
+
+    /* Glassmorphism Card */
+    .card {
+      background: rgba(24, 24, 27, 0.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      padding: 40px 28px;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.04);
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 10%;
+      right: 10%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.6), transparent);
+    }
+
+    /* Status Pill */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fde68a;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 22px;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #f59e0b;
+      position: relative;
+    }
+
+    .pulse-dot::after {
+      content: "";
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      background-color: #f59e0b;
+      opacity: 0.75;
+      animation: pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.75; }
+      50% { transform: scale(2.2); opacity: 0; }
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #ffffff;
+      margin-bottom: 12px;
+    }
+
+    @media (min-width: 640px) {
+      h1 { font-size: 34px; }
+    }
+
+    .subtitle {
+      color: #a1a1aa;
+      font-size: 14.5px;
+      line-height: 1.6;
+      max-width: 520px;
+      margin: 0 auto 28px;
+    }
+
+    /* Countdown Grid */
+    .countdown-container {
+      margin: 28px 0;
+    }
+
+    .countdown-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #71717a;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .countdown-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(70px, 1fr));
+      gap: 12px;
+      max-width: 340px;
+      margin: 0 auto;
+    }
+
+    .countdown-box {
+      background: rgba(39, 39, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      padding: 14px 10px;
+      text-align: center;
+    }
+
+    .countdown-num {
+      font-size: 26px;
+      font-weight: 800;
+      color: #f4f4f5;
+      font-feature-settings: "tnum";
+      font-variant-numeric: tabular-nums;
+    }
+
+    .countdown-unit {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #a1a1aa;
+      margin-top: 2px;
+    }
+
+    /* Schedule & Highlights */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      text-align: left;
+      margin-top: 28px;
+    }
+
+    @media (min-width: 540px) {
+      .info-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .info-card {
+      background: rgba(39, 39, 42, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .info-icon {
+      width: 22px;
+      height: 22px;
+      color: #fbbf24;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .info-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .info-desc {
+      font-size: 12px;
+      color: #a1a1aa;
+      margin-top: 2px;
+    }
+
+    /* Support Details */
+    .support-box {
+      margin-top: 24px;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px dashed rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      font-size: 12.5px;
+      color: #a1a1aa;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px 16px;
+    }
+
+    .support-link {
+      color: #fde68a;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.15s ease;
+    }
+
+    .support-link:hover {
+      color: #ffffff;
+      text-decoration: underline;
+    }
+
+    /* Auto-reload status */
+    .reloader-notice {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 11.5px;
+      color: #71717a;
+      margin-top: 18px;
+    }
+
+    .spin-icon {
+      animation: spin 3s linear infinite;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    footer {
+      font-size: 11px;
+      color: #52525b;
+      text-align: center;
+      padding-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div></div>
+
+  <main class="container">
+    <!-- Brand Header -->
+    <a href="/" class="brand-logo" aria-label="IQ Trousers">
+      <img src="/iq-trousers-logo-transparent.png" alt="IQ Trousers Logo" onerror="this.style.display='none'" />
+      <span class="brand-name">IQ TROUSERS</span>
+    </a>
+
+    <!-- Main Card -->
+    <section class="card">
+      <div class="status-pill">
+        <span class="pulse-dot"></span>
+        <span>Nightly Maintenance: 1:00 AM – 6:00 AM IST</span>
+      </div>
+
+      <h1>We'll Be Back Shortly!</h1>
+      <p class="subtitle">
+        Our website is currently undergoing scheduled nightly maintenance, inventory synchronization, and performance optimization.
+      </p>
+
+      <!-- Live Countdown to 6:00 AM IST -->
+      <div class="countdown-container">
+        <div class="countdown-label">Estimated Service Resumption in</div>
+        <div class="countdown-grid">
+          <div class="countdown-box">
+            <div id="hours" class="countdown-num">--</div>
+            <div class="countdown-unit">Hours</div>
+          </div>
+          <div class="countdown-box">
+            <div id="minutes" class="countdown-num">--</div>
+            <div class="countdown-unit">Minutes</div>
+          </div>
+          <div class="countdown-box">
+            <div id="seconds" class="countdown-num">--</div>
+            <div class="countdown-unit">Seconds</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Schedule Info Cards -->
+      <div class="info-grid">
+        <div class="info-card">
+          <svg class="info-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <div>
+            <div class="info-title">Maintenance Window</div>
+            <div class="info-desc">1:00 AM to 6:00 AM IST Daily</div>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <svg class="info-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+          </svg>
+          <div>
+            <div class="info-title">Existing Orders</div>
+            <div class="info-desc">All placed orders are safely recorded</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Support Details -->
+      <div class="support-box">
+        <span>Need urgent assistance?</span>
+        <a href="mailto:iqtrousers@gmail.com" class="support-link">iqtrousers@gmail.com</a>
+        <span>•</span>
+        <a href="tel:+919999999999" class="support-link">Call Store Care</a>
+      </div>
+
+      <!-- Auto reload notice -->
+      <div class="reloader-notice">
+        <svg class="spin-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+        </svg>
+        <span>This page will automatically refresh as soon as service resumes.</span>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    &copy; <span id="year">2026</span> IQ Trousers &bull; Krish Clothing Co., Ahmedabad, Gujarat &bull; All Rights Reserved.
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // Calculate time remaining until 6:00 AM IST (Indian Standard Time, UTC +5:30)
+    function updateCountdown() {
+      var now = new Date();
+      // UTC time in ms
+      var utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+      // IST is UTC + 5:30 (330 minutes)
+      var istNow = new Date(utcMs + (330 * 60000));
+
+      var target = new Date(istNow);
+      target.setHours(6, 0, 0, 0);
+
+      // If current IST time is already past 6:00 AM, set target to 6:00 AM next day
+      if (istNow.getTime() >= target.getTime()) {
+        target.setDate(target.getDate() + 1);
+      }
+
+      var diffMs = target.getTime() - istNow.getTime();
+      if (diffMs <= 0) {
+        document.getElementById("hours").textContent = "00";
+        document.getElementById("minutes").textContent = "00";
+        document.getElementById("seconds").textContent = "00";
+        // Reload storefront
+        setTimeout(function() { window.location.href = "/"; }, 2000);
+        return;
+      }
+
+      var totalSecs = Math.floor(diffMs / 1000);
+      var hrs = Math.floor(totalSecs / 3600);
+      var mins = Math.floor((totalSecs % 3600) / 60);
+      var secs = totalSecs % 60;
+
+      document.getElementById("hours").textContent = String(hrs).padStart(2, "0");
+      document.getElementById("minutes").textContent = String(mins).padStart(2, "0");
+      document.getElementById("seconds").textContent = String(secs).padStart(2, "0");
+    }
+
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+
+    // Auto health check: Pings the server periodically.
+    // If the server comes back online before 6:00 AM, automatically redirects back to store.
+    function checkServerHealth() {
+      fetch("/api/health", { cache: "no-store" })
+        .then(function(res) {
+          if (res.ok) {
+            // Check if outside maintenance window
+            var now = new Date();
+            var utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+            var istNow = new Date(utcMs + (330 * 60000));
+            var istHours = istNow.getHours();
+            if (istHours >= 6 || istHours < 1) {
+              window.location.href = "/";
+            }
+          }
+        })
+        .catch(function() {
+          // Server still off, continue waiting
+        });
+    }
+
+    setInterval(checkServerHealth, 30000);
+  </script>
+</body>
+</html>

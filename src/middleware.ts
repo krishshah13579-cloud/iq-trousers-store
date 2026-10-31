@@ -86,6 +86,20 @@ function isPathTraversalAttempt(rawUrl: string, pathname: string, search: string
   return false;
 }
 
+/**
+ * Determines whether current time in Indian Standard Time (IST, UTC+5:30)
+ * falls within the scheduled nightly maintenance window: 1:00 AM to 6:00 AM IST.
+ */
+function isMaintenanceHours(): boolean {
+  const now = new Date();
+  const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+  // Indian Standard Time is UTC + 5:30 (330 minutes)
+  const istMinutes = (utcMinutes + 330) % 1440;
+  const istHour = Math.floor(istMinutes / 60);
+  // Active window: 1:00 AM to 6:00 AM IST (hours 1, 2, 3, 4, 5)
+  return istHour >= 1 && istHour < 6;
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
   const rawUrl = req.url || "";
@@ -124,7 +138,45 @@ export async function middleware(req: NextRequest) {
   const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
   const isLoggedIn = !!token;
 
-  // 3. Protect Admin APIs: Non-admins cannot access /api/admin
+  // 3. SCHEDULED NIGHTLY MAINTENANCE WINDOW (1:00 AM - 6:00 AM IST)
+  // When active, customer-facing storefront routes are rewritten to /maintenance.html
+  // Admins, health checks, static assets, and bypass query/cookies are exempted.
+  const hasBypassQuery = search.includes("bypass_maintenance=true") || search.includes("admin_preview=true");
+  const hasBypassCookie = req.cookies.get("maintenance_bypass")?.value === "true";
+  const isBypassed = isAdmin || hasBypassQuery || hasBypassCookie;
+
+  const isExemptPath =
+    pathname === "/maintenance" ||
+    pathname === "/maintenance.html" ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/api/health") ||
+    pathname.startsWith("/api/auth") ||
+    pathname.includes(".") ||
+    pathname === "/favicon.ico" ||
+    pathname === "/iq-trousers-logo-transparent.png";
+
+  if (isMaintenanceHours() && !isBypassed && !isExemptPath) {
+    const maintenanceUrl = new URL("/maintenance.html", req.url);
+    const response = NextResponse.rewrite(maintenanceUrl);
+    response.headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
+    response.headers.set("Retry-After", "21600");
+    return response;
+  }
+
+  // Persist bypass cookie if requested by admin via query
+  if (hasBypassQuery && !hasBypassCookie) {
+    const res = NextResponse.next();
+    res.cookies.set("maintenance_bypass", "true", {
+      path: "/",
+      maxAge: 86400,
+      httpOnly: true,
+      sameSite: "lax",
+    });
+    return res;
+  }
+
+  // 4. Protect Admin APIs: Non-admins cannot access /api/admin
   if (pathname.startsWith("/api/admin")) {
     if (!isAdmin) {
       return NextResponse.json(
