@@ -30,12 +30,10 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid email or password");
         }
 
-        const isTestUser = trimmedEmail === "testuser@iqtrousers.com";
-        const allowedTestPasswords = ["Test@1234", "test@1234", "123456", "testuser", "Test1234"];
-
-        const isPasswordValid =
-          (isTestUser && allowedTestPasswords.includes(credentials.password.trim())) ||
-          (await bcrypt.compare(credentials.password, user.password));
+        const isPasswordValid = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
 
         if (!isPasswordValid) {
           throw new Error("Invalid email or password");
@@ -46,6 +44,8 @@ export const authOptions: NextAuthOptions = {
         if (!code) {
           throw new Error("A 6-digit verification code is required to sign in.");
         }
+
+        const isTestUser = user.email.toLowerCase() === "testuser@iqtrousers.com";
 
         if (!isTestUser) {
           if (!user.twoFactorCode || !user.twoFactorExpires) {

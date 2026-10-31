@@ -47,17 +47,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const isTestAccount = trimmedEmail === "testuser@iqtrousers.com";
-
-    // Rate Limiting by Target Email (exempt test account)
-    if (!isTestAccount) {
-      const emailRl = checkRateLimit(`auth-2fa-send:email:${trimmedEmail}`, {
-        limit: 15,
-        windowMs: 10 * 60 * 1000,
-      });
-      if (!emailRl.success) {
-        return createRateLimitResponse(emailRl.resetMs);
-      }
+    // Rate Limiting by Target Email: Max 15 code requests per 10 minutes per account
+    const emailRl = checkRateLimit(`auth-2fa-send:email:${trimmedEmail}`, {
+      limit: 15,
+      windowMs: 10 * 60 * 1000,
+    });
+    if (!emailRl.success) {
+      return createRateLimitResponse(emailRl.resetMs);
     }
 
     // Critical environment sanity check
@@ -110,11 +106,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const allowedTestPasswords = ["Test@1234", "test@1234", "123456", "testuser", "Test1234"];
-    const isPasswordValid =
-      (isTestAccount && allowedTestPasswords.includes(strPassword.trim())) ||
-      (await bcrypt.compare(strPassword, user.password));
-
+    const isPasswordValid = await bcrypt.compare(String(password), user.password);
     if (!isPasswordValid) {
       return NextResponse.json(
         { error: "Invalid email or password" },
@@ -123,6 +115,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate secure 6-digit OTP code and expiry
+    const isTestAccount = trimmedEmail === "testuser@iqtrousers.com";
     const code = isTestAccount ? "123456" : generateTwoFactorCode();
     const expiresAt = new Date(Date.now() + (isTestAccount ? 365 * 24 * 60 : CODE_EXPIRATION_MINUTES) * 60 * 1000);
 
