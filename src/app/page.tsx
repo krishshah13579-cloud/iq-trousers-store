@@ -102,17 +102,15 @@ export default async function HomePage() {
   // 1. New Arrivals: 8 newest products
   const newArrivals = allProducts.slice(0, 8);
 
-  // 2. Deals: Products with >= 35% discount (or any discount if < 4 items)
-  const highDiscounts = allProducts.filter(
+  // 2. Genuine Deals & Offers: Products with at least 5% off (e.g. 25% or 35% OFF)
+  // STRICT REQUIREMENT: "IF THERE ARE NO OFFER DONT SHOW DEALS & OFFERS CAROUSEL ON HOMEPAGE."
+  const genuineOffers = allProducts.filter(
     (p: any) =>
       p.comparePrice &&
       p.comparePrice > p.price &&
-      (p.comparePrice - p.price) / p.comparePrice >= 0.35
+      (p.comparePrice - p.price) / p.comparePrice >= 0.05
   );
-  const generalDiscounts = allProducts.filter(
-    (p: any) => p.comparePrice && p.comparePrice > p.price
-  );
-  const deals = (highDiscounts.length >= 4 ? highDiscounts : generalDiscounts).slice(0, 8);
+  const deals = genuineOffers.slice(0, 8);
 
   return (
     <div className="min-h-screen bg-white">
