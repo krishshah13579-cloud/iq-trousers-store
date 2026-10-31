@@ -7,14 +7,14 @@ export default function RootLoading() {
       </div>
 
       {/* Hero Carousel Skeleton */}
-      <div className="relative w-full aspect-[3.2/1] min-h-[380px] sm:min-h-[400px] md:min-h-[440px] lg:min-h-[460px] max-h-[500px] bg-neutral-950 flex items-center overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 w-full">
-          <div className="max-w-lg space-y-4">
-            <div className="h-5 w-36 bg-neutral-800/80 rounded-full animate-pulse" />
-            <div className="h-10 sm:h-12 w-3/4 bg-neutral-800 rounded-lg animate-pulse" />
-            <div className="h-4 w-1/2 bg-neutral-800/60 rounded animate-pulse" />
+      <div className="relative w-full aspect-[4/5] sm:aspect-[16/9] md:aspect-[3.2/1] min-h-[400px] sm:min-h-[400px] md:min-h-[440px] lg:min-h-[460px] xl:min-h-[480px] max-h-[520px] bg-neutral-950 flex items-end sm:items-center pb-8 sm:pb-0 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-12 lg:px-16 w-full">
+          <div className="max-w-md sm:max-w-lg space-y-3 sm:space-y-4">
+            <div className="h-4 sm:h-5 w-28 sm:w-36 bg-neutral-800/80 rounded-full animate-pulse" />
+            <div className="h-8 sm:h-12 w-3/4 bg-neutral-800 rounded-lg animate-pulse" />
+            <div className="h-3.5 sm:h-4 w-1/2 bg-neutral-800/60 rounded animate-pulse" />
             <div className="pt-2 flex gap-3">
-              <div className="h-10 w-40 bg-neutral-800 rounded-full animate-pulse" />
+              <div className="h-9 sm:h-10 w-32 sm:w-40 bg-neutral-800 rounded-full animate-pulse" />
             </div>
           </div>
         </div>
@@ -23,7 +23,7 @@ export default function RootLoading() {
       {/* Brand Value Props Skeleton */}
       <div className="bg-neutral-50/70 border-y border-neutral-200/80 py-4 sm:py-5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-6 sm:gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6 lg:gap-8">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="flex flex-col items-center p-3 space-y-2">
                 <div className="w-12 h-12 rounded-2xl bg-neutral-200/70 animate-pulse" />

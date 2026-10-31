@@ -60,14 +60,14 @@ export default function MobilePhoneNavbar() {
       aria-label="Phone Navigation Bar"
       className="mobile-bottom-bar hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-gray-200/90 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-1.5"
     >
-      <div className="max-w-md mx-auto px-4 flex items-center justify-around">
+      <div className="max-w-md mx-auto px-2 xs:px-4 flex items-center justify-around">
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
             <Link
               key={item.label}
               href={item.href}
-              className={`relative flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all duration-150 ${
+              className={`relative flex flex-col items-center justify-center py-1 px-1.5 xs:px-2.5 rounded-xl transition-all duration-150 ${
                 item.isActive
                   ? "text-[#162082] font-bold"
                   : "text-gray-500 hover:text-gray-900 font-medium"

@@ -17,6 +17,7 @@ export interface CampaignPoster {
   ctaText: string;
   ctaLink: string;
   bgImage: string;
+  mobileBgImage?: string;
   accentBadgeColor: string;
   couponCode?: string;
   couponOffer?: string;
@@ -603,6 +604,7 @@ export function getMonthlyPosters(monthIndex?: number, activeCouponCode?: string
       ctaText: config.festival.ctaText,
       ctaLink: config.festival.ctaLink,
       bgImage: config.festival.bgImage,
+      mobileBgImage: "/posters/festival-hero-poster-mobile.jpg",
       accentBadgeColor: "amber",
     },
 
@@ -619,6 +621,7 @@ export function getMonthlyPosters(monthIndex?: number, activeCouponCode?: string
       ctaText: config.discount.ctaText,
       ctaLink: config.discount.ctaLink,
       bgImage: config.discount.bgImage,
+      mobileBgImage: "/posters/discount-hero-poster-mobile.jpg",
       accentBadgeColor: "rose",
       couponCode: couponToUse,
       couponOffer: config.discount.couponOffer,
@@ -637,6 +640,7 @@ export function getMonthlyPosters(monthIndex?: number, activeCouponCode?: string
       ctaText: config.newArrival.ctaText,
       ctaLink: config.newArrival.ctaLink,
       bgImage: config.newArrival.bgImage,
+      mobileBgImage: "/posters/new-arrival-hero-poster-mobile.jpg",
       accentBadgeColor: "sky",
       features: config.newArrival.features,
     },

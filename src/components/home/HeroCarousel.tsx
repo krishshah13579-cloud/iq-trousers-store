@@ -182,8 +182,8 @@ export default function HeroCarousel() {
         </div>
       </div>
 
-      {/* Compact Widescreen Hero Banner Container matching Louis Philippe compact layout */}
-      <div className="relative w-full aspect-[3.2/1] min-h-[380px] sm:min-h-[400px] md:min-h-[440px] lg:min-h-[460px] xl:min-h-[480px] max-h-[500px] overflow-hidden">
+      {/* Responsive Luxury Hero Banner Container */}
+      <div className="relative w-full aspect-[4/5] sm:aspect-[16/9] md:aspect-[3.2/1] min-h-[400px] sm:min-h-[400px] md:min-h-[440px] lg:min-h-[460px] xl:min-h-[480px] max-h-[520px] overflow-hidden">
         {slides.map((slide, index) => {
           const isActive = index === (current % Math.max(slides.length, 1));
           const couponForSlide = accountCoupon || {
@@ -204,49 +204,62 @@ export default function HeroCarousel() {
                   : "opacity-0 z-0 pointer-events-none"
               }`}
             >
-              {/* Background Poster Image (1920x600 3.2:1 ratio) */}
+              {/* Responsive Background Poster Image */}
               <div className="absolute inset-0">
-                <img
-                  src={slide.bgImage}
-                  alt={slide.title}
-                  className="w-full h-full object-cover object-center scale-100 transform transition-transform duration-1000 ease-out"
-                  loading={index === 0 ? "eager" : "lazy"}
-                />
+                <picture>
+                  {slide.mobileBgImage && (
+                    <source
+                      media="(max-width: 639px)"
+                      srcSet={slide.mobileBgImage}
+                    />
+                  )}
+                  <img
+                    src={slide.bgImage}
+                    alt={slide.title}
+                    className="w-full h-full object-cover object-center scale-100 transform transition-transform duration-1000 ease-out"
+                    loading={index === 0 ? "eager" : "lazy"}
+                  />
+                </picture>
 
-                {/* Subtle vignette on the left so model on right is 100% visible and unsmudged */}
-                <div className="absolute inset-0 bg-gradient-to-r from-neutral-950/85 via-neutral-950/35 to-transparent sm:w-2/3 md:w-3/5" />
-                <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/70 via-transparent to-transparent" />
+                {/* Mobile portrait vignette: dark bottom gradient ensuring model is clear at top & text is 100% legible */}
+                <div className="sm:hidden absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/60 to-transparent" />
+
+                {/* Desktop widescreen vignette: subtle on the left so model on right is 100% visible */}
+                <div className="hidden sm:block absolute inset-0 bg-gradient-to-r from-neutral-950/85 via-neutral-950/35 to-transparent sm:w-2/3 md:w-3/5" />
+                <div className="hidden sm:block absolute inset-0 bg-gradient-to-t from-neutral-950/70 via-transparent to-transparent" />
               </div>
 
               {/* Poster Foreground Content - Minimal Luxury Branded Aesthetic */}
-              <div className="relative h-full max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 flex items-center">
-                <div className="max-w-lg lg:max-w-xl py-6 sm:py-8 space-y-3 sm:space-y-4">
+              <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-12 lg:px-16 flex items-end sm:items-center pb-7 sm:pb-0">
+                <div className="max-w-md sm:max-w-lg lg:max-w-xl py-3 sm:py-8 space-y-2 sm:space-y-4">
                   {/* Subtle Brand Pill */}
                   <div>
-                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-bold tracking-[0.2em] uppercase bg-white/10 backdrop-blur-md text-white/90 border border-white/15">
+                    <span className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full text-[9px] sm:text-[11px] font-bold tracking-[0.15em] sm:tracking-[0.2em] uppercase bg-white/10 backdrop-blur-md text-white/90 border border-white/15">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#ef4444]" />
-                      <span>IQ TROUSERS • {slide.type === "festival" ? "SIGNATURE BESPOKE" : slide.type === "discount" ? "EXCLUSIVE PRIVILEGE" : "ORIGINAL FIT"}</span>
+                      <span className="truncate max-w-[220px] xs:max-w-[280px] sm:max-w-none">
+                        IQ TROUSERS • {slide.type === "festival" ? "SIGNATURE BESPOKE" : slide.type === "discount" ? "EXCLUSIVE PRIVILEGE" : "ORIGINAL FIT"}
+                      </span>
                     </span>
                   </div>
 
                   {/* Clean, High-Fashion Headline */}
                   <div>
                     {slide.type === "festival" && (
-                      <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-bold tracking-tight text-white uppercase leading-[1.05] drop-shadow-md">
+                      <h2 className="text-xl sm:text-3xl md:text-4xl lg:text-[40px] font-bold tracking-tight text-white uppercase leading-[1.1] sm:leading-[1.05] drop-shadow-md">
                         Master-Crafted Formals. <br />
                         <span className="text-neutral-300 font-light">Cut to Command.</span>
                       </h2>
                     )}
 
                     {slide.type === "discount" && (
-                      <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-bold tracking-tight text-white uppercase leading-[1.05] drop-shadow-md">
+                      <h2 className="text-xl sm:text-3xl md:text-4xl lg:text-[40px] font-bold tracking-tight text-white uppercase leading-[1.1] sm:leading-[1.05] drop-shadow-md">
                         Luxury Design. <br />
                         <span className="text-rose-400 font-light">Honest Pricing.</span>
                       </h2>
                     )}
 
                     {slide.type === "new-arrival" && (
-                      <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-bold tracking-tight text-white uppercase leading-[1.05] drop-shadow-md">
+                      <h2 className="text-xl sm:text-3xl md:text-4xl lg:text-[40px] font-bold tracking-tight text-white uppercase leading-[1.1] sm:leading-[1.05] drop-shadow-md">
                         We Don&apos;t Make Everything. <br />
                         <span className="text-sky-300 font-light">We Perfect Trousers.</span>
                       </h2>
@@ -254,27 +267,27 @@ export default function HeroCarousel() {
                   </div>
 
                   {/* Minimal Subtitle */}
-                  <p className="text-xs sm:text-sm text-neutral-300/90 font-normal tracking-normal max-w-md line-clamp-1">
+                  <p className="text-[11px] sm:text-sm text-neutral-300/90 font-normal tracking-normal max-w-md line-clamp-2 sm:line-clamp-1">
                     {slide.type === "festival" && "Tailored precision for elevated everyday and formal elegance."}
                     {slide.type === "discount" && (couponForSlide.description || `${couponForSlide.type === "PERCENTAGE" ? `${couponForSlide.value}% off` : `₹${couponForSlide.value} off`} orders over ₹${couponForSlide.minOrder.toLocaleString("en-IN")}`)}
                     {slide.type === "new-arrival" && "360° adaptive flex mobility with permanent razor-creased drape."}
                   </p>
 
                   {/* Clean CTA Button */}
-                  <div className="pt-2 flex items-center gap-4">
+                  <div className="pt-1 sm:pt-2 flex flex-wrap items-center gap-2 sm:gap-4">
                     <Link
                       href={slide.ctaLink}
-                      className="inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-2.5 sm:py-3 rounded-full bg-white text-neutral-950 font-bold text-xs uppercase tracking-wider hover:bg-neutral-100 active:scale-95 transition-all shadow-lg cursor-pointer"
+                      className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-7 py-2 sm:py-3 rounded-full bg-white text-neutral-950 font-bold text-[11px] sm:text-xs uppercase tracking-wider hover:bg-neutral-100 active:scale-95 transition-all shadow-lg cursor-pointer"
                     >
                       <span>Explore Collection</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </Link>
 
                     {slide.type === "discount" && couponForSlide.code && (
                       <button
                         type="button"
                         onClick={() => handleCopyCoupon(couponForSlide.code)}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-xs font-mono text-amber-300 hover:bg-black/60 transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-[10px] sm:text-xs font-mono text-amber-300 hover:bg-black/60 transition-all cursor-pointer"
                         title="Copy coupon code"
                       >
                         <span>{couponForSlide.code}</span>
@@ -300,9 +313,9 @@ export default function HeroCarousel() {
             prevSlide();
           }}
           aria-label="Previous Carousel Slide"
-          className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 hover:bg-black/75 backdrop-blur-md text-white border border-white/15 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+          className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/40 hover:bg-black/75 backdrop-blur-md text-white border border-white/15 flex items-center justify-center opacity-70 hover:opacity-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
         <button
@@ -312,13 +325,13 @@ export default function HeroCarousel() {
             nextSlide();
           }}
           aria-label="Next Carousel Slide"
-          className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 hover:bg-black/75 backdrop-blur-md text-white border border-white/15 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+          className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/40 hover:bg-black/75 backdrop-blur-md text-white border border-white/15 flex items-center justify-center opacity-70 hover:opacity-100 transition-all hover:scale-105 active:scale-95 cursor-pointer"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
         {/* Minimal Slide Indicators */}
-        <div className="absolute bottom-3 sm:bottom-4 inset-x-0 z-20 flex items-center justify-center gap-2 px-4 pointer-events-auto">
+        <div className="absolute bottom-2.5 sm:bottom-4 inset-x-0 z-20 flex items-center justify-center gap-1.5 sm:gap-2 px-4 pointer-events-auto">
           {slides.map((_, index) => {
             const isActive = index === current;
             return (

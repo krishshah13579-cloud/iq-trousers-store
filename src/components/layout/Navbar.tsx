@@ -43,17 +43,17 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Brand / Logo */}
-          <Link href="/" className="flex items-center space-x-3 group">
+          <Link href="/" className="flex items-center space-x-2 sm:space-x-3 group shrink-0">
             <img
               src="/iq-trousers-logo-transparent.png"
               alt="IQ Trousers"
               width={40}
               height={48}
               loading="eager"
-              className="h-12 w-auto object-contain transition-transform group-hover:scale-105"
+              className="h-9 sm:h-12 w-auto object-contain transition-transform group-hover:scale-105"
             />
             <div className="flex flex-col">
-              <span className="text-xl font-bold tracking-tight text-gray-950 font-sans uppercase leading-none">
+              <span className="text-base sm:text-xl font-bold tracking-tight text-gray-950 font-sans uppercase leading-none">
                 IQ Trousers
               </span>
             </div>
@@ -210,7 +210,7 @@ export default function Navbar() {
           </div>
 
           {/* Mobile & Tablet Portrait Header: Searchbar only (no toggle, cart, or wishlist) */}
-          <div className="hidden mobile-header-nav flex-1 max-w-[240px] sm:max-w-xs md:max-w-sm ml-3">
+          <div className="hidden mobile-header-nav flex-1 min-w-0 max-w-[170px] xs:max-w-[220px] sm:max-w-xs md:max-w-sm ml-2 sm:ml-3">
             <form onSubmit={handleSearch} className="relative w-full">
               <input
                 type="text"

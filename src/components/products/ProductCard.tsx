@@ -227,9 +227,9 @@ export default function ProductCard({ product }: ProductCardProps) {
       </Link>
 
       {/* Card Content */}
-      <div className="flex flex-col flex-1 p-5">
+      <div className="flex flex-col flex-1 p-3.5 sm:p-5">
         {product.category?.name && (
-          <p className="text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">
+          <p className="text-[10px] sm:text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">
             {product.category.name}
           </p>
         )}
@@ -240,18 +240,18 @@ export default function ProductCard({ product }: ProductCardProps) {
           onClick={handleSelectProduct}
           className="group-hover:text-gray-600 transition-colors"
         >
-          <h3 className="font-medium text-gray-900 line-clamp-1 text-base">
+          <h3 className="font-medium text-gray-900 line-clamp-1 text-sm sm:text-base">
             {product.name}
           </h3>
         </Link>
 
         {/* Rating */}
-        <div className="flex items-center gap-1.5 mt-2">
+        <div className="flex items-center gap-1.5 mt-1.5 sm:mt-2">
           <div className="flex items-center text-amber-400">
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
                 key={star}
-                className={`w-3.5 h-3.5 ${
+                className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${
                   star <= Math.round(avgRating)
                     ? "fill-amber-400 text-amber-400"
                     : "text-gray-200 fill-gray-100"
@@ -259,33 +259,33 @@ export default function ProductCard({ product }: ProductCardProps) {
               />
             ))}
           </div>
-          <span className="text-xs text-gray-500">
-            {avgRating > 0 ? avgRating.toFixed(1) : "No reviews"}
+          <span className="text-[11px] sm:text-xs text-gray-500">
+            {avgRating > 0 ? avgRating.toFixed(1) : "New"}
             {reviewCount > 0 && ` (${reviewCount})`}
           </span>
         </div>
 
         {/* Available Sizes List */}
         {availableSizes.length > 0 && (
-          <div className="flex items-center gap-1.5 mt-2.5 text-xs text-gray-500">
-            <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">
+          <div className="flex items-center gap-1 mt-2 text-[11px] sm:text-xs text-gray-500">
+            <span className="text-[10px] sm:text-[11px] font-medium text-gray-400 uppercase tracking-wider">
               Sizes:
             </span>
-            <span className="text-xs text-gray-700 font-medium">
-              {availableSizes.slice(0, 4).join(", ")}
-              {availableSizes.length > 4 ? ` +${availableSizes.length - 4}` : ""}
+            <span className="text-[11px] sm:text-xs text-gray-700 font-medium truncate">
+              {availableSizes.slice(0, 3).join(", ")}
+              {availableSizes.length > 3 ? ` +${availableSizes.length - 3}` : ""}
             </span>
           </div>
         )}
 
         {/* Price & Add to Cart */}
-        <div className="mt-4 pt-3 border-t border-gray-50 flex items-center justify-between">
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg font-semibold text-gray-900">
+        <div className="mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-gray-50 flex items-center justify-between">
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-base sm:text-lg font-semibold text-gray-900">
               {formatPrice(product.price)}
             </span>
             {product.comparePrice && product.comparePrice > product.price && (
-              <span className="text-xs text-gray-400 line-through">
+              <span className="text-[10px] sm:text-xs text-gray-400 line-through">
                 {formatPrice(product.comparePrice)}
               </span>
             )}
@@ -296,7 +296,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             prefetch={true}
             onClick={handleSelectProduct}
             aria-label="View product and select size"
-            className={`flex items-center justify-center h-9 w-9 rounded-full text-white shadow-sm transition-all duration-200 ${
+            className={`flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full text-white shadow-sm transition-all duration-200 ${
               isOpening
                 ? "bg-gray-800 scale-95"
                 : "bg-gray-900 hover:bg-gray-800 active:scale-95"
