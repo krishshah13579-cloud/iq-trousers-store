@@ -73,6 +73,9 @@ export const metadata: Metadata = {
     },
   },
   manifest: "/manifest.json",
+  verification: {
+    google: "googlebc7ed8e410865694",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
