@@ -193,12 +193,14 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
     if ((stockA > 0) !== (stockB > 0)) {
       return stockB > 0 ? 1 : -1;
     }
-    const numA = parseInt(a.replace(/[^0-9]/g, ""), 10);
-    const numB = parseInt(b.replace(/[^0-9]/g, ""), 10);
+    const strA = String(a ?? "");
+    const strB = String(b ?? "");
+    const numA = parseInt(strA.replace(/[^0-9]/g, ""), 10);
+    const numB = parseInt(strB.replace(/[^0-9]/g, ""), 10);
     if (!isNaN(numA) && !isNaN(numB)) {
       return numA - numB;
     }
-    return a.localeCompare(b);
+    return strA.localeCompare(strB);
   });
 
   // Priority sort for colors: Available colors first, followed by sold-out colors
