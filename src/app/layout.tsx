@@ -85,7 +85,12 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon-48.png", sizes: "48x48", type: "image/png" },
+      { url: "/icon-96.png", sizes: "96x96", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
     shortcut: "/favicon.ico",
     apple: [
       { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
@@ -99,7 +104,7 @@ const jsonLdOrg = {
   "name": "IQ Trousers",
   "alternateName": ["IQTROUSERS", "IQ Trousers Ahmedabad", "Krish Clothing Co."],
   "url": SITE_URL,
-  "logo": `${SITE_URL}/iq-trousers-logo.jpg`,
+  "logo": `${SITE_URL}/icon-512.png`,
   "image": `${SITE_URL}/iq-trousers-logo-card.jpg`,
   "description":
     "Engineered trousers for precision and comfort. Manufacturer and retailer of premium men's formal trousers and everyday casual chinos in Ahmedabad.",
@@ -141,8 +146,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/png" sizes="48x48" href="/icon-48.png" />
+        <link rel="icon" type="image/png" sizes="96x96" href="/icon-96.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="IQ Trousers" />
