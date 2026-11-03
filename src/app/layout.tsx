@@ -12,7 +12,7 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
 };
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://iqtrousers.in";
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.iqtrousers.in";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
