@@ -119,8 +119,8 @@ export default function CartPage() {
   const isFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
   const shortfall = Math.max(0, Math.round((FREE_SHIPPING_THRESHOLD - subtotal) * 100) / 100);
   const progressPercent = Math.min(100, Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100));
-  // Estimated tax (5%) rounded off to nearest rupee
-  const estimatedTax = Math.round(subtotal * 0.05);
+  // All product prices are all-inclusive of GST (Tax included in price, ₹0 extra)
+  const estimatedTax = 0;
 
   // Automatically remove applied coupon from selection if cart value is lower than minimum order value
   useEffect(() => {
@@ -151,8 +151,8 @@ export default function CartPage() {
     }
   }
 
-  // Total with round off amount included (rounded to nearest rupee without displaying a separate round-off line to user)
-  const rawTotal = Math.max(0, subtotal - currentDiscountAmount + estimatedTax);
+  // Total with round off amount included (GST already included in product prices)
+  const rawTotal = Math.max(0, subtotal - currentDiscountAmount);
   const finalTotal = Math.round(rawTotal);
 
   // Fetch smart coupons available to this particular customer
@@ -759,8 +759,8 @@ export default function CartPage() {
               </div>
 
               <div className="flex justify-between">
-                <span>Estimated Tax (5%)</span>
-                <span className="font-medium text-neutral-900">{formatPrice(estimatedTax)}</span>
+                <span>GST (Tax)</span>
+                <span className="font-medium text-emerald-700">Included in Price</span>
               </div>
 
               <div className="border-t border-neutral-200 pt-4 flex justify-between items-baseline">

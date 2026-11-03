@@ -151,6 +151,26 @@ async function handlePayUCallback(req: NextRequest) {
         const recipientEmail = order.user?.email || body.email || parsedAddress.email;
         if (recipientEmail) {
           console.log(`[PAYU CALLBACK] Dispatching confirmation email to ${recipientEmail} for Order #${order.id}...`);
+          const itemsSubtotal = order.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+          const computedShipping = Math.max(
+            0,
+            Math.round(order.total - Math.max(0, itemsSubtotal - (order.discountAmount || 0)))
+          );
+
+          const getCover = (imgs: any): string | null => {
+            if (!imgs) return null;
+            if (Array.isArray(imgs) && imgs.length > 0) return imgs[0];
+            if (typeof imgs === "string") {
+              try {
+                const arr = JSON.parse(imgs);
+                if (Array.isArray(arr) && arr.length > 0) return arr[0];
+              } catch {
+                return imgs;
+              }
+            }
+            return null;
+          };
+
           sendOrderConfirmationEmail({
             to: recipientEmail,
             orderId: order.id,
@@ -160,11 +180,12 @@ async function handlePayUCallback(req: NextRequest) {
               quantity: i.quantity,
               price: i.price,
               size: i.size,
+              image: getCover(i.product.images),
             })),
-            subtotal: order.items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+            subtotal: itemsSubtotal,
             discountAmount: order.discountAmount,
             discountCode: order.discountCode,
-            shipping: 0,
+            shipping: computedShipping,
             tax: 0,
             total: order.total,
             shippingAddress: parsedAddress,

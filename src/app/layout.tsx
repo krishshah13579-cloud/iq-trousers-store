@@ -129,8 +129,8 @@ const jsonLdWebsite = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   "name": "IQ Trousers",
-  "alternateName": "IQTROUSERS",
-  "url": SITE_URL,
+  "alternateName": ["IQTROUSERS", "IQ Trousers Ahmedabad", "Krish Clothing Co."],
+  "url": `${SITE_URL}/`,
   "potentialAction": {
     "@type": "SearchAction",
     "target": `${SITE_URL}/products?search={search_term_string}`,

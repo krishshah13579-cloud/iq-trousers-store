@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { CancelOrderButton } from "@/components/orders/CancelOrderButton";
 import { OrderTimeline } from "@/components/orders/OrderTimeline";
+import { DTDCTrackingCard } from "@/components/orders/DTDCTrackingCard";
 import { calculateShippingFee, FREE_SHIPPING_THRESHOLD } from "@/lib/shipping";
 import { fetchPayURefundStatus, PayURefundStatusResult } from "@/lib/payu";
 
@@ -245,6 +246,16 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderPa
           trackingNumber={order.trackingNumber}
         />
       </div>
+
+      {/* Live DTDC Courier Tracking Card */}
+      {order.trackingNumber && !isCancelled && (
+        <div className="mb-8">
+          <DTDCTrackingCard
+            trackingNumber={order.trackingNumber}
+            orderStatus={order.status}
+          />
+        </div>
+      )}
 
       {/* Prominent Refund Status Card for Cancelled Orders */}
       {isCancelled && (

@@ -167,14 +167,34 @@ export async function PUT(req: NextRequest) {
       });
     });
 
-    // Resolve recipient customer email
+    // Resolve recipient customer email & shipping address
     let customerEmail = existingOrder.user?.email;
-    if (!customerEmail && existingOrder.shippingAddress) {
+    let parsedShipping: any = null;
+    if (existingOrder.shippingAddress) {
       try {
-        const parsed = JSON.parse(existingOrder.shippingAddress);
-        customerEmail = parsed.email;
+        parsedShipping = JSON.parse(existingOrder.shippingAddress);
+        if (!customerEmail) {
+          customerEmail = parsedShipping.email;
+        }
       } catch {}
     }
+
+    const effectiveCustomerName =
+      existingOrder.user?.name || parsedShipping?.fullName || "Valued Customer";
+
+    const getCoverImage = (imgs: any): string | null => {
+      if (!imgs) return null;
+      if (Array.isArray(imgs) && imgs.length > 0) return imgs[0];
+      if (typeof imgs === "string") {
+        try {
+          const arr = JSON.parse(imgs);
+          if (Array.isArray(arr) && arr.length > 0) return arr[0];
+        } catch {
+          return imgs;
+        }
+      }
+      return null;
+    };
 
     if (customerEmail) {
       if (isCancellingNow) {
@@ -182,7 +202,7 @@ export async function PUT(req: NextRequest) {
           await sendOrderCancellationEmail({
             to: customerEmail,
             orderId: existingOrder.id,
-            customerName: existingOrder.user?.name || "Valued Customer",
+            customerName: effectiveCustomerName,
             items: existingOrder.items.map((i) => ({
               name: i.product.name,
               quantity: i.quantity,
@@ -201,7 +221,7 @@ export async function PUT(req: NextRequest) {
           await sendOrderStatusUpdateEmail({
             to: customerEmail,
             orderId: existingOrder.id,
-            customerName: existingOrder.user?.name || "Valued Customer",
+            customerName: effectiveCustomerName,
             newStatus: status,
             trackingNumber: trackingNumber !== undefined ? trackingNumber : existingOrder.trackingNumber,
             items: existingOrder.items.map((i) => ({
@@ -209,8 +229,14 @@ export async function PUT(req: NextRequest) {
               quantity: i.quantity,
               price: i.price,
               size: i.size,
+              image: getCoverImage(i.product.images),
             })),
+            subtotal: existingOrder.items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+            discountAmount: existingOrder.discountAmount,
+            discountCode: existingOrder.discountCode,
             total: existingOrder.total,
+            shippingAddress: parsedShipping,
+            orderDate: existingOrder.createdAt,
           });
         } catch (emailErr) {
           console.error("[ADMIN STATUS UPDATE EMAIL ERROR]", emailErr);

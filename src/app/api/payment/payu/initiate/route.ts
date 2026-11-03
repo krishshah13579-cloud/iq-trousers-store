@@ -163,10 +163,10 @@ export async function POST(req: NextRequest) {
       dbUser?.email || userEmail
     );
     const shipping = shippingQuote.amount;
-    // Estimated tax (5%) rounded off to nearest rupee
-    const estimatedTax = Math.round(roundedSubtotal * 0.05);
+    // GST (Tax) is all-inclusive in product pricing (₹0 extra)
+    const estimatedTax = 0;
     // Total with round off amount included (rounded to nearest rupee matching cart & checkout)
-    const rawTotal = Math.max(1, roundedSubtotal - discountAmount + shipping + estimatedTax);
+    const rawTotal = Math.max(1, roundedSubtotal - discountAmount + shipping);
     const total = Math.round(rawTotal);
 
     const txnid = `PAYU_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;

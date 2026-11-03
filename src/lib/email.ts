@@ -694,6 +694,8 @@ export interface OrderEmailItem {
   quantity: number;
   price: number;
   size?: string | null;
+  image?: string | null;
+  color?: string | null;
 }
 
 export interface SendOrderConfirmationEmailParams {
@@ -729,6 +731,266 @@ function formatINR(val: number): string {
 }
 
 /**
+ * Shared AJIO-style responsive email renderer.
+ * Exactly matches the black-header, rounded card, dynamic customer name,
+ * and direct order-link format requested by the user.
+ */
+function renderAjioStyleEmail({
+  orderId,
+  customerName,
+  statusBadge,
+  statusParagraph,
+  actionLabel,
+  items,
+  subtotal,
+  discountAmount = 0,
+  discountCode,
+  shipping = 0,
+  total,
+  shippingAddress,
+  orderDate = new Date(),
+  trackingNumber,
+}: {
+  orderId: string;
+  customerName: string;
+  statusBadge: string;
+  statusParagraph: string;
+  actionLabel: string;
+  items: OrderEmailItem[];
+  subtotal?: number;
+  discountAmount?: number;
+  discountCode?: string | null;
+  shipping?: number;
+  total?: number;
+  shippingAddress?: {
+    fullName?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+    phone?: string;
+  } | null;
+  orderDate?: Date | string;
+  trackingNumber?: string | null;
+}) {
+  const displayOrderNum =
+    orderId.length > 8 ? orderId.slice(-8).toUpperCase() : orderId.toUpperCase();
+  const siteUrl = "https://www.iqtrousers.in";
+  const orderUrl = `${siteUrl}/orders/${orderId}`;
+
+  const dateStr = new Date(orderDate).toLocaleDateString("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+  const city = shippingAddress?.city || "";
+  const zipCode = shippingAddress?.zipCode || "";
+  const shippingLocationStr =
+    city && zipCode
+      ? `${city.toUpperCase()} - ${zipCode}`
+      : city || zipCode || "India";
+
+  // Item rows HTML
+  const itemsHtml = items
+    .map((item) => {
+      let imgUrl = item.image;
+      if (!imgUrl) {
+        imgUrl = `${siteUrl}/icon-192.png`;
+      } else if (imgUrl.startsWith("/")) {
+        imgUrl = `${siteUrl}${imgUrl}`;
+      }
+
+      return `
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 14px; border-bottom: 1px solid #e2e8f0; padding-bottom: 14px;">
+        <tr>
+          <td style="width: 65px; vertical-align: top; padding-right: 14px;">
+            <img src="${imgUrl}" alt="${item.name}" width="65" height="78" style="border-radius: 6px; object-fit: cover; border: 1px solid #e2e8f0; display: block;" />
+          </td>
+          <td style="vertical-align: top;">
+            <div style="font-size: 13.5px; font-weight: 700; color: #0f172a; line-height: 1.4;">${item.name}</div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
+              ${item.size ? `Size <strong style="color: #0f172a;">${item.size}</strong> &nbsp;&nbsp;` : ""}
+              Qty <strong style="color: #0f172a;">${item.quantity}</strong>
+              ${item.color ? ` &nbsp;&nbsp; Colour <strong style="color: #0f172a;">${item.color}</strong>` : ""}
+            </div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 3px;">
+              Price <strong style="color: #0f172a;">${formatINR(item.price)}</strong>
+            </div>
+          </td>
+          <td align="right" style="vertical-align: top; text-align: right; width: 95px;">
+            <div style="font-size: 14px; font-weight: 700; color: #0f172a;">${formatINR(item.price * item.quantity)}</div>
+          </td>
+        </tr>
+      </table>`;
+    })
+    .join("");
+
+  // Tracking block
+  const trackingHtml = trackingNumber
+    ? `
+    <div style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px 18px; margin: 0 24px 20px 24px;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td style="vertical-align: middle;">
+            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Courier Logistics Partner</div>
+            <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-top: 2px;">
+              DTDC Express • AWB: <span style="font-family: monospace; letter-spacing: 0.5px;">${trackingNumber}</span>
+            </div>
+          </td>
+          <td align="right" style="vertical-align: middle; text-align: right;">
+            <a href="https://www.dtdc.in/tracking/shipment-tracking.asp?tracking_no=${encodeURIComponent(
+              trackingNumber
+            )}" style="background: #cc0000; color: #ffffff !important; padding: 8px 14px; border-radius: 6px; font-size: 11px; font-weight: 700; text-decoration: none; display: inline-block;">
+              Track on DTDC
+            </a>
+          </td>
+        </tr>
+      </table>
+    </div>`
+    : "";
+
+  // Price breakdown block
+  const priceBreakdownHtml =
+    total !== undefined
+      ? `
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 20px; margin: 0 24px 20px 24px;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 12.5px; color: #64748b;">
+        ${
+          subtotal !== undefined
+            ? `
+        <tr>
+          <td style="padding: 4px 0;">Subtotal</td>
+          <td align="right" style="padding: 4px 0; color: #0f172a; font-weight: 600;">${formatINR(subtotal)}</td>
+        </tr>`
+            : ""
+        }
+        ${
+          discountAmount > 0
+            ? `
+        <tr>
+          <td style="padding: 4px 0; color: #059669;">Discount ${discountCode ? `(${discountCode})` : ""}</td>
+          <td align="right" style="padding: 4px 0; color: #059669; font-weight: 700;">-${formatINR(discountAmount)}</td>
+        </tr>`
+            : ""
+        }
+        <tr>
+          <td style="padding: 4px 0;">Delivery Fee</td>
+          <td align="right" style="padding: 4px 0; color: #0f172a; font-weight: 600;">${
+            shipping === 0 ? '<span style="color:#059669; font-weight:700;">FREE</span>' : formatINR(shipping)
+          }</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 0;">GST (Tax)</td>
+          <td align="right" style="padding: 4px 0; color: #059669; font-weight: 600;">Included in Price</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0 0 0; border-top: 1px solid #e2e8f0; font-size: 15px; font-weight: 800; color: #0f172a;">Total Paid</td>
+          <td align="right" style="padding: 10px 0 0 0; border-top: 1px solid #e2e8f0; font-size: 16px; font-weight: 800; color: #0f172a;">${formatINR(total)}</td>
+        </tr>
+      </table>
+    </div>`
+      : "";
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${statusBadge} #${displayOrderNum} — IQ Trousers</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f5; margin: 0; padding: 24px 12px; color: #0f172a; }
+    .email-container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 16px rgba(0,0,0,0.04); }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <!-- Solid Black Header matching AJIO Screenshot -->
+    <div style="background-color: #000000; padding: 22px 24px;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td align="left" style="vertical-align: middle;">
+            <div style="color: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">
+              IQ TROUSERS
+            </div>
+          </td>
+          <td align="right" style="vertical-align: middle; text-align: right;">
+            <div style="color: #ffffff; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+              ${statusBadge}
+            </div>
+            <div style="color: #ffffff; font-size: 11px; margin-top: 3px;">
+              Order ID <a href="${orderUrl}" style="color: #ffffff; text-decoration: underline; font-weight: 700;">#${displayOrderNum}</a>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Body Introduction -->
+    <div style="padding: 24px 24px 16px 24px;">
+      <p style="font-size: 15px; margin: 0 0 12px 0; color: #0f172a;">
+        Hi <strong>${customerName}</strong>,
+      </p>
+      <p style="font-size: 13.5px; line-height: 1.6; color: #475569; margin: 0 0 12px 0;">
+        ${statusParagraph}
+      </p>
+      <p style="font-size: 13px; font-weight: 600; color: #0f172a; margin: 0 0 18px 0;">
+        Meanwhile, stay bold, stay stylish!
+      </p>
+    </div>
+
+    <!-- "Your Order Details" Card with [View Order] Button -->
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 20px; margin: 0 24px 20px 24px;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td align="left" style="vertical-align: middle;">
+            <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+              Your Order Details
+            </div>
+            <div style="font-size: 12px; color: #64748b; line-height: 1.65;">
+              <div>Order ID <a href="${orderUrl}" style="color: #0284c7; text-decoration: none; font-weight: 700;">#${displayOrderNum}</a></div>
+              <div>Order placed on <strong style="color: #334155;">${dateStr}</strong></div>
+              <div>Order shipped to <strong>${customerName}</strong>, ${shippingLocationStr}</div>
+            </div>
+          </td>
+          <td align="right" style="vertical-align: middle; text-align: right; width: 120px;">
+            <a href="${orderUrl}" style="background: #0f172a; color: #ffffff !important; padding: 10px 18px; border-radius: 6px; font-size: 12.5px; font-weight: 700; text-decoration: none; display: inline-block; white-space: nowrap;">
+              View Order
+            </a>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- "Item(s)..." Card -->
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 20px; margin: 0 24px 20px 24px;">
+      <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 14px;">
+        Item(s) ${actionLabel}
+      </div>
+      ${itemsHtml}
+    </div>
+
+    ${trackingHtml}
+    ${priceBreakdownHtml}
+
+    <!-- Footer -->
+    <div style="background: #ffffff; padding: 20px 24px 32px 24px; text-align: center; border-top: 1px solid #e2e8f0;">
+      <div style="font-size: 11px; color: #94a3b8; line-height: 1.6;">
+        Questions about your order? Reply directly or contact <a href="mailto:support@iqtrousers.com" style="color: #0284c7; text-decoration: none;">support@iqtrousers.com</a>.<br>
+        © ${new Date().getFullYear()} IQ Trousers by Krish Clothing Co. • Ahmedabad, Gujarat. All rights reserved.
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  return html;
+}
+
+/**
  * Dispatches an order placement confirmation email to the customer with itemized details and receipt.
  */
 export async function sendOrderConfirmationEmail({
@@ -740,7 +1002,7 @@ export async function sendOrderConfirmationEmail({
   discountAmount = 0,
   discountCode,
   shipping,
-  tax,
+  tax: _tax,
   total,
   shippingAddress,
   orderDate = new Date(),
@@ -751,9 +1013,27 @@ export async function sendOrderConfirmationEmail({
       ? `"IQ Trousers" <${process.env.SMTP_USER}>`
       : '"IQ Trousers" <orders@iqtrousers.com>');
 
-  const displayOrderNum = orderId.length > 8 ? orderId.slice(-8).toUpperCase() : orderId.toUpperCase();
+  const displayOrderNum =
+    orderId.length > 8 ? orderId.slice(-8).toUpperCase() : orderId.toUpperCase();
   const subject = `Order Confirmed #${displayOrderNum} — IQ Trousers`;
   const displayName = customerName || shippingAddress.fullName || "Valued Customer";
+
+  const htmlContent = renderAjioStyleEmail({
+    orderId,
+    customerName: displayName,
+    statusBadge: "Order Confirmed",
+    statusParagraph:
+      "Thank you for shopping with IQ Trousers! Your order has been placed successfully and is now being tailored and prepared for dispatch.",
+    actionLabel: "Placed",
+    items,
+    subtotal,
+    discountAmount,
+    discountCode,
+    shipping,
+    total,
+    shippingAddress,
+    orderDate,
+  });
 
   const dateStr = new Date(orderDate).toLocaleDateString("en-IN", {
     month: "long",
@@ -761,143 +1041,7 @@ export async function sendOrderConfirmationEmail({
     year: "numeric",
   });
 
-  const baseUrl = process.env.NEXTAUTH_URL || "https://iqtrousers.com";
-  const orderUrl = `${baseUrl}/orders/${orderId}`;
-
-  const itemsRowsHtml = items
-    .map(
-      (item) => `
-      <tr>
-        <td style="padding: 12px 0; border-bottom: 1px solid #f4f4f5;">
-          <div style="font-size: 14px; font-weight: 600; color: #18181b;">${item.name}</div>
-          <div style="font-size: 12px; color: #71717a; margin-top: 2px;">
-            ${item.size ? `<span style="display:inline-block; background:#f4f4f5; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:600; color:#3f3f46; margin-right:6px;">Size ${item.size}</span>` : ""}
-            Qty: ${item.quantity} × ${formatINR(item.price)}
-          </div>
-        </td>
-        <td style="padding: 12px 0; border-bottom: 1px solid #f4f4f5; text-align: right; font-size: 14px; font-weight: 600; color: #18181b; vertical-align: top;">
-          ${formatINR(item.price * item.quantity)}
-        </td>
-      </tr>`
-    )
-    .join("");
-
-  const discountHtml =
-    discountAmount > 0
-      ? `
-      <tr>
-        <td style="padding: 6px 0; font-size: 13px; color: #047857;">
-          Discount ${discountCode ? `<span style="background: #ecfdf5; border: 1px dashed #059669; padding: 2px 6px; border-radius: 4px; font-weight: 700;">${discountCode}</span>` : ""}
-        </td>
-        <td style="padding: 6px 0; text-align: right; font-size: 13px; font-weight: 700; color: #047857;">
-          -${formatINR(discountAmount)}
-        </td>
-      </tr>`
-      : "";
-
-  const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Order Confirmation #${displayOrderNum}</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f5; margin: 0; padding: 24px; color: #18181b; }
-    .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e4e4e7; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.04); }
-    .header { background: #09090b; padding: 32px 24px; text-align: center; }
-    .logo-text { color: #ffffff; font-size: 24px; font-weight: 800; letter-spacing: 2.5px; margin: 0; text-transform: uppercase; }
-    .sublogo { color: #a1a1aa; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 6px; }
-    .badge-bar { background: #ecfdf5; border-bottom: 1px solid #a7f3d0; padding: 12px 24px; text-align: center; color: #065f46; font-size: 13px; font-weight: 600; }
-    .content { padding: 32px 28px; }
-    .greeting { font-size: 20px; font-weight: 700; color: #18181b; margin-bottom: 8px; }
-    .intro { font-size: 14px; line-height: 1.6; color: #52525b; margin-bottom: 24px; }
-    .meta-box { background: #fafafa; border: 1px solid #f4f4f5; border-radius: 12px; padding: 14px 18px; margin-bottom: 24px; display: flex; justify-content: space-between; font-size: 13px; }
-    .section-title { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #71717a; margin-top: 24px; margin-bottom: 12px; }
-    .table-items { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-    .totals-table { width: 100%; border-collapse: collapse; margin-top: 12px; border-top: 1px solid #e4e4e7; padding-top: 12px; }
-    .address-card { background: #fafafa; border: 1px solid #e4e4e7; border-radius: 12px; padding: 16px; margin-top: 24px; font-size: 13px; line-height: 1.6; color: #3f3f46; }
-    .cancel-policy { background: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; padding: 14px 16px; margin-top: 24px; font-size: 12.5px; line-height: 1.5; color: #92400e; }
-    .btn-container { text-align: center; margin: 32px 0 16px; }
-    .btn { display: inline-block; background: #09090b; color: #ffffff !important; padding: 14px 28px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; letter-spacing: 0.3px; }
-    .footer { background: #fafafa; padding: 24px; text-align: center; font-size: 12px; color: #a1a1aa; border-top: 1px solid #f4f4f5; line-height: 1.6; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <div class="logo-text">IQ TROUSERS</div>
-      <div class="sublogo">KRISH CLOTHING CO. • ORDER CONFIRMATION</div>
-    </div>
-    <div class="badge-bar">
-      ✓ Payment Successful • Order Confirmed & Being Prepared
-    </div>
-    <div class="content">
-      <div class="greeting">Hello, ${displayName}</div>
-      <p class="intro">
-        Thank you for choosing IQ Trousers. Your order has been placed successfully and is now being tailored and prepped for dispatch. Here is your complete order receipt:
-      </p>
-
-      <table style="width: 100%; background: #fafafa; border: 1px solid #f4f4f5; border-radius: 12px; padding: 12px 16px; margin-bottom: 24px;">
-        <tr>
-          <td style="font-size: 13px; color: #71717a;">Order ID:</td>
-          <td style="font-size: 13px; font-weight: 700; color: #18181b; text-align: right; font-family: monospace;">#${displayOrderNum}</td>
-        </tr>
-        <tr>
-          <td style="font-size: 13px; color: #71717a; padding-top: 4px;">Order Date:</td>
-          <td style="font-size: 13px; font-weight: 600; color: #18181b; text-align: right; padding-top: 4px;">${dateStr}</td>
-        </tr>
-      </table>
-
-      <div class="section-title">Purchased Items</div>
-      <table class="table-items">
-        ${itemsRowsHtml}
-      </table>
-
-      <table class="totals-table">
-        <tr>
-          <td style="padding: 6px 0; font-size: 13px; color: #71717a;">Subtotal</td>
-          <td style="padding: 6px 0; text-align: right; font-size: 13px; font-weight: 600; color: #18181b;">${formatINR(subtotal)}</td>
-        </tr>
-        ${discountHtml}
-        <tr>
-          <td style="padding: 6px 0; font-size: 13px; color: #71717a;">Shipping</td>
-          <td style="padding: 6px 0; text-align: right; font-size: 13px; font-weight: 600; color: #18181b;">${shipping === 0 ? "FREE" : formatINR(shipping)}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; font-size: 13px; color: #71717a;">Estimated Tax</td>
-          <td style="padding: 6px 0; text-align: right; font-size: 13px; font-weight: 600; color: #18181b;">${formatINR(tax)}</td>
-        </tr>
-        <tr>
-          <td style="padding: 12px 0 0 0; font-size: 16px; font-weight: 800; color: #18181b; border-top: 1px solid #e4e4e7;">Total Paid</td>
-          <td style="padding: 12px 0 0 0; text-align: right; font-size: 18px; font-weight: 800; color: #18181b; border-top: 1px solid #e4e4e7;">${formatINR(total)}</td>
-        </tr>
-      </table>
-
-      <div class="section-title">Delivery Address</div>
-      <div class="address-card">
-        <strong>${shippingAddress.fullName}</strong><br>
-        ${shippingAddress.address}<br>
-        ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.zipCode}<br>
-        ${shippingAddress.country}<br>
-        <span style="font-size: 12px; color: #71717a;">Phone: ${shippingAddress.phone}</span>
-      </div>
-
-      <div class="cancel-policy">
-        <strong>⚡ Easy Cancellation Window:</strong> Need to modify or cancel? You can cancel your order directly from your Orders dashboard anytime before it is processed or dispatched. If you used a coupon code, it will be automatically returned to your account for reuse.
-      </div>
-
-      <div class="btn-container">
-        <a href="${orderUrl}" class="btn">View & Track Order</a>
-      </div>
-    </div>
-    <div class="footer">
-      Questions or special fitting requests? Reply directly to this email or visit our Help Center.<br>
-      © ${new Date().getFullYear()} IQ Trousers by Krish Clothing Co. All rights reserved.
-    </div>
-  </div>
-</body>
-</html>
-`;
+  const orderUrl = `https://www.iqtrousers.in/orders/${orderId}`;
 
   const textItems = items
     .map((i) => `- ${i.name}${i.size ? ` (Size: ${i.size})` : ""}: Qty ${i.quantity} x ${formatINR(i.price)} = ${formatINR(i.price * i.quantity)}`)
@@ -913,7 +1057,7 @@ ${textItems}
 
 Subtotal: ${formatINR(subtotal)}
 ${discountAmount > 0 ? `Discount (${discountCode || "Coupon"}): -${formatINR(discountAmount)}\n` : ""}Shipping: ${shipping === 0 ? "FREE" : formatINR(shipping)}
-Tax: ${formatINR(tax)}
+GST (Tax): Included in Price
 Total Paid: ${formatINR(total)}
 
 Delivery Address:
@@ -1170,11 +1314,26 @@ export interface SendOrderStatusUpdateEmailParams {
   newStatus: string;
   trackingNumber?: string | null;
   items?: OrderEmailItem[];
+  subtotal?: number;
+  discountAmount?: number;
+  discountCode?: string | null;
+  shipping?: number;
   total?: number;
+  shippingAddress?: {
+    fullName?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+    phone?: string;
+  } | null;
+  orderDate?: Date | string;
 }
 
 /**
  * Dispatches an order status progression email to the customer when updated by the admin or courier.
+ * Features exact black-header AJIO format with dynamic customer name, [View Order] button, and item details.
  */
 export async function sendOrderStatusUpdateEmail({
   to,
@@ -1183,7 +1342,13 @@ export async function sendOrderStatusUpdateEmail({
   newStatus,
   trackingNumber,
   items = [],
+  subtotal,
+  discountAmount = 0,
+  discountCode,
+  shipping,
   total,
+  shippingAddress,
+  orderDate = new Date(),
 }: SendOrderStatusUpdateEmailParams): Promise<{ delivered: boolean; info?: string }> {
   const from =
     process.env.EMAIL_FROM ||
@@ -1194,178 +1359,85 @@ export async function sendOrderStatusUpdateEmail({
   const displayOrderNum =
     orderId.length > 8 ? orderId.slice(-8).toUpperCase() : orderId.toUpperCase();
   const displayName = customerName || "Valued Customer";
-  const baseUrl = process.env.NEXTAUTH_URL || "https://iqtrousers.com";
-  const orderUrl = `${baseUrl}/orders/${orderId}`;
-
-  // Configure status-specific copy, badge, and color
-  let statusTitle = "Order Update";
-  let statusHeadline = "Status Update for Your Order";
-  let statusMessage = "Your order status has been updated.";
-  let badgeColor = "#0284c7";
-  let badgeBg = "#f0f9ff";
+  const orderUrl = `https://www.iqtrousers.in/orders/${orderId}`;
 
   const normStatus = (newStatus || "").toUpperCase();
 
+  let statusBadge = "Order Update";
+  let actionLabel = "Updated";
+  let statusParagraph = "Your order status has been updated.";
+
   switch (normStatus) {
     case "CONFIRMED":
-      statusTitle = "Order Confirmed";
-      statusHeadline = "Your Order is Confirmed!";
-      statusMessage =
-        "We've verified your order and payment. Our team has reserved your items and is preparing them for packaging.";
-      badgeColor = "#0284c7";
-      badgeBg = "#f0f9ff";
+      statusBadge = "Order Confirmed";
+      actionLabel = "Confirmed";
+      statusParagraph =
+        "Thank you for shopping with us! Your IQ TROUSERS order has been confirmed and is now being tailored and prepared for packaging.";
       break;
     case "DISPATCHED":
     case "PROCESSING":
-      statusTitle = "Order Dispatched";
-      statusHeadline = "Your Package Has Been Dispatched!";
-      statusMessage =
-        "Your IQ Trousers have been tailored, packed, and handed over to our courier partner for departure.";
-      badgeColor = "#4f46e5";
-      badgeBg = "#eef2ff";
+      statusBadge = "Order Dispatched";
+      actionLabel = "Dispatched";
+      statusParagraph =
+        "Your IQ TROUSERS order has been dispatched via our logistics partner and is on its way to your delivery address.";
       break;
     case "IN_TRANSIT":
     case "SHIPPED":
-      statusTitle = "Order In Transit";
-      statusHeadline = "Your Package is In Transit!";
-      statusMessage =
-        "Your package is moving smoothly across our logistics network and is heading towards your local delivery facility.";
-      badgeColor = "#7c3aed";
-      badgeBg = "#f5f3ff";
+      statusBadge = "Order In Transit";
+      actionLabel = "In Transit";
+      statusParagraph =
+        "Your IQ TROUSERS order is in transit across our courier logistics network and is heading towards your local delivery facility.";
       break;
     case "OUT_FOR_DELIVERY":
-      statusTitle = "Out For Delivery Today";
-      statusHeadline = "Your Package is Out For Delivery!";
-      statusMessage =
-        "The courier delivery agent is on the road with your order and will arrive at your address today. Please keep your phone accessible.";
-      badgeColor = "#0d9488";
-      badgeBg = "#f0fdfa";
+      statusBadge = "Order Out For Delivery";
+      actionLabel = "Out for Delivery";
+      statusParagraph =
+        "Your IQ TROUSERS order is out for delivery today. Our courier partner delivery executive will arrive at your doorstep shortly. Please keep your phone accessible.";
       break;
     case "DELIVERED":
-      statusTitle = "Order Delivered";
-      statusHeadline = "Your Order Has Been Delivered!";
-      statusMessage =
-        "Your package was successfully delivered to your doorstep. We hope you enjoy your new IQ Trousers!";
-      badgeColor = "#059669";
-      badgeBg = "#ecfdf5";
+      statusBadge = "Order Delivered";
+      actionLabel = "Delivered";
+      statusParagraph =
+        "Your IQ TROUSERS order has been successfully delivered at the given address. We hope you enjoy your new IQ Trousers!";
       break;
     default:
-      statusTitle = `Order Status: ${newStatus}`;
-      statusHeadline = `Your Order is now ${newStatus}`;
-      statusMessage = `Your order status has transitioned to ${newStatus}.`;
+      statusBadge = `Order ${newStatus}`;
+      actionLabel = "Updated";
+      statusParagraph = `Your order status has transitioned to ${newStatus}.`;
       break;
   }
 
-  const subject = `${statusTitle} #${displayOrderNum} — IQ Trousers`;
+  const subject = `${statusBadge} #${displayOrderNum} — IQ Trousers`;
 
-  const trackingHtml = trackingNumber
-    ? `
-      <div style="background: #fafafa; border: 1px solid #e4e4e7; border-radius: 12px; padding: 16px; margin: 20px 0; text-align: center;">
-        <div style="font-size: 11px; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: 1px;">
-          📦 Courier AWB Tracking Number
-        </div>
-        <div style="margin: 8px 0; font-size: 18px; font-weight: 800; color: #18181b; letter-spacing: 1.5px; font-family: monospace;">
-          ${trackingNumber}
-        </div>
-        <div style="font-size: 12px; color: #71717a;">
-          Live tracking events are synchronized with your order dashboard.
-        </div>
-      </div>`
-    : "";
+  const htmlContent = renderAjioStyleEmail({
+    orderId,
+    customerName: displayName,
+    statusBadge,
+    statusParagraph,
+    actionLabel,
+    items,
+    subtotal,
+    discountAmount,
+    discountCode,
+    shipping,
+    total,
+    shippingAddress,
+    orderDate,
+    trackingNumber,
+  });
 
-  const itemsHtml =
-    items.length > 0
-      ? `
-      <div style="margin-top: 24px; border-top: 1px solid #e4e4e7; padding-top: 16px;">
-        <div style="font-size: 12px; font-weight: 700; color: #71717a; text-transform: uppercase; margin-bottom: 10px;">
-          Items in this shipment:
-        </div>
-        ${items
-          .map(
-            (i) => `
-          <div style="display: flex; justify-content: space-between; font-size: 13px; color: #3f3f46; margin-bottom: 6px;">
-            <span>• ${i.name} ${i.size ? `<strong style="color:#18181b;">(Size ${i.size})</strong>` : ""} × ${i.quantity}</span>
-            <span style="font-weight: 600; color:#18181b;">${formatINR(i.price * i.quantity)}</span>
-          </div>`
-          )
-          .join("")}
-      </div>`
-      : "";
-
-  const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>${subject}</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f5; margin: 0; padding: 24px; color: #18181b; }
-    .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e4e4e7; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.04); }
-    .header { background: #09090b; padding: 32px 24px; text-align: center; }
-    .logo-text { color: #ffffff; font-size: 24px; font-weight: 800; letter-spacing: 2.5px; margin: 0; text-transform: uppercase; }
-    .sublogo { color: #a1a1aa; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 6px; }
-    .badge-bar { background: ${badgeBg}; border-bottom: 1px solid ${badgeColor}33; padding: 12px 24px; text-align: center; color: ${badgeColor}; font-size: 13px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
-    .content { padding: 32px 28px; }
-    .greeting { font-size: 20px; font-weight: 700; color: #18181b; margin-bottom: 8px; }
-    .intro { font-size: 14px; line-height: 1.6; color: #52525b; margin-bottom: 20px; }
-    .headline-box { border-left: 4px solid ${badgeColor}; padding-left: 14px; margin-bottom: 20px; }
-    .headline-title { font-size: 16px; font-weight: 700; color: #18181b; }
-    .headline-desc { font-size: 13px; color: #71717a; margin-top: 4px; line-height: 1.5; }
-    .btn-container { text-align: center; margin: 32px 0 16px; }
-    .btn { display: inline-block; background: #09090b; color: #ffffff !important; padding: 14px 28px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; letter-spacing: 0.3px; }
-    .footer { background: #fafafa; padding: 24px; text-align: center; font-size: 12px; color: #a1a1aa; border-top: 1px solid #f4f4f5; line-height: 1.6; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <div class="logo-text">IQ TROUSERS</div>
-      <div class="sublogo">KRISH CLOTHING CO. • SHIPMENT TRACKING</div>
-    </div>
-    <div class="badge-bar">
-      ● ${statusTitle}
-    </div>
-    <div class="content">
-      <div class="greeting">Hello, ${displayName}</div>
-      <p class="intro">
-        We have an update regarding your IQ Trousers order <strong>#${displayOrderNum}</strong>:
-      </p>
-
-      <div class="headline-box">
-        <div class="headline-title">${statusHeadline}</div>
-        <div class="headline-desc">${statusMessage}</div>
-      </div>
-
-      ${trackingHtml}
-      ${itemsHtml}
-
-      ${total ? `<div style="margin-top: 16px; text-align: right; font-size: 14px; font-weight: 700; color: #18181b;">Total Paid: ${formatINR(total)}</div>` : ""}
-
-      <div class="btn-container">
-        <a href="${orderUrl}" class="btn">View Live Timeline</a>
-      </div>
-    </div>
-    <div class="footer">
-      Track real-time order progression and delivery milestones anytime on your account.<br>
-      © ${new Date().getFullYear()} IQ Trousers by Krish Clothing Co. All rights reserved.
-    </div>
-  </div>
-</body>
-</html>
-`;
-
-  const textContent = `IQ TROUSERS - ${statusTitle.toUpperCase()}
+  const textContent = `IQ TROUSERS - ${statusBadge.toUpperCase()}
 Order #${displayOrderNum}
 Customer: ${displayName}
 
-${statusHeadline}
-${statusMessage}
+${statusParagraph}
 
-${trackingNumber ? `Tracking / AWB Number: ${trackingNumber}\n` : ""}
+${trackingNumber ? `Courier Partner: DTDC Express\nTracking / AWB Number: ${trackingNumber}\n` : ""}
 Track live order progress online:
 ${orderUrl}
 
-Thank you for choosing IQ Trousers!`;
+Meanwhile, stay bold, stay stylish!
+- IQ Trousers Team`;
 
   const transporter = getTransporter();
 

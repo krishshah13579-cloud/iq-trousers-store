@@ -13,6 +13,7 @@ import {
   FREE_SHIPPING_THRESHOLD,
   INDIAN_STATES,
 } from "@/lib/shipping";
+import { lookupIndianPincode } from "@/lib/pincode";
 import {
   CreditCard,
   MapPin,
@@ -61,14 +62,102 @@ function CheckoutContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
 
+  // Saved addresses and auto-fill states
+  const [savedAddresses, setSavedAddresses] = useState<ShippingAddress[]>([]);
+  const [selectedAddressIndex, setSelectedAddressIndex] = useState<number | "new">("new");
+  const [saveAddressForFuture, setSaveAddressForFuture] = useState<boolean>(true);
+  const [pincodeLoading, setPincodeLoading] = useState<boolean>(false);
+  const [pincodeNotice, setPincodeNotice] = useState<string | null>(null);
+
+  // Fetch customer profile & saved addresses
   useEffect(() => {
-    if (session?.user?.name) {
-      setFormData((prev) => ({
-        ...prev,
-        fullName: prev.fullName || session.user?.name || "",
-      }));
+    let isMounted = true;
+
+    async function loadProfileAndAddresses() {
+      let localAddrs: ShippingAddress[] = [];
+      try {
+        const cached = localStorage.getItem("iq_customer_saved_addresses");
+        if (cached) localAddrs = JSON.parse(cached);
+      } catch {}
+
+      try {
+        const res = await fetch("/api/user/saved-addresses");
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            if (data.user) {
+              setFormData((prev) => ({
+                ...prev,
+                fullName: prev.fullName || data.user.name || session?.user?.name || "",
+                phone: prev.phone || data.user.phone || "",
+              }));
+            }
+
+            const combined = [...(data.addresses || [])];
+            for (const loc of localAddrs) {
+              if (!combined.some((c) => c.address === loc.address && c.zipCode === loc.zipCode)) {
+                combined.push(loc);
+              }
+            }
+
+            if (combined.length > 0) {
+              setSavedAddresses(combined);
+              setSelectedAddressIndex(0);
+              const first = combined[0];
+              setFormData({
+                fullName: first.fullName || data.user?.name || session?.user?.name || "",
+                address: first.address,
+                city: first.city,
+                state: first.state,
+                zipCode: first.zipCode,
+                country: first.country || "India",
+                phone: first.phone || data.user?.phone || "",
+              });
+            }
+          }
+          return;
+        }
+      } catch {}
+
+      if (isMounted && localAddrs.length > 0) {
+        setSavedAddresses(localAddrs);
+        setSelectedAddressIndex(0);
+        setFormData(localAddrs[0]);
+      } else if (isMounted && session?.user?.name) {
+        setFormData((prev) => ({
+          ...prev,
+          fullName: prev.fullName || session.user?.name || "",
+        }));
+      }
     }
+
+    loadProfileAndAddresses();
+    return () => {
+      isMounted = false;
+    };
   }, [session]);
+
+  const handleZipCodeChange = async (val: string) => {
+    setFormData((prev) => ({ ...prev, zipCode: val }));
+    const clean = val.replace(/\D/g, "");
+    if (clean.length === 6) {
+      setPincodeLoading(true);
+      const res = await lookupIndianPincode(clean);
+      setPincodeLoading(false);
+      if (res) {
+        setFormData((prev) => ({
+          ...prev,
+          city: res.city,
+          state: res.state,
+          country: "India",
+        }));
+        setPincodeNotice(`✓ ${res.city}, ${res.state}`);
+        setErrors((prev) => ({ ...prev, city: undefined, state: undefined, zipCode: undefined }));
+      }
+    } else {
+      setPincodeNotice(null);
+    }
+  };
 
   // Discount state initialized from sessionStorage
   const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscount | null>(() => {
@@ -140,8 +229,8 @@ function CheckoutContent() {
   const isFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
   const shipping = items.length === 0 ? 0 : isFreeShipping ? 0 : hasEnteredLocation ? shippingQuote.amount : 0;
   const shortfall = Math.max(0, Math.round((FREE_SHIPPING_THRESHOLD - subtotal) * 100) / 100);
-  // Estimated tax (5%) rounded off to nearest rupee
-  const estimatedTax = Math.round(subtotal * 0.05);
+  // Estimated tax: GST is all-inclusive in displayed product prices (₹0 extra)
+  const estimatedTax = 0;
 
   let currentDiscountAmount = 0;
   if (appliedDiscount && subtotal >= (appliedDiscount.minOrder || 0)) {
@@ -155,8 +244,8 @@ function CheckoutContent() {
     }
   }
 
-  // Total with round off amount included (rounded to nearest rupee without displaying a separate round-off line to user)
-  const rawTotal = Math.max(0, subtotal - currentDiscountAmount + shipping + estimatedTax);
+  // Total with round off amount included (GST already included in product prices)
+  const rawTotal = Math.max(0, subtotal - currentDiscountAmount + shipping);
   const finalTotal = Math.round(rawTotal);
 
   const effectiveFullName = formData.fullName || session?.user?.name || "";
@@ -211,6 +300,21 @@ function CheckoutContent() {
       ...formData,
       fullName: effectiveFullName,
     };
+
+    // Save address for future checkout if opted in
+    if (saveAddressForFuture && typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("iq_customer_saved_addresses");
+        const list: ShippingAddress[] = cached ? JSON.parse(cached) : [];
+        const deduped = list.filter(
+          (a) => !(a.address === submissionAddress.address && a.zipCode === submissionAddress.zipCode)
+        );
+        localStorage.setItem(
+          "iq_customer_saved_addresses",
+          JSON.stringify([submissionAddress, ...deduped].slice(0, 5))
+        );
+      } catch {}
+    }
 
     try {
       const res = await fetch("/api/payment/payu/initiate", {
@@ -365,6 +469,87 @@ function CheckoutContent() {
                 <h2 className="text-lg font-semibold text-neutral-900">Shipping Address</h2>
               </div>
 
+              {/* Saved Addresses Selector */}
+              {savedAddresses.length > 0 && (
+                <div className="mb-6 pb-5 border-b border-neutral-100 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                      Saved Addresses ({savedAddresses.length})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedAddressIndex("new");
+                        setFormData({
+                          fullName: session?.user?.name || "",
+                          address: "",
+                          city: "",
+                          state: "",
+                          zipCode: "",
+                          country: "India",
+                          phone: formData.phone || "",
+                        });
+                        setPincodeNotice(null);
+                      }}
+                      className={`text-xs font-semibold transition-colors ${
+                        selectedAddressIndex === "new"
+                          ? "text-neutral-900 underline font-bold"
+                          : "text-neutral-600 hover:text-neutral-900"
+                      }`}
+                    >
+                      + Enter New Address
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {savedAddresses.map((addr, idx) => {
+                      const isSelected = selectedAddressIndex === idx;
+                      return (
+                        <div
+                          key={idx}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => {
+                            setSelectedAddressIndex(idx);
+                            setFormData({
+                              fullName: addr.fullName || session?.user?.name || "",
+                              address: addr.address,
+                              city: addr.city,
+                              state: addr.state,
+                              zipCode: addr.zipCode,
+                              country: addr.country || "India",
+                              phone: addr.phone || formData.phone || "",
+                            });
+                            setPincodeNotice(`✓ ${addr.city}, ${addr.state}`);
+                            setErrors({});
+                          }}
+                          className={`p-3.5 rounded-xl border cursor-pointer transition-all text-xs text-left relative ${
+                            isSelected
+                              ? "border-neutral-900 bg-neutral-50/80 ring-1 ring-neutral-900 shadow-xs"
+                              : "border-neutral-200 hover:border-neutral-400 bg-white"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between font-semibold text-neutral-900 mb-1">
+                            <span className="truncate pr-2">{addr.fullName || `Address #${idx + 1}`}</span>
+                            {isSelected && (
+                              <span className="w-2 h-2 rounded-full bg-neutral-900 shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-neutral-600 line-clamp-2 leading-relaxed">
+                            {addr.address}
+                          </p>
+                          <p className="text-neutral-800 font-medium mt-1">
+                            {addr.city}, {addr.state} - {addr.zipCode}
+                          </p>
+                          {addr.phone && (
+                            <p className="text-neutral-500 text-[11px] mt-0.5">📞 {addr.phone}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-4">
                 <div>
                   <label htmlFor="fullName" className="block text-xs font-semibold text-neutral-700 mb-1">
@@ -394,7 +579,7 @@ function CheckoutContent() {
                     type="text"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    placeholder="Address"
+                    placeholder="House/Flat No., Building Name, Street, Landmark"
                     className={`w-full px-3.5 py-2.5 text-sm rounded-lg border ${
                       errors.address ? "border-red-400 bg-red-50/20" : "border-neutral-200"
                     } focus:outline-none focus:ring-2 focus:ring-neutral-900`}
@@ -452,15 +637,24 @@ function CheckoutContent() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="zipCode" className="block text-xs font-semibold text-neutral-700 mb-1">
-                      PIN / Postal Code *
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label htmlFor="zipCode" className="block text-xs font-semibold text-neutral-700">
+                        PIN / Postal Code *
+                      </label>
+                      {pincodeLoading && (
+                        <span className="text-[11px] text-neutral-500 animate-pulse">Auto-detecting...</span>
+                      )}
+                      {!pincodeLoading && pincodeNotice && (
+                        <span className="text-[11px] font-semibold text-emerald-700">{pincodeNotice}</span>
+                      )}
+                    </div>
                     <input
                       id="zipCode"
                       type="text"
                       value={formData.zipCode}
-                      onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
-                      placeholder="380001"
+                      onChange={(e) => handleZipCodeChange(e.target.value)}
+                      placeholder="380001 (Auto-fills city/state)"
+                      maxLength={6}
                       className={`w-full px-3.5 py-2.5 text-sm rounded-lg border ${
                         errors.zipCode ? "border-red-400 bg-red-50/20" : "border-neutral-200"
                       } focus:outline-none focus:ring-2 focus:ring-neutral-900`}
@@ -479,7 +673,7 @@ function CheckoutContent() {
                       type="text"
                       value={formData.country}
                       onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                      placeholder="INDIA"
+                      placeholder="India"
                       className={`w-full px-3.5 py-2.5 text-sm rounded-lg border ${
                         errors.country ? "border-red-400 bg-red-50/20" : "border-neutral-200"
                       } focus:outline-none focus:ring-2 focus:ring-neutral-900`}
@@ -507,6 +701,19 @@ function CheckoutContent() {
                   {errors.phone && (
                     <p className="text-xs text-red-600 mt-1">{errors.phone}</p>
                   )}
+                </div>
+
+                {/* Save Address Checkbox */}
+                <div className="pt-2">
+                  <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-medium text-neutral-700 select-none">
+                    <input
+                      type="checkbox"
+                      checked={saveAddressForFuture}
+                      onChange={(e) => setSaveAddressForFuture(e.target.checked)}
+                      className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+                    />
+                    <span>Save this address for future purchases</span>
+                  </label>
                 </div>
               </div>
             </div>
@@ -713,8 +920,8 @@ function CheckoutContent() {
                 </div>
 
                 <div className="flex justify-between">
-                  <span>Estimated Tax (5%)</span>
-                  <span className="font-medium text-neutral-900">{formatPrice(estimatedTax)}</span>
+                  <span>GST (Tax)</span>
+                  <span className="font-medium text-emerald-700">Included in Price</span>
                 </div>
 
                 <div className="border-t border-neutral-200 pt-4 flex justify-between items-baseline">
