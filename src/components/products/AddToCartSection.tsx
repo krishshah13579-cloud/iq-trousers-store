@@ -176,15 +176,8 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
     return colorsList;
   })();
 
-  // Auto-select first in-stock color if available, or first color
-  useEffect(() => {
-    if (!selectedColor && availableColors.length > 0) {
-      const firstInStock = availableColors.find((col) => getVariantStock(null, col) > 0);
-      setSelectedColor(firstInStock || availableColors[0]);
-    }
-  }, [availableColors, selectedColor]);
-
-  const activeColor = selectedColor || (availableColors.length > 0 ? availableColors[0] : null);
+  // Do NOT preselect any color - customer must actively pick their desired color
+  const activeColor = selectedColor;
 
   // Priority sort: Show available loose size pieces first, followed by sold-out sizes
   const sortedSizes = [...availableSizes].sort((a, b) => {
@@ -213,12 +206,23 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
     return 0;
   });
 
-  const currentVariantStock = selectedSize
-    ? getVariantStock(selectedSize, activeColor)
-    : product.stock;
+  // Variant stock is strictly gated by selectedSize when sizes exist
+  const currentVariantStock =
+    availableSizes.length > 0
+      ? selectedSize
+        ? getVariantStock(selectedSize, activeColor)
+        : 0
+      : availableColors.length > 0
+      ? activeColor
+        ? getVariantStock(null, activeColor)
+        : 0
+      : product.stock;
 
-  const isOutOfStock = product.stock <= 0 || (Boolean(selectedSize) && currentVariantStock <= 0);
-  const isLowStock = currentVariantStock > 0 && currentVariantStock <= 5;
+  const isOutOfStock =
+    product.stock <= 0 ||
+    (Boolean(selectedSize) && currentVariantStock <= 0) ||
+    (Boolean(selectedColor) && getVariantStock(null, selectedColor) <= 0);
+  const isLowStock = Boolean(selectedSize) && currentVariantStock > 0 && currentVariantStock <= 5;
 
   const handleDecrement = () => {
     if (quantity > 1) {
@@ -227,6 +231,14 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
   };
 
   const handleIncrement = () => {
+    if (availableColors.length > 0 && !selectedColor) {
+      setColorError(true);
+      return;
+    }
+    if (availableSizes.length > 0 && !selectedSize) {
+      setSizeError(true);
+      return;
+    }
     if (quantity < currentVariantStock) {
       setQuantity((q) => q + 1);
     }
@@ -347,9 +359,13 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
             ? selectedSize
               ? `Size ${selectedSize} is out of stock in ${activeColor || "this color"}`
               : "Out of stock"
-            : isLowStock
-            ? `Only ${currentVariantStock} left in stock - order soon`
-            : "In stock and ready to ship"}
+            : selectedSize
+            ? isLowStock
+              ? `Only ${currentVariantStock} left in stock - order soon`
+              : "In stock and ready to ship"
+            : availableColors.length > 0 && !selectedColor
+            ? "In stock • Choose a color & size to order"
+            : "In stock • Choose a size to order"}
         </span>
       </div>
 
@@ -391,9 +407,9 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                       onClick={() => {
                         setSelectedColor(color);
                         setColorError(false);
-                        if (selectedSize && getVariantStock(selectedSize, color) <= 0) {
-                          setSelectedSize(null);
-                        }
+                        setSelectedSize(null);
+                        setQuantity(1);
+                        setSizeError(false);
                       }}
                       title={isColorOutOfStock ? `${color} (Sold Out)` : color}
                       aria-label={`Select color ${color}`}
@@ -474,7 +490,12 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
                       disabled={isSoldOut}
                       onClick={() => {
                         if (isSoldOut) return;
+                        if (availableColors.length > 0 && !selectedColor) {
+                          setColorError(true);
+                          return;
+                        }
                         setSelectedSize(size);
+                        setQuantity(1);
                         setSizeError(false);
                       }}
                       className={`relative min-w-[46px] h-10 px-3 text-xs font-medium rounded-lg border transition-all duration-150 flex items-center justify-center overflow-hidden ${
@@ -502,7 +523,7 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
               {sizeError && (
                 <p className="text-xs text-rose-600 font-medium flex items-center gap-1.5 mt-1.5 animate-fadeIn">
                   <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span>Please choose your size before adding to cart</span>
+                  <span>Please choose your size before adding pieces to cart</span>
                 </p>
               )}
             </div>
@@ -510,28 +531,46 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
             {/* Quantity Selector */}
-            <div className="flex items-center justify-between border border-gray-200 rounded-full px-3 py-1.5 w-full sm:w-36 bg-gray-50/50">
-              <button
-                type="button"
-                onClick={handleDecrement}
-                disabled={quantity <= 1}
-                aria-label="Decrease quantity"
-                className="p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                <Minus className="w-3.5 h-3.5" />
-              </button>
-              <span className="text-sm font-semibold text-gray-900 px-2 select-none">
-                {quantity}
-              </span>
-              <button
-                type="button"
-                onClick={handleIncrement}
-                disabled={quantity >= currentVariantStock || currentVariantStock <= 0}
-                aria-label="Increase quantity"
-                className="p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>
+            <div className="flex flex-col">
+              <div className="flex items-center justify-between border border-gray-200 rounded-full px-3 py-1.5 w-full sm:w-36 bg-gray-50/50">
+                <button
+                  type="button"
+                  onClick={handleDecrement}
+                  disabled={
+                    quantity <= 1 ||
+                    (availableColors.length > 0 && !selectedColor) ||
+                    (availableSizes.length > 0 && !selectedSize)
+                  }
+                  aria-label="Decrease quantity"
+                  className="p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-sm font-semibold text-gray-900 px-2 select-none">
+                  {quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleIncrement}
+                  disabled={
+                    (availableColors.length > 0 && !selectedColor) ||
+                    (availableSizes.length > 0 && !selectedSize) ||
+                    quantity >= currentVariantStock ||
+                    currentVariantStock <= 0
+                  }
+                  aria-label="Increase quantity"
+                  className="p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              {availableSizes.length > 0 && !selectedSize && (
+                <span className="text-[10px] text-gray-400 mt-1 pl-1">
+                  {availableColors.length > 0 && !selectedColor
+                    ? "Select color & size to add pieces"
+                    : "Select size to add pieces"}
+                </span>
+              )}
             </div>
 
             {/* Add to Cart Button */}
