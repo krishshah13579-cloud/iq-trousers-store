@@ -62,6 +62,41 @@ export default function OrderTable({ initialOrders }: { initialOrders: OrderData
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
   const [deleteModalOrder, setDeleteModalOrder] = useState<OrderData | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [adminTrackingStatus, setAdminTrackingStatus] = useState<
+    Record<string, { status: string; label: string; loading?: boolean }>
+  >({});
+
+  const verifyDTDC = async (orderId: string, awb: string) => {
+    if (!awb) return;
+    setAdminTrackingStatus((prev) => ({
+      ...prev,
+      [orderId]: { status: "", label: "", loading: true },
+    }));
+    try {
+      const res = await fetch(`/api/tracking/dtdc?awb=${encodeURIComponent(awb)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAdminTrackingStatus((prev) => ({
+          ...prev,
+          [orderId]: {
+            status: data.currentStatus,
+            label: data.statusLabel || "Verified on DTDC",
+            loading: false,
+          },
+        }));
+      } else {
+        setAdminTrackingStatus((prev) => ({
+          ...prev,
+          [orderId]: { status: "ERROR", label: "Lookup Failed", loading: false },
+        }));
+      }
+    } catch {
+      setAdminTrackingStatus((prev) => ({
+        ...prev,
+        [orderId]: { status: "ERROR", label: "Check Failed", loading: false },
+      }));
+    }
+  };
 
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => ({
@@ -219,6 +254,14 @@ export default function OrderTable({ initialOrders }: { initialOrders: OrderData
                             <div className="text-[11px] font-sans text-gray-500">
                               {itemsCount} {itemsCount === 1 ? "item" : "items"}
                             </div>
+                            {order.trackingNumber && (
+                              <div className="mt-1">
+                                <span className="text-[10px] font-mono text-red-700 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded inline-flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-red-600 inline-block" />
+                                  DTDC: {order.trackingNumber}
+                                </span>
+                              </div>
+                            )}
                           </div>
 
                           {/* Customer */}
@@ -371,17 +414,32 @@ export default function OrderTable({ initialOrders }: { initialOrders: OrderData
                                   </div>
                                 </div>
 
-                                {/* Tracking Number Management */}
-                                <div>
-                                  <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-1.5 mb-2">
-                                    <Truck className="w-4 h-4" />
-                                    Tracking Number
-                                  </h4>
-                                  <div className="flex gap-2">
+                                {/* DTDC Tracking Number Management */}
+                                <div className="bg-neutral-50/70 p-3.5 rounded-xl border border-neutral-200/80">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-800 flex items-center gap-1.5">
+                                      <Truck className="w-4 h-4 text-[#cc0000]" />
+                                      DTDC Tracking / AWB Consignment No.
+                                    </h4>
+                                    {order.trackingNumber && (
+                                      <a
+                                        href={`https://www.dtdc.in/tracking/shipment-tracking.asp?tracking_no=${encodeURIComponent(
+                                          order.trackingNumber
+                                        )}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[11px] font-semibold text-[#cc0000] hover:underline inline-flex items-center gap-1"
+                                      >
+                                        <span>Track on DTDC Portal</span>
+                                        <ExternalLink className="w-3 h-3" />
+                                      </a>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
                                     <input
                                       type="text"
                                       placeholder={
-                                        order.trackingNumber || "Enter tracking number"
+                                        order.trackingNumber || "Enter DTDC AWB Consignment No. (e.g. D12345678)"
                                       }
                                       value={
                                         trackingInputs[order.id] ??
@@ -394,17 +452,45 @@ export default function OrderTable({ initialOrders }: { initialOrders: OrderData
                                           [order.id]: e.target.value,
                                         }))
                                       }
-                                      className="flex-1 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs focus:outline-hidden focus:ring-1 focus:ring-black"
+                                      className="flex-1 min-w-[200px] px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-mono focus:outline-hidden focus:ring-1 focus:ring-black"
                                     />
                                     <button
                                       type="button"
                                       onClick={() => handleUpdateTracking(order.id)}
                                       disabled={updatingId === order.id}
-                                      className="px-3 py-1.5 bg-black text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+                                      className="px-3.5 py-1.5 bg-black text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
                                     >
-                                      Save
+                                      Save AWB
                                     </button>
+                                    {(trackingInputs[order.id] || order.trackingNumber) && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          verifyDTDC(
+                                            order.id,
+                                            (trackingInputs[order.id] || order.trackingNumber || "").trim()
+                                          )
+                                        }
+                                        disabled={adminTrackingStatus[order.id]?.loading}
+                                        className="px-3.5 py-1.5 bg-red-50 text-[#cc0000] border border-red-200 rounded-lg text-xs font-semibold hover:bg-red-100 transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                                      >
+                                        {adminTrackingStatus[order.id]?.loading && (
+                                          <Loader2 className="w-3 h-3 animate-spin" />
+                                        )}
+                                        <span>Verify Live Status</span>
+                                      </button>
+                                    )}
                                   </div>
+
+                                  {/* Verification result pill */}
+                                  {adminTrackingStatus[order.id] && !adminTrackingStatus[order.id].loading && (
+                                    <div className="mt-2.5 text-xs flex items-center gap-2">
+                                      <span className="text-gray-500 font-medium">DTDC Live Status:</span>
+                                      <span className="font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                                        {adminTrackingStatus[order.id].label}
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Order Deletion & Customer Page Actions */}
