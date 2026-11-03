@@ -9,34 +9,18 @@ import DeliveryPincodeChecker from "@/components/products/DeliveryPincodeChecker
 import ProductDetailsAccordions from "@/components/products/ProductDetailsAccordions";
 import ProductReviewsSection from "@/components/products/ProductReviewsSection";
 import ProductCard from "@/components/products/ProductCard";
-import { withDbTimeout } from "@/lib/dbQuery";
 import { ALL_FALLBACK_PRODUCTS } from "@/lib/fallbackData";
 
 interface ProductDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
-// Enable ISR with 60-second background revalidation
-export const revalidate = 60;
-
-// Pre-render all products at build time so /products/[id] loads in 0ms
-export async function generateStaticParams() {
-  return (ALL_FALLBACK_PRODUCTS as any[]).flatMap((p) => [
-    { id: p.id },
-    ...(p.slug && p.slug !== p.id ? [{ id: p.slug }] : []),
-  ]);
-}
+// Always fetch live product data from database so newly uploaded photos and edits display immediately
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
   const { id } = await params;
-
-  const fallbackProduct =
-    (ALL_FALLBACK_PRODUCTS as any[]).find(
-      (p) =>
-        p.id === id ||
-        (p.slug && p.slug.toLowerCase() === id.toLowerCase()) ||
-        (p.name && p.name.toLowerCase() === id.toLowerCase())
-    ) || null;
 
   const isDirectId = id.length > 20 || id.startsWith("prod_") || id.startsWith("cmv");
   const whereClause = isDirectId
@@ -48,39 +32,36 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
         ],
       };
 
-  const productQuery = prisma.product.findFirst({
-    where: whereClause,
-    include: {
-      category: true,
-      reviews: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
+  let dbProduct: any = null;
+  let dbRelated: any[] = [];
+
+  try {
+    dbProduct = await prisma.product.findFirst({
+      where: whereClause,
+      include: {
+        category: true,
+        reviews: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
             },
           },
-        },
-        orderBy: {
-          createdAt: "desc",
+          orderBy: {
+            createdAt: "desc",
+          },
         },
       },
-    },
-  });
+    });
 
-  const targetCategoryId = fallbackProduct?.categoryId;
-  const relatedFallback = targetCategoryId
-    ? (ALL_FALLBACK_PRODUCTS as any[])
-        .filter((p: any) => p.id !== (fallbackProduct?.id || id) && p.categoryId === targetCategoryId)
-        .slice(0, 4)
-    : [];
-
-  const relatedQuery = targetCategoryId
-    ? prisma.product.findMany({
+    if (dbProduct?.categoryId) {
+      dbRelated = await prisma.product.findMany({
         where: {
-          categoryId: targetCategoryId,
-          id: { not: fallbackProduct?.id || id },
+          categoryId: dbProduct.categoryId,
+          id: { not: dbProduct.id },
           active: true,
         },
         select: {
@@ -104,17 +85,30 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
           },
         },
         take: 4,
-      })
-    : Promise.resolve(relatedFallback);
+      });
+    }
+  } catch (dbErr) {
+    console.error("[PRODUCT DETAIL DB QUERY ERROR]", dbErr);
+  }
 
-  const [dbProduct, dbRelated] = (await withDbTimeout(
-    Promise.all([productQuery, relatedQuery]),
-    [fallbackProduct, relatedFallback] as any,
-    3000
-  )) || [fallbackProduct, relatedFallback];
+  const fallbackProduct =
+    (ALL_FALLBACK_PRODUCTS as any[]).find(
+      (p) =>
+        p.id === id ||
+        (p.slug && p.slug.toLowerCase() === id.toLowerCase()) ||
+        (p.name && p.name.toLowerCase() === id.toLowerCase())
+    ) || null;
 
+  // Prioritize the live database record with the latest uploaded photos
   const product = (dbProduct || fallbackProduct) as any;
-  let relatedProducts: any[] = dbRelated && dbRelated.length > 0 ? dbRelated : relatedFallback;
+  let relatedProducts: any[] =
+    dbRelated && dbRelated.length > 0
+      ? dbRelated
+      : fallbackProduct?.categoryId
+      ? (ALL_FALLBACK_PRODUCTS as any[])
+          .filter((p: any) => p.id !== (product?.id || id) && p.categoryId === fallbackProduct.categoryId)
+          .slice(0, 4)
+      : [];
 
   if (!product || !product.active) {
     notFound();
