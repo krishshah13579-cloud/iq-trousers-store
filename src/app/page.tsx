@@ -114,6 +114,9 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Semantic H1 for SEO, Accessibility & Google Site Name detection */}
+      <h1 className="sr-only">IQ Trousers — Premium Men&apos;s Trousers &amp; Chinos Direct from Manufacturer</h1>
+
       {/* 1. Hero Carousel */}
       <HeroCarousel />
 
